@@ -2,9 +2,9 @@
 
 import { ReactNode } from "react";
 
-import { NotificationBell } from "@/components/layout/NotificationBell";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";

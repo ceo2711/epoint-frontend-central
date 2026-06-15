@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNotifications } from "@/contexts/NotificationsContext";
+import { useAuth } from "@/features/auth/AuthContext";
+import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/features/auth/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ModalProvider } from "@/contexts/ModalContext";
-import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { NotificationsProvider } from "@/features/notifications/NotificationsContext";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (

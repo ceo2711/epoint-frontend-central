@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { DocumentThumbnail } from "@/components/portal/DocumentThumbnail";
+import { DocumentThumbnail } from "@/features/documents/components/DocumentThumbnail";
 import { Header } from "@/components/layout/Header";
 import { VerificationBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { translateStatus } from "@/i18n";
 import { ApiError, api } from "@/lib/api";

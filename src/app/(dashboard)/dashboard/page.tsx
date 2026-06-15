@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function DashboardPage() {

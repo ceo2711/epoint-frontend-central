@@ -1,7 +1,7 @@
 "use client";
 
 import { Header } from "@/components/layout/Header";
-import { NotificationsList } from "@/components/notifications/NotificationsList";
+import { NotificationsList } from "@/features/notifications/components/NotificationsList";
 import { PageContent } from "@/components/ui/Card";
 import { useTranslation } from "@/contexts/LanguageContext";
 

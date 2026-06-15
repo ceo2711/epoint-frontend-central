@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
 import type { Client } from "@/types/api";

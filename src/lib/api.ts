@@ -1,4 +1,4 @@
-import { notifyUnauthorized } from "@/lib/auth-unauthorized";
+import { notifyUnauthorized } from "@/features/auth/auth-unauthorized";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 

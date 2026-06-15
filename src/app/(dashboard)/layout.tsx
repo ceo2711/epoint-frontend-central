@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ShellProvider } from "@/contexts/ShellContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth/AuthContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
