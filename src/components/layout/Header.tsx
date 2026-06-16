@@ -13,10 +13,13 @@ export function Header({
   title,
   subtitle,
   actions,
+  bareTitle = false,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** Si es true, no agrega el saludo con nombre. */
+  bareTitle?: boolean;
 }) {
   const { logout, user } = useAuth();
   const { t } = useTranslation();
@@ -37,7 +40,17 @@ export function Header({
             </svg>
           </button>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold tracking-tight text-slate-900 sm:text-xl lg:text-2xl">{title}</h1>
+            <h1 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl lg:text-2xl">
+              {user && !bareTitle ? (
+                <>
+                  {t("header.hello")}{" "}
+                  <span className="text-blue-600">{user.first_name}</span>,{" "}
+                  <span className="font-semibold text-slate-800">{title}</span>
+                </>
+              ) : (
+                <span className="truncate">{title}</span>
+              )}
+            </h1>
             {subtitle && <p className="mt-0.5 truncate text-sm text-slate-500">{subtitle}</p>}
           </div>
         </div>

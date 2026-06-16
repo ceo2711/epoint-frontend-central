@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen app-shell-bg">
+    <div className="flex h-dvh min-h-0 app-shell-bg">
       {mobileOpen && (
         <button
           type="button"
@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       )}
       <Sidebar />
-      <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
     </div>
   );
 }

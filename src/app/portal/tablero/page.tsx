@@ -18,7 +18,7 @@ export default function PortalTableroPage() {
   const { token, user } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
-  const { board, error, load } = useBoard(token, user?.client_id, t("portalBoard.unavailable"));
+  const { board, error, loading, load } = useBoard(token, user?.client_id, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
   const [comment, setComment] = useState("");
   const [creds, setCreds] = useState({ username: "", password: "" });
@@ -51,15 +51,15 @@ export default function PortalTableroPage() {
 
   return (
     <>
-      <Header title={t("portalBoard.title")} subtitle={t("portalBoard.subtitle")} />
+      <Header title={t("portalBoard.headerContext")} subtitle={t("portalBoard.subtitle")} />
       <PageContent>
-        {error && <div className="alert alert-info mb-4">{error}</div>}
-        {!board && !error && (
+        {error && !loading && <div className="alert alert-info mb-4">{error}</div>}
+        {loading && (
           <div className="flex justify-center py-16">
             <LoadingSpinner label={t("portalBoard.loading")} />
           </div>
         )}
-        {board && <TaskBoard board={board} onSelectCard={setSelected} />}
+        {!loading && board && <TaskBoard board={board} onSelectCard={setSelected} />}
       </PageContent>
 
       {selected && (

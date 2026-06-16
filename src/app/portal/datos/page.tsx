@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
@@ -48,29 +49,49 @@ export default function PortalDatosPage() {
   const [addrErrors, setAddrErrors] = useState<{ month?: string; year?: string }>({});
   const [vehicle, setVehicle] = useState({ model: "", year: "", color: "" });
   const [vehicleErrors, setVehicleErrors] = useState<{ year?: string }>({});
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingAddress, setSavingAddress] = useState(false);
-  const [savingVehicle, setSavingVehicle] = useState(false);
+  const [profileErrors, setProfileErrors] = useState<{ ssn?: string; dob?: string }>({});
+  const [storedSsn, setStoredSsn] = useState<string | null>(null);
+  const [ssnVisible, setSsnVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function loadStoredSsn(hasSsn: boolean) {
+    if (!token || !hasSsn) {
+      setStoredSsn(null);
+      return;
+    }
+    try {
+      const data = await api.get<{ ssn: string }>("/portal/ssn", token);
+      setStoredSsn(data.ssn);
+    } catch {
+      setStoredSsn(null);
+    }
+  }
 
   useEffect(() => {
     if (!token) return;
-    api.get<Client>("/portal/me", token).then((c) => {
-      setClient(c);
-      if (c.date_of_birth) setDob(c.date_of_birth);
-      const a = c.addresses?.find((x) => x.type === "CURRENT");
-      if (a) {
-        setAddr({
-          street: a.street,
-          city: a.city,
-          state: a.state,
-          zip_code: a.zip_code,
-          residence_since_month: String(a.residence_since_month ?? ""),
-          residence_since_year: String(a.residence_since_year ?? ""),
-        });
-      }
-      const v = c.vehicles?.find((x) => x.order === 1);
-      if (v) setVehicle({ model: v.model, year: String(v.year), color: v.color });
-    });
+    setLoading(true);
+    api
+      .get<Client>("/portal/me", token)
+      .then(async (c) => {
+        setClient(c);
+        if (c.date_of_birth) setDob(c.date_of_birth);
+        const a = c.addresses?.find((x) => x.type === "CURRENT");
+        if (a) {
+          setAddr({
+            street: a.street,
+            city: a.city,
+            state: a.state,
+            zip_code: a.zip_code,
+            residence_since_month: String(a.residence_since_month ?? ""),
+            residence_since_year: String(a.residence_since_year ?? ""),
+          });
+        }
+        const v = c.vehicles?.find((x) => x.order === 1);
+        if (v) setVehicle({ model: v.model, year: String(v.year), color: v.color });
+        await loadStoredSsn(c.has_ssn);
+      })
+      .finally(() => setLoading(false));
   }, [token]);
 
   function clearFeedback() {
@@ -109,185 +130,285 @@ export default function PortalDatosPage() {
     return Object.keys(next).length === 0;
   }
 
-  async function saveProfile(e: FormEvent) {
-    e.preventDefault();
-    if (!token) return;
-    clearFeedback();
-    setSavingProfile(true);
-    try {
-      await api.patch("/portal/profile", { ssn, date_of_birth: dob }, token);
-      setMessage(t("portalData.profileUpdated"));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("portalData.saveError"));
-    } finally {
-      setSavingProfile(false);
+  function validateProfileFields() {
+    const next: { ssn?: string; dob?: string } = {};
+    const ssnTrimmed = ssn.trim();
+    const ssnDigits = ssnTrimmed.replace(/\D/g, "");
+
+    if (ssnTrimmed && ssnDigits.length !== 9) {
+      next.ssn = t("portalData.ssnInvalid");
     }
+    if (dob.trim() && Number.isNaN(Date.parse(dob))) {
+      next.dob = t("portalData.dateOfBirthInvalid");
+    }
+
+    setProfileErrors(next);
+    return Object.keys(next).length === 0;
   }
 
-  async function saveAddress(e: FormEvent) {
+  function validateAllFields() {
+    const profileOk = validateProfileFields();
+    const addressOk = validateAddressFields();
+    const vehicleOk = validateVehicleFields();
+    return profileOk && addressOk && vehicleOk;
+  }
+
+  async function saveAll(e: FormEvent) {
     e.preventDefault();
     if (!token) return;
     clearFeedback();
-    if (!validateAddressFields()) return;
+    if (!validateAllFields()) return;
+
+    const year = parseRequiredInt(vehicle.year);
+    if (year === null || Number.isNaN(year)) return;
 
     const month = parseOptionalInt(addr.residence_since_month);
-    const year = parseOptionalInt(addr.residence_since_year);
+    const profilePayload: { ssn?: string; date_of_birth?: string } = {};
+    const ssnTrimmed = ssn.trim();
+    if (ssnTrimmed) {
+      profilePayload.ssn = ssnTrimmed;
+    }
+    if (dob.trim()) {
+      profilePayload.date_of_birth = dob;
+    }
 
-    setSavingAddress(true);
+    setSaving(true);
     try {
+      if (Object.keys(profilePayload).length > 0) {
+        await api.patch("/portal/profile", profilePayload, token);
+      }
+
       await api.post(
         "/portal/addresses",
         {
           type: "CURRENT",
           ...addr,
           residence_since_month: month,
-          residence_since_year: year,
+          residence_since_year: parseOptionalInt(addr.residence_since_year),
         },
         token,
       );
-      setMessage(t("portalData.addressSaved"));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("portalData.saveError"));
-    } finally {
-      setSavingAddress(false);
-    }
-  }
 
-  async function saveVehicle(e: FormEvent) {
-    e.preventDefault();
-    if (!token) return;
-    clearFeedback();
-    if (!validateVehicleFields()) return;
-
-    const year = parseRequiredInt(vehicle.year);
-    if (year === null || Number.isNaN(year)) return;
-
-    setSavingVehicle(true);
-    try {
       await api.post(
         "/portal/vehicles",
         { order: 1, model: vehicle.model, year, color: vehicle.color },
         token,
       );
-      setMessage(t("portalData.vehicleSaved"));
+
+      const updated = await api.get<Client>("/portal/me", token);
+      setClient(updated);
+      setSsn("");
+      setSsnVisible(false);
+      await loadStoredSsn(updated.has_ssn);
+      setMessage(t("portalData.dataSaved"));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("portalData.saveError"));
     } finally {
-      setSavingVehicle(false);
+      setSaving(false);
     }
   }
 
   return (
-    <>
-      <Header title={t("portalData.title")} subtitle={t("portalData.subtitle")} />
-      <PageContent className="space-y-6">
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-error">{error}</div>}
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <Header title={t("portalData.headerContext")} subtitle={t("portalData.subtitle")} />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <PageContent className="space-y-6">
+          {message && <div className="alert alert-success">{message}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("portalData.basicData")}</h2>
-          <form onSubmit={saveProfile} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <PasswordInput
-                label={t("portalData.ssn")}
-                value={ssn}
-                onChange={(e) => setSsn(e.target.value)}
-                placeholder={client?.has_ssn ? t("portalData.ssnMasked") : t("portalData.ssnPlaceholder")}
-                showLabel={t("login.showPassword")}
-                hideLabel={t("login.hidePassword")}
-              />
-              <Input
-                label={t("portalData.dateOfBirth")}
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={savingProfile}>
-              {savingProfile ? t("common.loading") : t("portalData.saveProfile")}
-            </Button>
-          </form>
-        </Card>
+          {loading ? (
+            <PortalPageLoader label={t("portalData.loading")} />
+          ) : (
+          <Card className="p-4 sm:p-6">
+            <form id="portal-data-form" onSubmit={saveAll} className="space-y-8">
+              <section className="space-y-4">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                  {t("portalData.basicData")}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <div className="mb-2 sm:min-h-[4.5rem]">
+                      <label htmlFor="portal-ssn" className="input-label">
+                        {t("portalData.ssn")}
+                      </label>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{t("portalData.ssnDescription")}</p>
+                    </div>
+                    {client?.has_ssn && (
+                      <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                        <p className="text-xs font-medium text-slate-600">{t("portalData.ssnOnFile")}</p>
+                        <div className="relative mt-2">
+                          <div className="input-field flex min-h-[2.75rem] items-center bg-white pr-11 font-mono text-sm text-slate-800">
+                            {storedSsn
+                              ? ssnVisible
+                                ? storedSsn
+                                : t("portalData.ssnMasked")
+                              : t("common.loading")}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSsnVisible((visible) => !visible)}
+                            disabled={!storedSsn}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+                            aria-label={ssnVisible ? t("login.hidePassword") : t("login.showPassword")}
+                          >
+                            {ssnVisible ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6 0 10 8 10 8a18.36 18.36 0 0 1-2.16 3.19" />
+                                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s4 8 10 8a9.74 9.74 0 0 0 5.39-1.61" />
+                                <line x1="2" x2="22" y1="2" y2="2" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">{t("portalData.ssnViewHint")}</p>
+                      </div>
+                    )}
+                    <PasswordInput
+                      id="portal-ssn"
+                      value={ssn}
+                      onChange={(e) => setSsn(e.target.value)}
+                      placeholder={
+                        client?.has_ssn ? t("portalData.ssnPlaceholderUpdate") : t("portalData.ssnPlaceholder")
+                      }
+                      showLabel={t("login.showPassword")}
+                      hideLabel={t("login.hidePassword")}
+                      error={profileErrors.ssn}
+                    />
+                    {client?.has_ssn && (
+                      <p className="mt-1 text-xs text-slate-500">{t("portalData.ssnHint")}</p>
+                    )}
+                  </div>
+                  <div>
+                    <div className="mb-2 sm:min-h-[4.5rem]">
+                      <label htmlFor="portal-dob" className="input-label">
+                        {t("portalData.dateOfBirth")}
+                      </label>
+                    </div>
+                    <Input
+                      id="portal-dob"
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      error={profileErrors.dob}
+                    />
+                  </div>
+                </div>
+              </section>
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("portalData.currentAddress")}</h2>
-          <form onSubmit={saveAddress} className="space-y-4">
-            <Input
-              label={t("portalData.street")}
-              value={addr.street}
-              onChange={(e) => setAddr({ ...addr, street: e.target.value })}
-              placeholder={t("portalData.streetPlaceholder")}
-              required
-            />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Input label={t("portalData.city")} value={addr.city} onChange={(e) => setAddr({ ...addr, city: e.target.value })} required />
-              <Input label={t("portalData.state")} value={addr.state} onChange={(e) => setAddr({ ...addr, state: e.target.value })} required />
-              <Input label={t("portalData.zip")} value={addr.zip_code} onChange={(e) => setAddr({ ...addr, zip_code: e.target.value })} required />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label={t("portalData.monthSince")}
-                type="number"
-                min={1}
-                max={12}
-                inputMode="numeric"
-                value={addr.residence_since_month}
-                onChange={(e) => {
-                  setAddr({ ...addr, residence_since_month: e.target.value });
-                  if (addrErrors.month) setAddrErrors((prev) => ({ ...prev, month: undefined }));
-                }}
-                placeholder={t("portalData.monthPlaceholder")}
-                error={addrErrors.month}
-              />
-              <Input
-                label={t("portalData.yearSince")}
-                type="number"
-                min={1900}
-                max={2100}
-                inputMode="numeric"
-                value={addr.residence_since_year}
-                onChange={(e) => {
-                  setAddr({ ...addr, residence_since_year: e.target.value });
-                  if (addrErrors.year) setAddrErrors((prev) => ({ ...prev, year: undefined }));
-                }}
-                placeholder={t("portalData.yearPlaceholder")}
-                error={addrErrors.year}
-              />
-            </div>
-            <Button type="submit" disabled={savingAddress}>
-              {savingAddress ? t("common.loading") : t("portalData.saveAddress")}
-            </Button>
-          </form>
-        </Card>
+              <section className="space-y-4 border-t border-slate-100 pt-8">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                  {t("portalData.currentAddress")}
+                </h2>
+                <Input
+                  label={t("portalData.street")}
+                  value={addr.street}
+                  onChange={(e) => setAddr({ ...addr, street: e.target.value })}
+                  placeholder={t("portalData.streetPlaceholder")}
+                  required
+                />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Input
+                    label={t("portalData.city")}
+                    value={addr.city}
+                    onChange={(e) => setAddr({ ...addr, city: e.target.value })}
+                    required
+                  />
+                  <Input
+                    label={t("portalData.state")}
+                    value={addr.state}
+                    onChange={(e) => setAddr({ ...addr, state: e.target.value })}
+                    required
+                  />
+                  <Input
+                    label={t("portalData.zip")}
+                    value={addr.zip_code}
+                    onChange={(e) => setAddr({ ...addr, zip_code: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label={t("portalData.monthSince")}
+                    type="number"
+                    min={1}
+                    max={12}
+                    inputMode="numeric"
+                    value={addr.residence_since_month}
+                    onChange={(e) => {
+                      setAddr({ ...addr, residence_since_month: e.target.value });
+                      if (addrErrors.month) setAddrErrors((prev) => ({ ...prev, month: undefined }));
+                    }}
+                    placeholder={t("portalData.monthPlaceholder")}
+                    error={addrErrors.month}
+                  />
+                  <Input
+                    label={t("portalData.yearSince")}
+                    type="number"
+                    min={1900}
+                    max={2100}
+                    inputMode="numeric"
+                    value={addr.residence_since_year}
+                    onChange={(e) => {
+                      setAddr({ ...addr, residence_since_year: e.target.value });
+                      if (addrErrors.year) setAddrErrors((prev) => ({ ...prev, year: undefined }));
+                    }}
+                    placeholder={t("portalData.yearPlaceholder")}
+                    error={addrErrors.year}
+                  />
+                </div>
+              </section>
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("portalData.mainVehicle")}</h2>
-          <form onSubmit={saveVehicle} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Input label={t("portalData.model")} value={vehicle.model} onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })} required />
-              <Input
-                label={t("portalData.year")}
-                type="number"
-                min={1900}
-                max={currentYear()}
-                inputMode="numeric"
-                value={vehicle.year}
-                onChange={(e) => {
-                  setVehicle({ ...vehicle, year: e.target.value });
-                  if (vehicleErrors.year) setVehicleErrors({});
-                }}
-                placeholder={t("portalData.vehicleYearPlaceholder")}
-                error={vehicleErrors.year}
-                required
-              />
-              <Input label={t("portalData.color")} value={vehicle.color} onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })} required />
-            </div>
-            <Button type="submit" disabled={savingVehicle}>
-              {savingVehicle ? t("common.loading") : t("portalData.saveVehicle")}
-            </Button>
-          </form>
-        </Card>
-      </PageContent>
-    </>
+              <section className="space-y-4 border-t border-slate-100 pt-8">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                  {t("portalData.mainVehicle")}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Input
+                    label={t("portalData.model")}
+                    value={vehicle.model}
+                    onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
+                    required
+                  />
+                  <Input
+                    label={t("portalData.year")}
+                    type="number"
+                    min={1900}
+                    max={currentYear()}
+                    inputMode="numeric"
+                    value={vehicle.year}
+                    onChange={(e) => {
+                      setVehicle({ ...vehicle, year: e.target.value });
+                      if (vehicleErrors.year) setVehicleErrors({});
+                    }}
+                    placeholder={t("portalData.vehicleYearPlaceholder")}
+                    error={vehicleErrors.year}
+                    required
+                  />
+                  <Input
+                    label={t("portalData.color")}
+                    value={vehicle.color}
+                    onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })}
+                    required
+                  />
+                </div>
+              </section>
+            </form>
+          </Card>
+          )}
+        </PageContent>
+      </div>
+
+      {!loading && (
+        <div className="shrink-0 flex justify-end px-4 py-4 sm:px-6 lg:px-8">
+          <Button type="submit" form="portal-data-form" disabled={saving} size="lg" className="shadow-lg">
+            {saving ? t("common.loading") : t("portalData.saveData")}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -20,7 +20,7 @@ export default function RolesPage() {
 
   return (
     <>
-      <Header title={t("roles.title")} subtitle={t("roles.subtitle")} />
+      <Header title={t("roles.headerContext")} subtitle={t("roles.subtitle")} />
       <PageContent>
         {loading && (
           <div className="flex justify-center py-16">

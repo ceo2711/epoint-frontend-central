@@ -8,18 +8,27 @@ import type { Board } from "@/features/boards/types";
 export function useBoard(token: string | null, clientId: number | null | undefined, unavailableMessage: string) {
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!token || !clientId) return;
-    api
-      .get<Board>(`/boards/client/${clientId}`, token)
-      .then(setBoard)
-      .catch(() => setError(unavailableMessage));
+    setLoading(true);
+    try {
+      const data = await api.get<Board>(`/boards/client/${clientId}`, token);
+      setBoard(data);
+      setError("");
+    } catch {
+      setBoard(null);
+      setError(unavailableMessage);
+    } finally {
+      setLoading(false);
+    }
   }, [token, clientId, unavailableMessage]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!token || !clientId) return;
+    void load();
+  }, [load, token, clientId]);
 
-  return { board, error, load, setError };
+  return { board, error, loading, load, setError };
 }

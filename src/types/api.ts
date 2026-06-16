@@ -55,6 +55,7 @@ export interface Paginated<T> {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   must_change_password: boolean;
   user: User;
@@ -130,6 +131,11 @@ export interface Vehicle {
   color: string;
 }
 
+export interface LocalizedStringList {
+  en: string[];
+  es: string[];
+}
+
 export interface DocumentBrief {
   id: number;
   type: string;
@@ -139,6 +145,8 @@ export interface DocumentBrief {
   download_url?: string | null;
   expires_at: string | null;
   uploaded_at: string;
+  rejection_reasons?: LocalizedStringList | null;
+  approval_reasons?: LocalizedStringList | null;
 }
 
 export interface BoardCard {

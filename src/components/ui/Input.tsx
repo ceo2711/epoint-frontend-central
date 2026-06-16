@@ -39,6 +39,7 @@ interface PasswordInputProps extends Omit<InputProps, "type"> {
   onToggle?: () => void;
   showLabel?: string;
   hideLabel?: string;
+  error?: string;
 }
 
 export function PasswordInput({
@@ -48,6 +49,8 @@ export function PasswordInput({
   id = "password",
   showLabel = "Show password",
   hideLabel = "Hide password",
+  error,
+  className = "",
   ...props
 }: PasswordInputProps) {
   const [internalShow, setInternalShow] = useState(false);
@@ -65,7 +68,7 @@ export function PasswordInput({
         <input
           id={id}
           type={show ? "text" : "password"}
-          className="input-field pr-11"
+          className={`input-field pr-11 ${error ? "border-red-300 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : ""} ${className}`}
           {...props}
         />
         <button
@@ -87,6 +90,7 @@ export function PasswordInput({
           )}
         </button>
       </div>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

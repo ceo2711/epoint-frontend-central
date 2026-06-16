@@ -10,7 +10,7 @@ export default function NotificacionesPage() {
 
   return (
     <>
-      <Header title={t("notifications.title")} subtitle={t("notifications.subtitle")} />
+      <Header title={t("notifications.headerContext")} subtitle={t("notifications.subtitle")} />
       <PageContent>
         <NotificationsList />
       </PageContent>

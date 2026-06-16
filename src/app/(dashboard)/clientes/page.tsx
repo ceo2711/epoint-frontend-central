@@ -77,7 +77,7 @@ export default function ClientesPage() {
   return (
     <>
       <Header
-        title={t("clients.title")}
+        title={t("clients.headerContext")}
         subtitle={t("clients.subtitle")}
         actions={
           hasPermission("clients:create") ? (

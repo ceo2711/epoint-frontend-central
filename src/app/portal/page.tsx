@@ -23,10 +23,7 @@ export default function PortalHomePage() {
 
   return (
     <>
-      <Header
-        title={t("portal.greeting", { name: user?.first_name ?? "" })}
-        subtitle={t("portal.subtitle")}
-      />
+      <Header title={t("portal.headerContext")} subtitle={t("portal.subtitle")} />
       <PageContent className="space-y-6">
         <Card className="relative overflow-hidden p-4 sm:p-6 lg:p-8">
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-blue-100/60 blur-2xl" />

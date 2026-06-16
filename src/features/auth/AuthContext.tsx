@@ -12,7 +12,12 @@ import { useRouter } from "next/navigation";
 
 import { api } from "@/lib/api";
 import { setUnauthorizedHandler } from "@/features/auth/auth-unauthorized";
-import { clearToken, getToken, setToken } from "@/features/auth/auth-storage";
+import {
+  persistLoginSession,
+  restoreSession,
+  revokeSession,
+} from "@/features/auth/auth-session";
+import { clearToken } from "@/features/auth/auth-storage";
 import type { LoginResponse, User } from "@/types/api";
 
 interface AuthContextValue {
@@ -34,26 +39,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const currentToken = getToken();
-    if (!currentToken) {
+    const session = await restoreSession();
+    if (!session) {
       setUser(null);
       setTokenState(null);
       return;
     }
-    const me = await api.get<User>("/auth/me", currentToken);
-    setUser(me);
-    setTokenState(currentToken);
+    setUser(session.user);
+    setTokenState(session.token);
   }, []);
 
   useEffect(() => {
-    refreshUser()
-      .catch(() => {
-        clearToken();
-        setUser(null);
-        setTokenState(null);
+    restoreSession()
+      .then((session) => {
+        if (!session) return;
+        setUser(session.user);
+        setTokenState(session.token);
       })
       .finally(() => setIsLoading(false));
-  }, [refreshUser]);
+  }, []);
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -71,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email.trim().toLowerCase(),
         password: password.trim(),
       });
-      setToken(response.access_token);
+      persistLoginSession(response.access_token, response.refresh_token);
       setTokenState(response.access_token);
       setUser(response.user);
       if (response.must_change_password) {
@@ -86,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    void revokeSession();
     clearToken();
     setUser(null);
     setTokenState(null);

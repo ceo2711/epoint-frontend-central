@@ -48,7 +48,6 @@ export function PortalCredentialsCard({
   if (!client.has_portal_access) return null;
 
   const portalEmail = client.portal_email ?? client.email;
-  const portalUrl = client.portal_login_url ?? "/login";
 
   async function handleReset() {
     if (!token) return;
@@ -118,23 +117,7 @@ export function PortalCredentialsCard({
         </div>
       </div>
 
-      <div className="mt-3 rounded-lg border border-emerald-100 bg-white/80 px-4 py-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.portalLink")}</p>
-        <a
-          href={portalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1 block break-all text-sm font-medium text-blue-700 hover:underline"
-        >
-          {portalUrl}
-        </a>
-        <div className="mt-2">
-          <CopyButton value={portalUrl} label={t("clientDetail.copyLink")} />
-        </div>
-      </div>
-
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      <p className="mt-3 text-xs text-emerald-900/70">{t("clientDetail.portalAccessNote")}</p>
     </div>
   );
 }

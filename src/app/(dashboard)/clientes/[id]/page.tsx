@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
+import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
 import { DocumentThumbnail } from "@/features/documents/components/DocumentThumbnail";
 import { StatusBadge, VerificationBadge } from "@/components/ui/Badge";
@@ -183,8 +184,8 @@ export default function ClienteDetailPage() {
     return (
       <>
         <Header
-          title={user ? `${user.first_name} ${user.last_name}` : t("clientDetail.title")}
-          subtitle={user?.email}
+          title={t("clientDetail.headerContextLoading")}
+          subtitle={t("clientDetail.loading")}
         />
         <div className="flex flex-1 items-center justify-center py-24">
           <LoadingSpinner label={t("clientDetail.loading")} />
@@ -196,8 +197,8 @@ export default function ClienteDetailPage() {
   return (
     <>
       <Header
-        title={user ? `${user.first_name} ${user.last_name}` : t("clientDetail.title")}
-        subtitle={user?.email}
+        title={t("clientDetail.headerContext", { clientName })}
+        subtitle={client.email}
       />
       <PageContent className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -355,6 +356,13 @@ export default function ClienteDetailPage() {
                       </Button>
                     )}
                     <VerificationBadge status={d.verification_status} />
+                    <DocumentVerificationTooltip
+                      doc={d}
+                      locale={locale}
+                      rejectionTitle={t("portalDocs.rejectionTitle")}
+                      approvalTitle={t("portalDocs.approvalTitle")}
+                      viewLabel={t("portalDocs.viewVerificationDetails")}
+                    />
                   </div>
                 </div>
               ))}

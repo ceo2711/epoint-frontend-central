@@ -20,7 +20,7 @@ export default function AreasPage() {
 
   return (
     <>
-      <Header title={t("areas.title")} subtitle={t("areas.subtitle")} />
+      <Header title={t("areas.headerContext")} subtitle={t("areas.subtitle")} />
       <PageContent>
         {loading && (
           <div className="flex justify-center py-16">

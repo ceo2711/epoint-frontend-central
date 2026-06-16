@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { DocumentThumbnail } from "@/features/documents/components/DocumentThumbnail";
+import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { Header } from "@/components/layout/Header";
 import { VerificationBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
@@ -16,18 +18,25 @@ export default function PortalDocumentosPage() {
   const { token } = useAuth();
   const { t, locale } = useTranslation();
   const [client, setClient] = useState<Client | null>(null);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  function reload() {
+  function reload(options?: { silent?: boolean }) {
     if (!token) return;
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
     Promise.all([
       api.get<Client>("/portal/me", token),
       api.get<DocumentBrief[]>("/portal/documents", token),
-    ]).then(([profile, documents]) => {
-      setClient({ ...profile, documents });
-    });
+    ])
+      .then(([profile, documents]) => {
+        setClient({ ...profile, documents });
+      })
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }
 
   useEffect(() => {
@@ -40,7 +49,7 @@ export default function PortalDocumentosPage() {
 
   useEffect(() => {
     if (!token || !isVerifying) return;
-    const interval = window.setInterval(() => reload(), 5000);
+    const interval = window.setInterval(() => reload({ silent: true }), 5000);
     return () => window.clearInterval(interval);
   }, [token, isVerifying]);
 
@@ -66,7 +75,7 @@ export default function PortalDocumentosPage() {
       mergeUploadedDoc(uploaded);
       setMessage(t("portalDocs.uploadSuccess"));
       setIsError(false);
-      reload();
+      reload({ silent: true });
     } catch (err) {
       setMessage(err instanceof ApiError ? err.message : t("portalDocs.uploadError"));
       setIsError(true);
@@ -77,13 +86,17 @@ export default function PortalDocumentosPage() {
 
   return (
     <>
-      <Header title={t("portalDocs.title")} subtitle={t("portalDocs.subtitle")} />
+      <Header title={t("portalDocs.headerContext")} subtitle={t("portalDocs.subtitle")} />
       <PageContent className="space-y-4">
         {message && (
           <div className={`alert ${isError ? "alert-error" : "alert-success"}`}>
             {message}
           </div>
         )}
+        {loading ? (
+          <PortalPageLoader label={t("portalDocs.loading")} />
+        ) : (
+          <>
         <p className="text-sm leading-relaxed text-slate-600">{t("portalDocs.instructions")}</p>
         <div className="grid gap-4">
           {DOCUMENT_TYPES.map((dt) => {
@@ -105,9 +118,18 @@ export default function PortalDocumentosPage() {
                     <div className="min-w-0">
                       <h3 className="font-semibold text-slate-900">{label}</h3>
                       {doc ? (
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <span className="text-sm text-slate-500">{doc.original_filename}</span>
-                          <VerificationBadge status={doc.verification_status} />
+                        <div className="mt-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm text-slate-500">{doc.original_filename}</span>
+                            <VerificationBadge status={doc.verification_status} />
+                            <DocumentVerificationTooltip
+                              doc={doc}
+                              locale={locale}
+                              rejectionTitle={t("portalDocs.rejectionTitle")}
+                              approvalTitle={t("portalDocs.approvalTitle")}
+                              viewLabel={t("portalDocs.viewVerificationDetails")}
+                            />
+                          </div>
                         </div>
                       ) : (
                         <span className="badge badge-amber mt-1">{t("portalDocs.pendingUpload")}</span>
@@ -139,6 +161,8 @@ export default function PortalDocumentosPage() {
             );
           })}
         </div>
+          </>
+        )}
       </PageContent>
     </>
   );

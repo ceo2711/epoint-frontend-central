@@ -20,7 +20,7 @@ export default function UsuariosPage() {
 
   return (
     <>
-      <Header title={t("users.title")} subtitle={t("users.subtitle")} />
+      <Header title={t("users.headerContext")} subtitle={t("users.subtitle")} />
       <PageContent>
         {loading && (
           <div className="flex justify-center py-16">

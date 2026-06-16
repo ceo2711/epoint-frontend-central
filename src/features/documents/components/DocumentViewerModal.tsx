@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { isImageMime, isPdfMime } from "@/features/documents/utils/documentMime";
 
 interface DocumentViewerModalProps {
   url: string;
@@ -9,14 +10,6 @@ interface DocumentViewerModalProps {
   mimeType?: string | null;
   title?: string;
   onClose: () => void;
-}
-
-function isImageMime(mimeType?: string | null) {
-  return !!mimeType?.startsWith("image/");
-}
-
-function isPdfMime(mimeType?: string | null) {
-  return mimeType === "application/pdf";
 }
 
 export function DocumentViewerModal({
