@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import { getAttachmentViewerUrl } from "@/lib/contentBlobCache";
 
-export function useAttachmentContentUrl(attachmentId: number | null, token: string | null, enabled: boolean) {
+export function useAttachmentContentUrl(
+  attachmentId: number | null,
+  token: string | null,
+  enabled: boolean,
+  mimeType?: string | null,
+  filename?: string,
+) {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,12 +25,14 @@ export function useAttachmentContentUrl(attachmentId: number | null, token: stri
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    api
-      .getBlob(`/boards/attachments/${attachmentId}/content`, token)
-      .then((data) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(new Blob([data]));
-        setUrl(objectUrl);
+    getAttachmentViewerUrl(attachmentId, token, mimeType, filename)
+      .then((viewerUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(viewerUrl);
+          return;
+        }
+        objectUrl = viewerUrl;
+        setUrl(viewerUrl);
       })
       .catch(() => {
         if (!cancelled) setUrl(null);
@@ -34,7 +42,7 @@ export function useAttachmentContentUrl(attachmentId: number | null, token: stri
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [attachmentId, token, enabled]);
+  }, [attachmentId, token, enabled, mimeType, filename]);
 
   return url;
 }

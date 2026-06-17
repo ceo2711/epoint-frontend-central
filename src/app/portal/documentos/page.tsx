@@ -12,6 +12,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { translateStatus } from "@/i18n";
 import { ApiError, api } from "@/lib/api";
+import { prefetchDocuments } from "@/lib/contentBlobCache";
 import { DOCUMENT_TYPES, type Client, type DocumentBrief } from "@/types/api";
 
 export default function PortalDocumentosPage() {
@@ -42,6 +43,11 @@ export default function PortalDocumentosPage() {
   useEffect(() => {
     reload();
   }, [token]);
+
+  useEffect(() => {
+    if (!token || !client?.documents?.length) return;
+    prefetchDocuments(client.documents, token);
+  }, [client?.documents, token]);
 
   const isVerifying = client?.documents?.some(
     (d) => d.verification_status === "PENDIENTE" || d.verification_status === "EN_PROCESO",

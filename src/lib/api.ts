@@ -78,11 +78,16 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+export interface BlobResponse {
+  data: ArrayBuffer;
+  mimeType: string;
+}
+
 async function requestBlob(
   path: string,
   options: RequestOptions = {},
   isRetry = false,
-): Promise<ArrayBuffer> {
+): Promise<BlobResponse> {
   const { token, skipAuthRefresh, headers, ...rest } = options;
 
   let response: Response;
@@ -127,7 +132,10 @@ async function requestBlob(
     throw new ApiError(response.status, message);
   }
 
-  return response.arrayBuffer();
+  const mimeType =
+    response.headers.get("Content-Type")?.split(";")[0]?.trim() || "application/octet-stream";
+  const data = await response.arrayBuffer();
+  return { data, mimeType };
 }
 
 async function uploadRequest<T>(

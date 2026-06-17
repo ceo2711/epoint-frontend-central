@@ -324,6 +324,7 @@ export const en: Messages = {
     viewVerificationDetails: "View verification details",
     viewDocument: "View document",
     downloadDocument: "Download file",
+    pdfLoadError: "Could not load the PDF. Try downloading it or try again.",
     pendingUpload: "Pending upload",
   },
   portalBoard: {

@@ -14,6 +14,8 @@ import { api } from "@/lib/api";
 import type { MentionableUser } from "@/features/boards/utils/commentMentions";
 import { encodeMentionsInBody } from "@/features/boards/utils/commentMentions";
 import { useAttachmentContentUrl } from "@/features/boards/hooks/useAttachmentContentUrl";
+import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
+import { prefetchAttachments } from "@/lib/contentBlobCache";
 import type { BoardCard, CardAttachment, CardComment } from "@/features/boards/types";
 
 interface CardDetailModalProps {
@@ -79,6 +81,8 @@ export function CardDetailModal({
     viewingAttachment?.id ?? null,
     token,
     !!viewingAttachment,
+    viewingAttachment?.mime_type,
+    viewingAttachment?.original_filename,
   );
   const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
 
@@ -86,6 +90,11 @@ export function CardDetailModal({
     setDescription(cardDescription(card));
     setEditingDescription(false);
   }, [card]);
+
+  useEffect(() => {
+    if (!token || card.attachments.length === 0) return;
+    prefetchAttachments(card.attachments, token);
+  }, [card.attachments, token]);
 
   useEffect(() => {
     if (!token) {
@@ -416,12 +425,31 @@ export function CardDetailModal({
         </div>
       </div>
 
-      {viewingAttachment && viewingAttachmentUrl && (
+      {viewingAttachment && (
         <DocumentViewerModal
-          url={viewingAttachmentUrl}
+          url={viewingAttachmentUrl ?? ""}
+          loading={
+            !isPdfMime(
+              viewingAttachment.mime_type ?? inferMimeFromFilename(viewingAttachment.original_filename),
+            ) && !viewingAttachmentUrl
+          }
           filename={viewingAttachment.original_filename}
           mimeType={viewingAttachment.mime_type}
           title={viewingAttachment.original_filename}
+          pdfSource={
+            token &&
+            isPdfMime(
+              viewingAttachment.mime_type ?? inferMimeFromFilename(viewingAttachment.original_filename),
+            )
+              ? {
+                  kind: "attachment",
+                  id: viewingAttachment.id,
+                  token,
+                  mimeType: viewingAttachment.mime_type,
+                  filename: viewingAttachment.original_filename,
+                }
+              : undefined
+          }
           onClose={() => setViewingAttachment(null)}
         />
       )}

@@ -24,6 +24,8 @@ import { formatClientConflict, useClientAvailabilityCheck } from "@/features/cli
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
+import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
+import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
 import { loadPortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
@@ -79,7 +81,21 @@ export default function ClienteDetailPage() {
     form.phone,
     { excludeClientId: idValid ? id : undefined, enabled: editing },
   );
-  const { url: viewingDocUrl } = useDocumentContentUrl(viewingDoc?.id ?? null, token, !!viewingDoc);
+  const viewingDocIsPdf =
+    !!viewingDoc &&
+    isPdfMime(viewingDoc.mime_type ?? inferMimeFromFilename(viewingDoc.original_filename));
+  const { url: viewingDocUrl, loading: viewingDocLoading } = useDocumentContentUrl(
+    viewingDoc?.id ?? null,
+    token,
+    !!viewingDoc && !viewingDocIsPdf,
+    viewingDoc?.mime_type,
+    viewingDoc?.original_filename,
+  );
+
+  useEffect(() => {
+    if (!token || !client?.documents?.length) return;
+    prefetchDocuments(client.documents, token);
+  }, [client?.documents, token]);
 
   const emailError = availability?.email
     ? formatClientConflict(t, "email", availability.email)
@@ -142,8 +158,7 @@ export default function ClienteDetailPage() {
   async function handleDownloadDocument(doc: DocumentBrief) {
     if (!token) return;
     try {
-      const data = await api.getBlob(`/documents/${doc.id}/content`, token);
-      const url = URL.createObjectURL(new Blob([data]));
+      const url = await getDocumentViewerUrl(doc.id, token, doc.mime_type, doc.original_filename);
       const link = document.createElement("a");
       link.href = url;
       link.download = doc.original_filename;
@@ -445,12 +460,24 @@ export default function ClienteDetailPage() {
         )}
       </PageContent>
 
-      {viewingDoc && viewingDocUrl && (
+      {viewingDoc && (
         <DocumentViewerModal
-          url={viewingDocUrl}
+          url={viewingDocUrl ?? ""}
+          loading={!viewingDocIsPdf && (viewingDocLoading || !viewingDocUrl)}
           filename={viewingDoc.original_filename}
           mimeType={viewingDoc.mime_type}
           title={translateStatus(locale, "documentTypes", viewingDoc.type)}
+          pdfSource={
+            viewingDocIsPdf && token
+              ? {
+                  kind: "document",
+                  id: viewingDoc.id,
+                  token,
+                  mimeType: viewingDoc.mime_type,
+                  filename: viewingDoc.original_filename,
+                }
+              : undefined
+          }
           onClose={() => setViewingDoc(null)}
         />
       )}

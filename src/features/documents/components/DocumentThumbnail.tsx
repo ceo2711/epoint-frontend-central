@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
 import { ImageContentThumbnail } from "@/features/documents/components/ImageContentThumbnail";
 import { PdfPageThumbnail } from "@/features/documents/components/PdfPageThumbnail";
-import { isImageMime, isPdfMime } from "@/features/documents/utils/documentMime";
+import { isImageMime, isPdfMime, inferMimeFromFilename } from "@/features/documents/utils/documentMime";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
+import { prefetchDocumentContent } from "@/lib/contentBlobCache";
 import type { DocumentBrief } from "@/types/api";
 
 interface DocumentThumbnailProps {
@@ -29,7 +30,21 @@ function PdfFallbackIcon() {
 export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   const [open, setOpen] = useState(false);
   const { token } = useAuth();
-  const { url: contentUrl } = useDocumentContentUrl(doc.id, token, open);
+  const effectiveMime = doc.mime_type ?? inferMimeFromFilename(doc.original_filename);
+  const isPdf = isPdfMime(effectiveMime);
+
+  const { url: contentUrl, loading: contentLoading } = useDocumentContentUrl(
+    doc.id,
+    token,
+    open && !isPdf,
+    doc.mime_type,
+    doc.original_filename,
+  );
+
+  useEffect(() => {
+    if (!token) return;
+    prefetchDocumentContent(doc.id, token, doc.mime_type, doc.original_filename);
+  }, [doc.id, doc.mime_type, doc.original_filename, token]);
 
   const openViewer = () => setOpen(true);
 
@@ -38,22 +53,28 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
 
   let thumb: ReactNode;
 
-  if (isImageMime(doc.mime_type)) {
+  if (isImageMime(effectiveMime)) {
     thumb = (
-      <button type="button" className={`${thumbClass} block overflow-hidden shadow-sm`} title={viewLabel} onClick={openViewer}>
+      <button
+        type="button"
+        className={`${thumbClass} flex h-20 w-20 items-center justify-center overflow-hidden shadow-sm`}
+        title={viewLabel}
+        onClick={openViewer}
+      >
         <ImageContentThumbnail
           documentId={doc.id}
           token={token}
           alt={doc.original_filename}
-          className="h-20 w-20 object-cover"
+          mimeType={doc.mime_type}
+          className="h-full w-full"
         />
       </button>
     );
-  } else if (isPdfMime(doc.mime_type)) {
+  } else if (isPdf) {
     thumb = (
       <button
         type="button"
-        className={`${thumbClass} block overflow-hidden shadow-sm`}
+        className={`${thumbClass} flex h-20 w-20 items-center justify-center overflow-hidden shadow-sm`}
         title={viewLabel}
         onClick={openViewer}
       >
@@ -61,9 +82,10 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
           documentId={doc.id}
           token={token}
           alt={doc.original_filename}
-          className="h-20 w-20 object-cover"
+          mimeType={doc.mime_type}
+          className="h-full w-full"
           fallback={
-            <span className="flex h-20 w-20 flex-col items-center justify-center border-red-100 bg-red-50 text-red-600">
+            <span className="flex h-full w-full flex-col items-center justify-center border-red-100 bg-red-50 text-red-600">
               <PdfFallbackIcon />
             </span>
           }
@@ -86,11 +108,23 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   return (
     <>
       {thumb}
-      {open && contentUrl && (
+      {open && (
         <DocumentViewerModal
-          url={contentUrl}
+          url={contentUrl ?? ""}
+          loading={!isPdf && (contentLoading || !contentUrl)}
           filename={doc.original_filename}
           mimeType={doc.mime_type}
+          pdfSource={
+            isPdf && token
+              ? {
+                  kind: "document",
+                  id: doc.id,
+                  token,
+                  mimeType: doc.mime_type,
+                  filename: doc.original_filename,
+                }
+              : undefined
+          }
           onClose={() => setOpen(false)}
         />
       )}

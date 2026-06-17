@@ -323,6 +323,7 @@ export const es = {
     viewVerificationDetails: "Ver detalle de la verificación",
     viewDocument: "Ver documento",
     downloadDocument: "Descargar archivo",
+    pdfLoadError: "No se pudo cargar el PDF. Intentá descargarlo o volvé a intentar.",
     pendingUpload: "Pendiente de subir",
   },
   portalBoard: {

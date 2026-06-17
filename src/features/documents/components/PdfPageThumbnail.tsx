@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { THUMBNAIL_IMG_CLASS } from "@/features/documents/components/ImageContentThumbnail";
 import { fetchPdfFirstPageThumbnailFromApi } from "@/features/documents/utils/pdfThumbnail";
 
 interface PdfPageThumbnailProps {
@@ -9,10 +10,18 @@ interface PdfPageThumbnailProps {
   token: string | null;
   alt: string;
   className?: string;
+  mimeType?: string | null;
   fallback: React.ReactNode;
 }
 
-export function PdfPageThumbnail({ documentId, token, alt, className, fallback }: PdfPageThumbnailProps) {
+export function PdfPageThumbnail({
+  documentId,
+  token,
+  alt,
+  className,
+  mimeType,
+  fallback,
+}: PdfPageThumbnailProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -23,19 +32,33 @@ export function PdfPageThumbnail({ documentId, token, alt, className, fallback }
     }
 
     let cancelled = false;
+    let attempt = 0;
 
-    fetchPdfFirstPageThumbnailFromApi(documentId, token)
-      .then((dataUrl) => {
-        if (!cancelled) setSrc(dataUrl);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    const load = () => {
+      fetchPdfFirstPageThumbnailFromApi(documentId, token, mimeType, alt)
+        .then((dataUrl) => {
+          if (!cancelled) {
+            setSrc(dataUrl);
+            setFailed(false);
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (attempt < 1) {
+            attempt += 1;
+            window.setTimeout(load, 800);
+            return;
+          }
+          setFailed(true);
+        });
+    };
+
+    load();
 
     return () => {
       cancelled = true;
     };
-  }, [documentId, token]);
+  }, [documentId, token, mimeType, alt]);
 
   if (failed) return <>{fallback}</>;
 
@@ -48,5 +71,5 @@ export function PdfPageThumbnail({ documentId, token, alt, className, fallback }
     );
   }
 
-  return <img src={src} alt={alt} className={className} />;
+  return <img src={src} alt={alt} className={`${THUMBNAIL_IMG_CLASS} ${className}`} />;
 }

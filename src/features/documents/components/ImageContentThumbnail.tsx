@@ -2,17 +2,30 @@
 
 import { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import {
+  getDocumentThumbnailUrl,
+  peekDocumentThumbnailUrl,
+  prefetchDocumentContent,
+} from "@/lib/contentBlobCache";
+
+export const THUMBNAIL_IMG_CLASS = "pointer-events-none h-full w-full object-contain";
 
 interface ImageContentThumbnailProps {
   documentId: number;
   token: string | null;
   alt: string;
   className?: string;
+  mimeType?: string | null;
 }
 
-export function ImageContentThumbnail({ documentId, token, alt, className }: ImageContentThumbnailProps) {
-  const [src, setSrc] = useState<string | null>(null);
+export function ImageContentThumbnail({
+  documentId,
+  token,
+  alt,
+  className,
+  mimeType,
+}: ImageContentThumbnailProps) {
+  const [src, setSrc] = useState<string | null>(() => peekDocumentThumbnailUrl(documentId));
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -21,25 +34,43 @@ export function ImageContentThumbnail({ documentId, token, alt, className }: Ima
       return;
     }
 
-    let cancelled = false;
-    let objectUrl: string | null = null;
+    prefetchDocumentContent(documentId, token, mimeType, alt);
 
-    api
-      .getBlob(`/documents/${documentId}/content`, token)
-      .then((data) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(new Blob([data]));
-        setSrc(objectUrl);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    const cached = peekDocumentThumbnailUrl(documentId);
+    if (cached) {
+      setSrc(cached);
+      setFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    let attempt = 0;
+
+    const load = () => {
+      getDocumentThumbnailUrl(documentId, token, mimeType, alt)
+        .then((objectUrl) => {
+          if (!cancelled) {
+            setSrc(objectUrl);
+            setFailed(false);
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (attempt < 1) {
+            attempt += 1;
+            window.setTimeout(load, 800);
+            return;
+          }
+          setFailed(true);
+        });
+    };
+
+    load();
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [documentId, token]);
+  }, [documentId, token, alt, mimeType]);
 
   if (failed) {
     return (
@@ -53,5 +84,5 @@ export function ImageContentThumbnail({ documentId, token, alt, className }: Ima
     return <div className={`animate-pulse bg-slate-100 ${className ?? ""}`} aria-hidden="true" />;
   }
 
-  return <img src={src} alt={alt} className={className} />;
+  return <img src={src} alt={alt} className={`${THUMBNAIL_IMG_CLASS} ${className ?? ""}`} />;
 }
