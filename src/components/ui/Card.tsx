@@ -25,7 +25,7 @@ export function EmptyState({ title, description }: { title: string; description?
         </svg>
       </div>
       <p className="font-semibold text-slate-800">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>}
+      {description && <p className="mt-1 max-w-sm text-sm text-slate-600">{description}</p>}
     </div>
   );
 }

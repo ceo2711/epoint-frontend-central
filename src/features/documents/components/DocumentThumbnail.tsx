@@ -3,9 +3,11 @@
 import { useState, type ReactNode } from "react";
 
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
+import { ImageContentThumbnail } from "@/features/documents/components/ImageContentThumbnail";
 import { PdfPageThumbnail } from "@/features/documents/components/PdfPageThumbnail";
 import { isImageMime, isPdfMime } from "@/features/documents/utils/documentMime";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import type { DocumentBrief } from "@/types/api";
 
 interface DocumentThumbnailProps {
@@ -27,8 +29,7 @@ function PdfFallbackIcon() {
 export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   const [open, setOpen] = useState(false);
   const { token } = useAuth();
-
-  if (!doc.download_url) return null;
+  const { url: contentUrl } = useDocumentContentUrl(doc.id, token, open);
 
   const openViewer = () => setOpen(true);
 
@@ -40,8 +41,9 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   if (isImageMime(doc.mime_type)) {
     thumb = (
       <button type="button" className={`${thumbClass} block overflow-hidden shadow-sm`} title={viewLabel} onClick={openViewer}>
-        <img
-          src={doc.download_url}
+        <ImageContentThumbnail
+          documentId={doc.id}
+          token={token}
           alt={doc.original_filename}
           className="h-20 w-20 object-cover"
         />
@@ -84,9 +86,9 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   return (
     <>
       {thumb}
-      {open && (
+      {open && contentUrl && (
         <DocumentViewerModal
-          url={doc.download_url}
+          url={contentUrl}
           filename={doc.original_filename}
           mimeType={doc.mime_type}
           onClose={() => setOpen(false)}

@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
 import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
+import { ClientBoardPanel } from "@/features/boards/components/ClientBoardPanel";
+import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
 import { DocumentThumbnail } from "@/features/documents/components/DocumentThumbnail";
 import { StatusBadge, VerificationBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,8 +23,9 @@ import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { formatClientConflict, useClientAvailabilityCheck } from "@/features/clients/hooks/useClientAvailabilityCheck";
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
+import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { loadPortalCredentials } from "@/features/clients/portal-credentials-storage";
-import type { Address, Board, Client, DocumentBrief, Vehicle } from "@/types/api";
+import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 const EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"];
 
@@ -52,26 +55,31 @@ function formatAddress(addr: Address) {
 export default function ClienteDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  const rawId = params.id;
+  const id = typeof rawId === "string" ? Number(rawId) : NaN;
+  const idValid = Number.isFinite(id) && id > 0;
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
   const { approveClient, rejectClient, resubmitClient, deleteClient } = useClientWorkflow(token);
 
   const [client, setClient] = useState<Client | null>(null);
-  const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
+  const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
+  const loadInFlight = useRef(false);
   const { availability, checking, hasConflict } = useClientAvailabilityCheck(
     token,
     form.email,
     form.phone,
-    { excludeClientId: id, enabled: editing },
+    { excludeClientId: idValid ? id : undefined, enabled: editing },
   );
+  const { url: viewingDocUrl } = useDocumentContentUrl(viewingDoc?.id ?? null, token, !!viewingDoc);
 
   const emailError = availability?.email
     ? formatClientConflict(t, "email", availability.email)
@@ -81,8 +89,15 @@ export default function ClienteDetailPage() {
     : undefined;
 
   const load = useCallback(async () => {
-    if (authLoading || !token || !id) return;
+    if (authLoading || loadInFlight.current) return;
+    if (!token || !idValid) {
+      setLoading(false);
+      if (!idValid) setLoadError("No se pudo cargar el cliente.");
+      return;
+    }
+    loadInFlight.current = true;
     setLoading(true);
+    setLoadError("");
     try {
       const c = await api.get<Client>(`/clients/${id}`, token);
       setClient(c);
@@ -92,20 +107,16 @@ export default function ClienteDetailPage() {
         email: c.email,
         phone: c.phone,
       });
-      if (c.approved_at) {
-        const b = await api.get<Board>(`/boards/client/${id}`, token).catch(() => null);
-        setBoard(b);
-      } else {
-        setBoard(null);
-      }
     } catch (err) {
       if (!isUnauthorizedError(err)) {
-        throw err;
+        setClient(null);
+        setLoadError(err instanceof ApiError ? err.message : "Error al cargar el cliente.");
       }
     } finally {
+      loadInFlight.current = false;
       setLoading(false);
     }
-  }, [authLoading, token, id]);
+  }, [authLoading, token, id, idValid]);
 
   useEffect(() => {
     void load().catch(() => {});
@@ -127,6 +138,25 @@ export default function ClienteDetailPage() {
   const canResubmit =
     client?.status === "RECHAZADO" && hasPermission("clients:update");
   const canDelete = hasPermission("clients:delete");
+
+  async function handleDownloadDocument(doc: DocumentBrief) {
+    if (!token) return;
+    try {
+      const data = await api.getBlob(`/documents/${doc.id}/content`, token);
+      const url = URL.createObjectURL(new Blob([data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.original_filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: err instanceof ApiError ? err.message : t("common.error"),
+        variant: "error",
+      });
+    }
+  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -180,7 +210,7 @@ export default function ClienteDetailPage() {
     if (ok) router.push("/clientes");
   }
 
-  if (loading || !client) {
+  if (loading) {
     return (
       <>
         <Header
@@ -193,6 +223,28 @@ export default function ClienteDetailPage() {
       </>
     );
   }
+
+  if (!client) {
+    return (
+      <>
+        <Header title={t("clientDetail.headerContextLoading")} subtitle={t("clientDetail.title")} />
+        <PageContent>
+          <div className="alert alert-info">{loadError || t("clientDetail.notFound")}</div>
+          <Link href="/clientes" className="btn btn-secondary btn-sm mt-4">
+            {t("common.back")}
+          </Link>
+        </PageContent>
+      </>
+    );
+  }
+
+  const isApproved = !!client.approved_at;
+  const workspaceHint =
+    user?.role.code === "ADVISOR"
+      ? t("clientDetail.workspaceHintAdvisor")
+      : user?.role.code === "ONBOARDING_MANAGER"
+        ? t("clientDetail.workspaceHintOnboarding")
+        : null;
 
   return (
     <>
@@ -253,141 +305,149 @@ export default function ClienteDetailPage() {
           />
         )}
 
-        {editing ? (
-          <Card className="p-4 sm:p-6">
-            <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {t("clientDetail.editBasic")}
-            </h2>
-            <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
-              <Input label={t("common.firstName")} required value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
-              <Input label={t("common.lastName")} required value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
-              <Input label={t("common.email")} type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={emailError} />
-              <Input label={t("common.phone")} required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} error={phoneError} />
-              <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-                {checking && (
-                  <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
-                )}
-                <Button type="submit" disabled={saving || checking || hasConflict}>{saving ? t("common.loading") : t("common.saveChanges")}</Button>
-                <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone }); }}>
-                  {t("common.cancel")}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        ) : (
-          <Card className="p-4 sm:p-6">
-            <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {t("clientDetail.overview")}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <InfoRow label={t("common.firstName")} value={client.first_name} />
-              <InfoRow label={t("common.lastName")} value={client.last_name} />
-              <InfoRow label={t("common.email")} value={client.email} />
-              <InfoRow label={t("clientDetail.phone")} value={client.phone} />
-              <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
-              <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
-            </div>
-          </Card>
+        {isApproved && workspaceHint && (
+          <p className="text-sm text-slate-500">{workspaceHint}</p>
         )}
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.timeline")}</h2>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-            <InfoRow label={t("clientDetail.registeredAt")} value={formatDate(client.created_at, locale)} />
-            <InfoRow label={t("clientDetail.approvedAt")} value={formatDate(client.approved_at, locale)} />
-            <InfoRow label={t("clientDetail.rejectedAt")} value={formatDate(client.rejected_at, locale)} />
-          </div>
-        </Card>
+        {isApproved && (
+          <ClientOnboardingTabs active={activeTab} onChange={setActiveTab} />
+        )}
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.addresses")}</h2>
-          {client.addresses && client.addresses.length > 0 ? (
-            <div className="space-y-3">
-              {client.addresses.map((addr) => (
-                <div key={addr.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    {addr.type === "CURRENT" ? t("clientDetail.currentAddress") : t("clientDetail.previousAddress")}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-800">{formatAddress(addr)}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400">{t("clientDetail.noAddresses")}</p>
-          )}
-        </Card>
-
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.vehicles")}</h2>
-          {client.vehicles && client.vehicles.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {client.vehicles.map((v: Vehicle) => (
-                <div key={v.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                  <p className="text-xs font-bold uppercase text-slate-400">{t("clientDetail.vehicleN", { n: v.order })}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">{v.model} · {v.year} · {v.color}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400">{t("clientDetail.noVehicles")}</p>
-          )}
-        </Card>
-
-        <Card className="p-4 sm:p-6">
-          <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.documents")}</h2>
-          {client.documents && client.documents.length > 0 ? (
-            <div className="space-y-3">
-              {client.documents.map((d) => (
-                <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    {d.download_url ? (
-                      <DocumentThumbnail doc={d} viewLabel={t("portalDocs.viewDocument")} />
-                    ) : null}
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-800">{translateStatus(locale, "documentTypes", d.type)}</p>
-                      <p className="text-sm text-slate-500">{d.original_filename}</p>
-                      <p className="mt-1 text-xs text-slate-400">{formatDate(d.uploaded_at, locale)}</p>
-                    </div>
+        {(!isApproved || activeTab === "overview") && (
+          <>
+            {editing ? (
+              <Card className="p-4 sm:p-6">
+                <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">
+                  {t("clientDetail.editBasic")}
+                </h2>
+                <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+                  <Input label={t("common.firstName")} required value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+                  <Input label={t("common.lastName")} required value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+                  <Input label={t("common.email")} type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={emailError} />
+                  <Input label={t("common.phone")} required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} error={phoneError} />
+                  <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+                    {checking && (
+                      <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
+                    )}
+                    <Button type="submit" disabled={saving || checking || hasConflict}>{saving ? t("common.loading") : t("common.saveChanges")}</Button>
+                    <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone }); }}>
+                      {t("common.cancel")}
+                    </Button>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {d.download_url && (
+                </form>
+              </Card>
+            ) : (
+              <Card className="p-4 sm:p-6">
+                <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">
+                  {t("clientDetail.overview")}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <InfoRow label={t("common.firstName")} value={client.first_name} />
+                  <InfoRow label={t("common.lastName")} value={client.last_name} />
+                  <InfoRow label={t("common.email")} value={client.email} />
+                  <InfoRow label={t("clientDetail.phone")} value={client.phone} />
+                  <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
+                  <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
+                </div>
+              </Card>
+            )}
+
+            <Card className="p-4 sm:p-6">
+              <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.timeline")}</h2>
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                <InfoRow label={t("clientDetail.registeredAt")} value={formatDate(client.created_at, locale)} />
+                <InfoRow label={t("clientDetail.approvedAt")} value={formatDate(client.approved_at, locale)} />
+                <InfoRow label={t("clientDetail.rejectedAt")} value={formatDate(client.rejected_at, locale)} />
+              </div>
+            </Card>
+
+            <Card className="p-4 sm:p-6">
+              <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.addresses")}</h2>
+              {client.addresses && client.addresses.length > 0 ? (
+                <div className="space-y-3">
+                  {client.addresses.map((addr) => (
+                    <div key={addr.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                      <p className="text-xs font-bold uppercase text-slate-400">
+                        {addr.type === "CURRENT" ? t("clientDetail.currentAddress") : t("clientDetail.previousAddress")}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-800">{formatAddress(addr)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">{t("clientDetail.noAddresses")}</p>
+              )}
+            </Card>
+
+            <Card className="p-4 sm:p-6">
+              <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.vehicles")}</h2>
+              {client.vehicles && client.vehicles.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {client.vehicles.map((v: Vehicle) => (
+                    <div key={v.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                      <p className="text-xs font-bold uppercase text-slate-400">{t("clientDetail.vehicleN", { n: v.order })}</p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">{v.model} · {v.year} · {v.color}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">{t("clientDetail.noVehicles")}</p>
+              )}
+            </Card>
+          </>
+        )}
+
+        {(!isApproved || activeTab === "documents") && (
+          <Card className="p-4 sm:p-6">
+            <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.documents")}</h2>
+            {client.documents && client.documents.length > 0 ? (
+              <div className="space-y-3">
+                {client.documents.map((d) => (
+                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <DocumentThumbnail doc={d} viewLabel={t("portalDocs.viewDocument")} />
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-800">{translateStatus(locale, "documentTypes", d.type)}</p>
+                        <p className="text-sm text-slate-500">{d.original_filename}</p>
+                        <p className="mt-1 text-xs text-slate-400">{formatDate(d.uploaded_at, locale)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button type="button" size="sm" variant="secondary" onClick={() => setViewingDoc(d)}>
                         {t("portalDocs.viewDocument")}
                       </Button>
-                    )}
-                    <VerificationBadge status={d.verification_status} />
-                    <DocumentVerificationTooltip
-                      doc={d}
-                      locale={locale}
-                      rejectionTitle={t("portalDocs.rejectionTitle")}
-                      approvalTitle={t("portalDocs.approvalTitle")}
-                      viewLabel={t("portalDocs.viewVerificationDetails")}
-                    />
+                      <Button type="button" size="sm" variant="ghost" onClick={() => void handleDownloadDocument(d)}>
+                        {t("clientDetail.downloadDocument")}
+                      </Button>
+                      <VerificationBadge status={d.verification_status} />
+                      <DocumentVerificationTooltip
+                        doc={d}
+                        locale={locale}
+                        rejectionTitle={t("portalDocs.rejectionTitle")}
+                        approvalTitle={t("portalDocs.approvalTitle")}
+                        viewLabel={t("portalDocs.viewVerificationDetails")}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400">{t("clientDetail.noDocuments")}</p>
-          )}
-        </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">{t("clientDetail.noDocuments")}</p>
+            )}
+          </Card>
+        )}
 
-        {board && (
-          <Card className="p-4 sm:p-6">
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.board")}</h2>
-            <p className="text-slate-600">
-              {t("clientDetail.boardSummary", {
-                tasks: board.lists.reduce((acc, l) => acc + l.cards.length, 0),
-                columns: board.lists.length,
-              })}
-            </p>
+        {isApproved && activeTab === "board" && (
+          <Card className="overflow-hidden p-4 sm:p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.board")}</h2>
+            <ClientBoardPanel token={token} clientId={client.id} />
           </Card>
         )}
       </PageContent>
 
-      {viewingDoc?.download_url && (
+      {viewingDoc && viewingDocUrl && (
         <DocumentViewerModal
-          url={viewingDoc.download_url}
+          url={viewingDocUrl}
           filename={viewingDoc.original_filename}
           mimeType={viewingDoc.mime_type}
           title={translateStatus(locale, "documentTypes", viewingDoc.type)}

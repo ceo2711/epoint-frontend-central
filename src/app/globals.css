@@ -3,6 +3,9 @@
 :root {
   --background: #f1f5f9;
   --foreground: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+  --text-body: #334155;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
   --primary-light: #3b82f6;
@@ -195,7 +198,7 @@ body {
   margin-bottom: 0.375rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #475569;
+  color: #334155;
   letter-spacing: 0.01em;
 }
 
@@ -318,13 +321,13 @@ body {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: #475569;
 }
 
 .table-modern td {
   padding: 0.875rem 1rem;
   border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  color: #1e293b;
 }
 
 .table-modern tbody tr {
@@ -379,13 +382,16 @@ body {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(4px);
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .kanban-card {
   background: white;
   border: 1px solid var(--border-soft);
-  border-radius: 0.875rem;
-  padding: 0.875rem 1rem;
+  border-radius: 0.625rem;
+  padding: 0.5rem 0.625rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -395,6 +401,62 @@ body {
   border-color: #93c5fd;
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
+}
+
+/* ── Rich text (Markdown) ─────────────────────────── */
+.rich-text-content {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.rich-text-content p {
+  margin: 0 0 0.75rem;
+}
+
+.rich-text-content p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text-content a {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-text-content a:hover {
+  color: #1d4ed8;
+}
+
+.rich-text-content ul,
+.rich-text-content ol {
+  margin: 0 0 0.75rem 1.25rem;
+}
+
+.rich-text-content li {
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-content strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3 {
+  margin: 1rem 0 0.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rich-text-content code {
+  border-radius: 0.25rem;
+  background: #f1f5f9;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8125rem;
 }
 
 /* ── Modal ────────────────────────────────────────── */
@@ -438,6 +500,12 @@ body {
 
 .modal-panel-lg {
   max-width: min(56rem, calc(100vw - 2rem));
+}
+
+.modal-panel-xl {
+  max-width: min(72rem, calc(100vw - 2rem));
+  padding: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 639px) {
@@ -586,5 +654,26 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748b;
+}
+
+/* ── Contraste de texto en superficies claras ─────── */
+main .text-slate-400,
+.modal-panel .text-slate-400 {
+  color: #64748b !important;
+}
+
+main .text-slate-500,
+.modal-panel .text-slate-500 {
+  color: #475569 !important;
+}
+
+main .text-slate-600,
+.modal-panel .text-slate-600 {
+  color: #334155 !important;
+}
+
+main .text-slate-700,
+.modal-panel .text-slate-700 {
+  color: #1e293b !important;
 }

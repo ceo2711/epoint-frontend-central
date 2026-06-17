@@ -46,3 +46,12 @@ export async function fetchPdfFirstPageThumbnailFromApi(
   const pdfjs = await loadPdfJs();
   return renderPdfFirstPageToDataUrl(pdfjs, data);
 }
+
+export async function fetchPdfFirstPageThumbnailFromAttachment(
+  attachmentId: number,
+  token: string,
+): Promise<string> {
+  const data = await api.getBlob(`/boards/attachments/${attachmentId}/content`, token);
+  const pdfjs = await loadPdfJs();
+  return renderPdfFirstPageToDataUrl(pdfjs, data);
+}

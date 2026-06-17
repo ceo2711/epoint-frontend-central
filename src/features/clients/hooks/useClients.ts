@@ -5,7 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, isUnauthorizedError } from "@/lib/api";
 import type { Client, Paginated } from "@/features/clients/types";
 
-export function useClients(token: string | null, authLoading: boolean) {
+export function useClients(
+  token: string | null,
+  authLoading: boolean,
+  options?: { onboardingOnly?: boolean },
+) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,7 +17,10 @@ export function useClients(token: string | null, authLoading: boolean) {
     if (authLoading || !token) return;
     setLoading(true);
     try {
-      const data = await api.get<Paginated<Client>>("/clients", token);
+      const params = new URLSearchParams();
+      if (options?.onboardingOnly) params.set("onboarding_only", "true");
+      const query = params.toString();
+      const data = await api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
       setClients(data.items);
     } catch (err) {
       if (!isUnauthorizedError(err)) {
@@ -22,7 +29,7 @@ export function useClients(token: string | null, authLoading: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [authLoading, token]);
+  }, [authLoading, token, options?.onboardingOnly]);
 
   useEffect(() => {
     void load().catch(() => {});

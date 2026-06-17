@@ -177,7 +177,11 @@ export interface CardAttachment {
   id: number;
   type: string;
   original_filename: string;
+  mime_type?: string | null;
   download_url: string | null;
+  comment_id?: number | null;
+  uploaded_by_name?: string | null;
+  created_at?: string | null;
 }
 
 export interface BoardList {

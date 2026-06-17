@@ -51,7 +51,7 @@ export function Header({
                 <span className="truncate">{title}</span>
               )}
             </h1>
-            {subtitle && <p className="mt-0.5 truncate text-sm text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 truncate text-sm text-slate-600">{subtitle}</p>}
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">

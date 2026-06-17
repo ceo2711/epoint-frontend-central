@@ -20,10 +20,19 @@ import { formatClientConflict } from "@/features/clients/utils";
 import { ApiError, api } from "@/lib/api";
 
 export default function ClientesPage() {
-  const { token, hasPermission, isLoading: authLoading } = useAuth();
+  const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
-  const { clients, loading, load } = useClients(token, authLoading);
+  const roleCode = user?.role.code;
+  const clientsSubtitle =
+    roleCode === "ADVISOR"
+      ? t("clients.subtitleAdvisor")
+      : roleCode === "ONBOARDING_MANAGER"
+        ? t("clients.subtitleOnboarding")
+        : t("clients.subtitle");
+  const { clients, loading, load } = useClients(token, authLoading, {
+    onboardingOnly: roleCode === "ONBOARDING_MANAGER",
+  });
   const { approveClient, rejectClient, resubmitClient } = useClientWorkflow(token);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClientFormData>(EMPTY_CLIENT_FORM);
@@ -78,7 +87,7 @@ export default function ClientesPage() {
     <>
       <Header
         title={t("clients.headerContext")}
-        subtitle={t("clients.subtitle")}
+        subtitle={clientsSubtitle}
         actions={
           hasPermission("clients:create") ? (
             <Button size="sm" onClick={() => setShowForm(!showForm)}>
