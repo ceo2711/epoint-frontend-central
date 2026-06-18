@@ -33,9 +33,9 @@ const EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"];
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3">
-      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-900">{value || "—"}</p>
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <p className="section-label">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-900">{value || "—"}</p>
     </div>
   );
 }
@@ -270,7 +270,7 @@ export default function ClienteDetailPage() {
       <PageContent className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.title")}</p>
+            <p className="section-label">{t("clientDetail.title")}</p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{clientName}</h2>
             <p className="mt-0.5 text-sm text-slate-500">{client.email}</p>
           </div>
@@ -296,7 +296,7 @@ export default function ClienteDetailPage() {
         <Card className="p-4 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("common.status")}</p>
+              <p className="section-label">{t("common.status")}</p>
               <div className="mt-2"><StatusBadge status={client.status} /></div>
             </div>
             <div className="text-sm text-slate-500 sm:text-right">

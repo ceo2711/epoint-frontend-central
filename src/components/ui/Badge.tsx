@@ -35,7 +35,7 @@ export function TaskStatusBadge({ status }: { status: string }) {
   const { locale } = useTranslation();
   const label = translateStatus(locale, "taskStatus", status);
   const statusBadge: Record<string, string> = {
-    PENDIENTE: "badge-slate",
+    PENDIENTE: "badge-amber",
     EN_PROGRESO: "badge-blue",
     EN_REVISION: "badge-amber",
     COMPLETADA: "badge-green",

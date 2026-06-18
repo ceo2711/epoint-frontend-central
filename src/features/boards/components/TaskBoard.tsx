@@ -103,11 +103,14 @@ function KanbanColumn({
 
   return (
     <div className="kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48">
-      <h3 className="mb-2 shrink-0 px-0.5 text-[11px] font-semibold leading-snug text-slate-500">{list.title}</h3>
+      <div className="kanban-column-header shrink-0">
+        <span>{list.title}</span>
+        <span className="kanban-column-count">{list.cards.length}</span>
+      </div>
       <div
         ref={setNodeRef}
-        className={`min-h-[62vh] flex-1 space-y-1.5 rounded-lg p-0.5 transition ${
-          isOver ? "bg-blue-50/80 ring-2 ring-blue-200" : ""
+        className={`kanban-column-body space-y-1.5 rounded-lg p-0.5 transition ${
+          isOver ? "bg-blue-100/70 ring-2 ring-blue-300" : ""
         }`}
       >
         <SortableContext items={list.cards.map((card) => card.id)} strategy={verticalListSortingStrategy}>
@@ -162,7 +165,7 @@ function AddCardForm({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t("portalBoard.addCard")}
-        className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-[11px] text-slate-400 opacity-0 transition hover:bg-slate-200/60 hover:text-slate-600 group-hover/column:opacity-100 focus-visible:opacity-100"
+        className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-[11px] text-slate-600 opacity-0 transition hover:bg-blue-50 hover:text-blue-800 group-hover/column:opacity-100 focus-visible:opacity-100"
       >
         <span className="text-sm leading-none text-slate-400">+</span>
         <span>{t("portalBoard.addCard")}</span>
@@ -390,7 +393,7 @@ export function TaskBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
+      <div className="flex items-start snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
         {localBoard.lists
           .slice()
           .sort((a, b) => a.position - b.position)

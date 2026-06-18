@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
 import { CardAttachmentThumbnail } from "@/features/boards/components/CardAttachmentThumbnail";
@@ -176,22 +177,31 @@ export function CardDetailModal({
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-panel modal-panel-xl max-h-[92vh]" onClick={(e) => e.stopPropagation()}>
+      <ModalPortal>
+        <div
+          className="modal-overlay fixed inset-0 z-[60] flex max-sm:items-stretch max-sm:justify-stretch max-sm:p-0 sm:items-center sm:justify-center sm:p-4"
+          onClick={onClose}
+        >
+          <div
+            className="modal-panel modal-panel-xl flex max-h-[92vh] w-full flex-col overflow-hidden p-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] sm:rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Header */}
-          <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="pr-4 text-lg font-bold leading-snug text-slate-900 sm:text-xl">{card.title}</h2>
+          <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="min-w-0 flex-1 pr-2 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+                {card.title}
+              </h2>
               <button type="button" className="btn btn-ghost btn-sm shrink-0" onClick={onClose}>
                 {t("common.close")}
               </button>
             </div>
           </div>
 
-          {/* Two-column body */}
-          <div className="flex max-h-[calc(92vh-7rem)] flex-col lg:flex-row">
+          {/* Body — single scroll on mobile, split columns on desktop */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
             {/* Left — description & attachments */}
-            <div className="min-w-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 lg:max-w-[calc(100%-20rem)]">
+            <div className="min-w-0 shrink-0 px-4 py-4 sm:px-6 sm:py-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:max-w-[calc(100%-20rem)]">
               <section>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <SectionLabel>{t("portalBoard.description")}</SectionLabel>
@@ -261,7 +271,7 @@ export function CardDetailModal({
                 </div>
                 <p className="mb-3 text-xs text-slate-400">{t("portalBoard.files")}</p>
                 {cardAttachments.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
                     {cardAttachments.map((attachment) => (
                       <CardAttachmentThumbnail
                         key={attachment.id}
@@ -300,14 +310,18 @@ export function CardDetailModal({
             </div>
 
             {/* Right — comments & activity */}
-            <aside className="flex w-full shrink-0 flex-col border-t border-slate-200 bg-slate-50/90 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
-              <div className="border-b border-slate-200 px-4 py-3">
+            <aside className="flex w-full shrink-0 flex-col border-t border-slate-200 bg-slate-50/90 lg:min-h-0 lg:w-80 lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+              <div className="shrink-0 border-b border-slate-200 px-4 py-3">
                 <SectionLabel>{t("portalBoard.commentsActivity")}</SectionLabel>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="px-4 py-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                 <p className="mb-3 text-xs leading-relaxed text-slate-500">{t("portalBoard.conversationHint")}</p>
-                <form id={`comment-form-${card.id}`} onSubmit={handleSubmitComment} className="mb-5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+                <form
+                  id={`comment-form-${card.id}`}
+                  onSubmit={handleSubmitComment}
+                  className="mb-5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+                >
                   {commentFiles.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-1.5 border-b border-slate-100 pb-2">
                       {commentFiles.map((file, index) => (
@@ -337,7 +351,7 @@ export function CardDetailModal({
                       form?.requestSubmit();
                     }}
                   />
-                  <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                  <div className="flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-1">
                       <label
                         title={t("portalBoard.attachFiles")}
@@ -346,7 +360,7 @@ export function CardDetailModal({
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-4 w-4 shrink-0">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        <span>{t("portalBoard.attachFiles")}</span>
+                        <span className="sm:inline">{t("portalBoard.attachFiles")}</span>
                         <input
                           type="file"
                           className="hidden"
@@ -378,7 +392,7 @@ export function CardDetailModal({
                     <button
                       type="submit"
                       disabled={submittingComment || (!comment.trim() && commentFiles.length === 0)}
-                      className="text-sm font-semibold text-blue-600 transition hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="self-end text-sm font-semibold text-blue-600 transition hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-40 sm:self-auto"
                     >
                       {submittingComment ? t("common.loading") : t("portalBoard.publish")}
                     </button>
@@ -423,9 +437,11 @@ export function CardDetailModal({
             </aside>
           </div>
         </div>
-      </div>
+        </div>
+      </ModalPortal>
 
       {viewingAttachment && (
+        <ModalPortal>
         <DocumentViewerModal
           url={viewingAttachmentUrl ?? ""}
           loading={
@@ -452,6 +468,7 @@ export function CardDetailModal({
           }
           onClose={() => setViewingAttachment(null)}
         />
+        </ModalPortal>
       )}
     </>
   );

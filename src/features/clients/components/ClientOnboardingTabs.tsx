@@ -21,16 +21,16 @@ export function ClientOnboardingTabs({ active, onChange }: ClientOnboardingTabsP
   };
 
   return (
-    <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50/80 p-1">
+    <div className="flex flex-wrap gap-1 rounded-xl border border-slate-300 bg-slate-100 p-1 shadow-sm">
       {TABS.map((tab) => (
         <button
           key={tab}
           type="button"
           onClick={() => onChange(tab)}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+          className={`cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-150 ${
             active === tab
-              ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-              : "text-slate-500 hover:text-slate-800"
+              ? "bg-white text-blue-800 shadow-sm ring-1 ring-blue-200"
+              : "text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm hover:ring-1 hover:ring-slate-300"
           }`}
         >
           {labels[tab]}

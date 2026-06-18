@@ -73,7 +73,7 @@ export function PortalCredentialsCard({
   }
 
   return (
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 sm:p-5">
+    <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-bold uppercase tracking-wider text-emerald-800">
@@ -89,16 +89,16 @@ export function PortalCredentialsCard({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-emerald-100 bg-white/80 px-4 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.portalUser")}</p>
+        <div className="rounded-lg border border-emerald-200 bg-white px-4 py-3 shadow-sm">
+          <p className="section-label">{t("clientDetail.portalUser")}</p>
           <p className="mt-1 break-all font-mono text-sm text-slate-900">{portalEmail}</p>
           <div className="mt-2">
             <CopyButton value={portalEmail} label={t("clientDetail.copyUser")} />
           </div>
         </div>
 
-        <div className="rounded-lg border border-emerald-100 bg-white/80 px-4 py-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.portalPassword")}</p>
+        <div className="rounded-lg border border-emerald-200 bg-white px-4 py-3 shadow-sm">
+          <p className="section-label">{t("clientDetail.portalPassword")}</p>
           {tempPassword ? (
             <>
               <p className="mt-1 break-all font-mono text-sm text-slate-900">
