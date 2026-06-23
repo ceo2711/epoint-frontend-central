@@ -381,7 +381,7 @@ export default function ClienteDetailPage() {
                     required
                     loading={merchantsLoading}
                   />
-                  <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+                  <div className="flex flex-wrap items-center gap-2 pe-[4.75rem] sm:col-span-2 sm:pe-[5.75rem]">
                     {checking && (
                       <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
                     )}

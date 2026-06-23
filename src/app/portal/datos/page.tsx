@@ -403,10 +403,12 @@ export default function PortalDatosPage() {
       </div>
 
       {!loading && (
-        <div className="shrink-0 flex justify-end px-4 py-4 sm:px-6 lg:px-8">
-          <Button type="submit" form="portal-data-form" disabled={saving} size="lg" className="shadow-lg">
-            {saving ? t("common.loading") : t("portalData.saveData")}
-          </Button>
+        <div className="shrink-0 border-t border-slate-100 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-6 lg:px-8">
+          <div className="flex justify-end pe-[4.75rem] sm:pe-[5.75rem]">
+            <Button type="submit" form="portal-data-form" disabled={saving} size="lg" className="shadow-lg">
+              {saving ? t("common.loading") : t("portalData.saveData")}
+            </Button>
+          </div>
         </div>
       )}
     </div>
