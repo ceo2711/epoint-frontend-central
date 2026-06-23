@@ -21,6 +21,10 @@ import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { formatClientConflict, useClientAvailabilityCheck } from "@/features/clients/hooks/useClientAvailabilityCheck";
+import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
+import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
+import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
+import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
@@ -69,12 +73,23 @@ export default function ClienteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    source: "",
+    merchant_id: "",
+  });
   const [saving, setSaving] = useState(false);
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
   const loadInFlight = useRef(false);
+  const { merchants, loading: merchantsLoading } = useMerchantOptions(
+    token,
+    editing && (hasPermission("clients:create") || hasPermission("clients:update")),
+  );
   const { availability, checking, hasConflict } = useClientAvailabilityCheck(
     token,
     form.email,
@@ -122,6 +137,8 @@ export default function ClienteDetailPage() {
         last_name: c.last_name,
         email: c.email,
         phone: c.phone,
+        source: c.source ?? "",
+        merchant_id: c.merchant ? String(c.merchant.id) : "",
       });
     } catch (err) {
       if (!isUnauthorizedError(err)) {
@@ -155,6 +172,11 @@ export default function ClienteDetailPage() {
     client?.status === "RECHAZADO" && hasPermission("clients:update");
   const canDelete = hasPermission("clients:delete");
 
+  const sourceLabel =
+    client?.source && client.source in CLIENT_SOURCE_LABEL_KEYS
+      ? t(CLIENT_SOURCE_LABEL_KEYS[client.source as ClientSourceValue])
+      : client?.source ?? "—";
+
   async function handleDownloadDocument(doc: DocumentBrief) {
     if (!token) return;
     try {
@@ -178,7 +200,18 @@ export default function ClienteDetailPage() {
     if (!token || !client || hasConflict) return;
     setSaving(true);
     try {
-      const updated = await api.patch<Client>(`/clients/${client.id}`, form, token);
+      const updated = await api.patch<Client>(
+        `/clients/${client.id}`,
+        {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          phone: form.phone,
+          source: form.source || null,
+          merchant_id: form.merchant_id ? Number(form.merchant_id) : null,
+        },
+        token,
+      );
       setClient((prev) => (prev ? { ...prev, ...updated } : updated));
       setEditing(false);
       await modal.alert({
@@ -340,12 +373,20 @@ export default function ClienteDetailPage() {
                   <Input label={t("common.lastName")} required value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
                   <Input label={t("common.email")} type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={emailError} />
                   <Input label={t("common.phone")} required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} error={phoneError} />
+                  <ClientSourceSelect value={form.source} onChange={(source) => setForm({ ...form, source })} required />
+                  <MerchantSelect
+                    merchants={merchants}
+                    value={form.merchant_id}
+                    onChange={(merchant_id) => setForm({ ...form, merchant_id })}
+                    required
+                    loading={merchantsLoading}
+                  />
                   <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
                     {checking && (
                       <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
                     )}
                     <Button type="submit" disabled={saving || checking || hasConflict}>{saving ? t("common.loading") : t("common.saveChanges")}</Button>
-                    <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone }); }}>
+                    <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone, source: client.source ?? "", merchant_id: client.merchant ? String(client.merchant.id) : "" }); }}>
                       {t("common.cancel")}
                     </Button>
                   </div>
@@ -361,6 +402,8 @@ export default function ClienteDetailPage() {
                   <InfoRow label={t("common.lastName")} value={client.last_name} />
                   <InfoRow label={t("common.email")} value={client.email} />
                   <InfoRow label={t("clientDetail.phone")} value={client.phone} />
+                  <InfoRow label={t("clients.source")} value={sourceLabel} />
+                  <InfoRow label={t("clients.merchant")} value={client.merchant?.name ?? "—"} />
                   <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
                   <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
                 </div>

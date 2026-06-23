@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ePoint CRM",
+  title: "ePoint Central",
   description: "Plataforma de gestión y onboarding de clientes",
 };
 

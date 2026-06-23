@@ -34,7 +34,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center p-6 lg:p-12">
+    <div className="relative z-10 flex flex-1 items-center justify-center p-6 lg:p-12">
       <div className="card-glass relative z-10 w-full max-w-md p-6 sm:p-8 lg:p-10">
         <div className="absolute right-6 top-6 lg:right-8 lg:top-8">
           <LanguageSwitcher />
@@ -45,7 +45,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
               eP
             </div>
-            <span className="text-lg font-bold text-slate-900">ePoint CRM</span>
+            <span className="text-lg font-bold text-slate-900">ePoint Central</span>
           </div>
         </div>
 

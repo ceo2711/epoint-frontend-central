@@ -31,5 +31,5 @@ export function useUsers(token: string | null, canRead: boolean, loadErrorMessag
     }
   }, [canRead, loadUsers, noPermissionMessage]);
 
-  return { users, loading, error };
+  return { users, loading, error, reload: loadUsers };
 }

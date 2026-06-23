@@ -72,6 +72,21 @@ export interface Notification {
   created_at: string;
 }
 
+export interface Merchant {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface MerchantBrief {
+  id: number;
+  code: string;
+  name: string;
+}
+
 export interface Client {
   id: number;
   status: string;
@@ -79,6 +94,8 @@ export interface Client {
   last_name: string;
   email: string;
   phone: string;
+  source: string | null;
+  merchant: MerchantBrief | null;
   rejection_reason: string | null;
   rejected_at: string | null;
   approved_at: string | null;

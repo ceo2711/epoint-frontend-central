@@ -17,6 +17,7 @@ import { useClients } from "@/features/clients/hooks/useClients";
 import { EMPTY_CLIENT_FORM } from "@/features/clients/types";
 import type { ClientFormData } from "@/features/clients/types";
 import { formatClientConflict } from "@/features/clients/utils";
+import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { ApiError, api } from "@/lib/api";
 
 export default function ClientesPage() {
@@ -33,6 +34,10 @@ export default function ClientesPage() {
   const { clients, loading, load } = useClients(token, authLoading, {
     onboardingOnly: roleCode === "ONBOARDING_MANAGER",
   });
+  const { merchants, loading: merchantsLoading } = useMerchantOptions(
+    token,
+    hasPermission("clients:create") || hasPermission("clients:update"),
+  );
   const { approveClient, rejectClient, resubmitClient } = useClientWorkflow(token);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<ClientFormData>(EMPTY_CLIENT_FORM);
@@ -56,7 +61,18 @@ export default function ClientesPage() {
     if (!token || hasConflict) return;
     setSubmitting(true);
     try {
-      await api.post("/clients", form, token);
+      await api.post(
+        "/clients",
+        {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          phone: form.phone,
+          source: form.source,
+          merchant_id: Number(form.merchant_id),
+        },
+        token,
+      );
       setShowForm(false);
       setForm(EMPTY_CLIENT_FORM);
       await load();
@@ -100,6 +116,8 @@ export default function ClientesPage() {
         {showForm && (
           <ClientCreateForm
             form={form}
+            merchants={merchants}
+            merchantsLoading={merchantsLoading}
             onChange={setForm}
             onSubmit={handleCreate}
             submitting={submitting}

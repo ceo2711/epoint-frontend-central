@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 
 import { Sidebar } from "@/components/layout/Sidebar";
+import { FloatingChatWidget } from "@/features/chat/components/FloatingChatWidget";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
       <Sidebar />
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
+      <FloatingChatWidget />
     </div>
   );
 }

@@ -7,9 +7,21 @@ import type { User } from "@/features/users/types";
 
 interface UsersTableProps {
   users: User[];
+  currentUserId?: number;
+  canUpdate: boolean;
+  canDelete: boolean;
+  onEdit: (user: User) => void;
+  onDeactivate: (user: User) => void;
 }
 
-export function UsersTable({ users }: UsersTableProps) {
+export function UsersTable({
+  users,
+  currentUserId,
+  canUpdate,
+  canDelete,
+  onEdit,
+  onDeactivate,
+}: UsersTableProps) {
   const { t } = useTranslation();
 
   return (
@@ -26,6 +38,20 @@ export function UsersTable({ users }: UsersTableProps) {
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
               <ActiveBadge active={user.is_active} />
             </div>
+            {(canUpdate || canDelete) && user.is_active && user.id !== currentUserId && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canUpdate && (
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(user)}>
+                    {t("common.edit")}
+                  </button>
+                )}
+                {canDelete && (
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(user)}>
+                    {t("users.deactivate")}
+                  </button>
+                )}
+              </div>
+            )}
           </Card>
         ))}
       </div>
@@ -39,6 +65,7 @@ export function UsersTable({ users }: UsersTableProps) {
               <th>{t("common.role")}</th>
               <th>{t("common.area")}</th>
               <th>{t("common.status")}</th>
+              {(canUpdate || canDelete) && <th>{t("common.actions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -53,6 +80,26 @@ export function UsersTable({ users }: UsersTableProps) {
                 </td>
                 <td>{user.area?.name ?? t("common.dash")}</td>
                 <td><ActiveBadge active={user.is_active} /></td>
+                {(canUpdate || canDelete) && (
+                  <td>
+                    {user.is_active && user.id !== currentUserId ? (
+                      <div className="flex flex-wrap gap-2">
+                        {canUpdate && (
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(user)}>
+                            {t("common.edit")}
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(user)}>
+                            {t("users.deactivate")}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      t("common.dash")
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -5,6 +5,8 @@ export type ClientFormData = {
   last_name: string;
   email: string;
   phone: string;
+  source: string;
+  merchant_id: string;
 };
 
 export const EMPTY_CLIENT_FORM: ClientFormData = {
@@ -12,4 +14,6 @@ export const EMPTY_CLIENT_FORM: ClientFormData = {
   last_name: "",
   email: "",
   phone: "",
+  source: "",
+  merchant_id: "",
 };

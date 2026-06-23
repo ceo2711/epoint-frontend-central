@@ -6,10 +6,15 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
+import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
 import type { ClientFormData } from "@/features/clients/types";
+import type { MerchantBrief } from "@/types/api";
 
 interface ClientCreateFormProps {
   form: ClientFormData;
+  merchants: MerchantBrief[];
+  merchantsLoading?: boolean;
   onChange: (form: ClientFormData) => void;
   onSubmit: (e: FormEvent) => void;
   submitting: boolean;
@@ -21,6 +26,8 @@ interface ClientCreateFormProps {
 
 export function ClientCreateForm({
   form,
+  merchants,
+  merchantsLoading,
   onChange,
   onSubmit,
   submitting,
@@ -30,6 +37,13 @@ export function ClientCreateForm({
   phoneError,
 }: ClientCreateFormProps) {
   const { t } = useTranslation();
+  const formComplete =
+    form.first_name &&
+    form.last_name &&
+    form.email &&
+    form.phone &&
+    form.source &&
+    form.merchant_id;
 
   return (
     <Card className="mb-6 p-4 sm:p-6">
@@ -68,11 +82,23 @@ export function ClientCreateForm({
           placeholder="1131432490"
           error={phoneError}
         />
+        <ClientSourceSelect
+          value={form.source}
+          onChange={(source) => onChange({ ...form, source })}
+          required
+        />
+        <MerchantSelect
+          merchants={merchants}
+          value={form.merchant_id}
+          onChange={(merchant_id) => onChange({ ...form, merchant_id })}
+          required
+          loading={merchantsLoading}
+        />
         <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
           {checking && (
             <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
           )}
-          <Button type="submit" disabled={submitting || checking || hasConflict}>
+          <Button type="submit" disabled={submitting || checking || hasConflict || !formComplete}>
             {submitting ? t("common.loading") : t("clients.saveClient")}
           </Button>
         </div>

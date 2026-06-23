@@ -7,13 +7,13 @@ export function LoginHero() {
   const features = [t("login.feature1"), t("login.feature2"), t("login.feature3")];
 
   return (
-    <div className="relative hidden flex-col justify-between p-12 text-white lg:flex lg:w-1/2 xl:p-16">
+    <div className="relative z-10 hidden flex-col justify-between p-12 text-white lg:flex lg:w-1/2 xl:p-16">
       <div className="relative z-10">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm ring-1 ring-white/20">
             <span className="text-lg font-bold">eP</span>
           </div>
-          <span className="text-xl font-bold">ePoint CRM</span>
+          <span className="text-xl font-bold">ePoint Central</span>
         </div>
       </div>
 
@@ -34,7 +34,7 @@ export function LoginHero() {
         </ul>
       </div>
 
-      <p className="relative z-10 text-xs text-slate-400">© 2026 ePoint CRM</p>
+      <p className="relative z-10 text-xs text-slate-400">© 2026 ePoint Central</p>
     </div>
   );
 }
