@@ -604,7 +604,7 @@ export function useChatbot(
           appendAssistant(chatT("chat.uploadDocumentSuccess", { type: label }));
         }
         setStagedUpload(null);
-        emitClientsRefresh();
+        emitClientsRefresh({ clientId: clientId ?? undefined });
       } catch (err) {
         const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
         setError(message);
@@ -631,6 +631,8 @@ export function useChatbot(
     async (cardId: number) => {
       if (!token || !stagedUpload || loading) return;
 
+      const clientId = stagedUpload.selectedClientId ?? resolveClientId() ?? undefined;
+
       setLoading(true);
       setError(null);
 
@@ -651,6 +653,7 @@ export function useChatbot(
         }
         setStagedUpload(null);
         setBoardCards([]);
+        emitClientsRefresh({ clientId });
       } catch (err) {
         const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
         setError(message);
@@ -659,7 +662,7 @@ export function useChatbot(
         setLoading(false);
       }
     },
-    [token, stagedUpload, loading, chatT, appendAssistant, t, canUploadToBoard],
+    [token, stagedUpload, loading, chatT, appendAssistant, t, canUploadToBoard, resolveClientId],
   );
 
   const resetChat = useCallback(() => {

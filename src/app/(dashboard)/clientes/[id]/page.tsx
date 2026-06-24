@@ -30,7 +30,8 @@ import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
-import { loadPortalCredentials } from "@/features/clients/portal-credentials-storage";
+import { CLIENTS_REFRESH_EVENT, shouldRefreshClient } from "@/lib/clientEvents";
+import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 const EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"];
@@ -133,6 +134,14 @@ export default function ClienteDetailPage() {
     try {
       const c = await api.get<Client>(`/clients/${id}`, token);
       setClient(c);
+      if (c.has_portal_access && c.portal_temp_password) {
+        savePortalCredentials(c.id, {
+          email: c.portal_email ?? c.email,
+          tempPassword: c.portal_temp_password,
+          portalLoginUrl: c.portal_login_url ?? undefined,
+        });
+        setPortalPassword(c.portal_temp_password);
+      }
       setForm({
         first_name: c.first_name,
         last_name: c.last_name,
@@ -157,10 +166,23 @@ export default function ClienteDetailPage() {
   }, [load]);
 
   useEffect(() => {
+    if (!idValid) return;
+
+    const handleRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ clientId?: number }>).detail;
+      if (!shouldRefreshClient(detail, id)) return;
+      void load().catch(() => {});
+    };
+
+    window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
+  }, [id, idValid, load]);
+
+  useEffect(() => {
     if (!client?.id) return;
     const stored = loadPortalCredentials(client.id);
-    setPortalPassword(stored?.tempPassword ?? null);
-  }, [client?.id, client?.has_portal_access]);
+    setPortalPassword(client.portal_temp_password ?? stored?.tempPassword ?? null);
+  }, [client?.id, client?.has_portal_access, client?.portal_temp_password]);
 
   const clientName = client ? `${client.first_name} ${client.last_name}` : "";
   const canEdit =
@@ -240,8 +262,6 @@ export default function ClienteDetailPage() {
     const ok = await approveClient(client.id, clientName);
     if (ok) {
       await load();
-      const stored = loadPortalCredentials(client.id);
-      setPortalPassword(stored?.tempPassword ?? null);
     }
   }
 

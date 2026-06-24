@@ -9,11 +9,12 @@ import { PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { CLIENTS_REFRESH_EVENT, shouldRefreshClient } from "@/lib/clientEvents";
 import { prefetchDocuments } from "@/lib/contentBlobCache";
 import type { Client, DocumentBrief } from "@/types/api";
 
 export default function PortalDocumentosPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { t, locale } = useTranslation();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,19 @@ export default function PortalDocumentosPage() {
   useEffect(() => {
     reload();
   }, [token]);
+
+  useEffect(() => {
+    if (!token || !user?.client_id) return;
+
+    const handleRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ clientId?: number }>).detail;
+      if (!shouldRefreshClient(detail, user.client_id)) return;
+      reload({ silent: true });
+    };
+
+    window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
+  }, [token, user?.client_id]);
 
   useEffect(() => {
     if (!token || !client?.documents?.length) return;

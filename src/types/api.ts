@@ -113,6 +113,7 @@ export interface Client {
   has_portal_access?: boolean;
   portal_email?: string | null;
   portal_login_url?: string | null;
+  portal_temp_password?: string | null;
   advisor?: AdvisorBrief | null;
   addresses?: Address[];
   vehicles?: Vehicle[];

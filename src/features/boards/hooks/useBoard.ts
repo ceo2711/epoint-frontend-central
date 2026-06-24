@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
+import { CLIENTS_REFRESH_EVENT, shouldRefreshClient } from "@/lib/clientEvents";
 import type { Board } from "@/features/boards/types";
 
 export function useBoard(token: string | null, clientId: number | null | undefined, unavailableMessage: string) {
@@ -34,6 +35,19 @@ export function useBoard(token: string | null, clientId: number | null | undefin
   useEffect(() => {
     if (!token || !clientId) return;
     void load();
+  }, [load, token, clientId]);
+
+  useEffect(() => {
+    if (!token || !clientId) return;
+
+    const handleRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ clientId?: number }>).detail;
+      if (!shouldRefreshClient(detail, clientId)) return;
+      void load({ silent: true });
+    };
+
+    window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
+    return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
   }, [load, token, clientId]);
 
   return { board, error, loading, load, refresh, setError };
