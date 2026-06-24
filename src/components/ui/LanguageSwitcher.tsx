@@ -8,12 +8,18 @@ const options: { code: Locale; label: string }[] = [
   { code: "en", label: "EN" },
 ];
 
-export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+export function LanguageSwitcher({
+  compact = false,
+  className = "",
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
   const { locale, setLocale, t } = useTranslation();
 
   return (
     <div
-      className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"
+      className={`flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 ${className}`}
       role="group"
       aria-label={t("language.label")}
     >

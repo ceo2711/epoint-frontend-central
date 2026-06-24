@@ -14,7 +14,7 @@ export function Card({
 
 export function PageContent({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`flex-1 px-4 py-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-28 ${className}`}>
+    <div className={`min-w-0 w-full max-w-full flex-1 overflow-x-hidden px-4 py-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-28 ${className}`}>
       {children}
     </div>
   );

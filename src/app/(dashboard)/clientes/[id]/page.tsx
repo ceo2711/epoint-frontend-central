@@ -5,13 +5,13 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
+import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
-import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
+import { StaffClientDocumentsPanel } from "@/features/documents/components/StaffClientDocumentsPanel";
 import { ClientBoardPanel } from "@/features/boards/components/ClientBoardPanel";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
-import { DocumentThumbnail } from "@/features/documents/components/DocumentThumbnail";
-import { StatusBadge, VerificationBadge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -67,7 +67,8 @@ export default function ClienteDetailPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
-  const { approveClient, rejectClient, resubmitClient, deleteClient } = useClientWorkflow(token);
+  const { approveClient, rejectClient, resubmitClient, deleteClient, advisors, loadAdvisors } =
+    useClientWorkflow(token);
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -171,6 +172,10 @@ export default function ClienteDetailPage() {
   const canResubmit =
     client?.status === "RECHAZADO" && hasPermission("clients:update");
   const canDelete = hasPermission("clients:delete");
+  const canManageAdvisor =
+    !!client?.approved_at &&
+    user?.role.code === "ONBOARDING_MANAGER" &&
+    hasPermission("clients:approve");
 
   const sourceLabel =
     client?.source && client.source in CLIENT_SOURCE_LABEL_KEYS
@@ -301,11 +306,11 @@ export default function ClienteDetailPage() {
         subtitle={client.email}
       />
       <PageContent className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="section-label">{t("clientDetail.title")}</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{clientName}</h2>
-            <p className="mt-0.5 text-sm text-slate-500">{client.email}</p>
+            <h2 className="mt-1 break-words text-2xl font-bold tracking-tight text-slate-900">{clientName}</h2>
+            <p className="mt-0.5 break-all text-sm text-slate-500">{client.email}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {canApprove && (
@@ -350,6 +355,19 @@ export default function ClienteDetailPage() {
             token={token}
             canReset={hasPermission("clients:approve")}
             onPasswordUpdated={setPortalPassword}
+          />
+        )}
+
+        {canManageAdvisor && (
+          <ClientAdvisorPanel
+            clientId={client.id}
+            advisor={client.advisor ?? null}
+            token={token}
+            advisors={advisors}
+            onLoadAdvisors={loadAdvisors}
+            onAdvisorUpdated={(advisor) => {
+              setClient((prev) => (prev ? { ...prev, advisor } : prev));
+            }}
           />
         )}
 
@@ -457,41 +475,18 @@ export default function ClienteDetailPage() {
 
         {(!isApproved || activeTab === "documents") && (
           <Card className="p-4 sm:p-6">
-            <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.documents")}</h2>
-            {client.documents && client.documents.length > 0 ? (
-              <div className="space-y-3">
-                {client.documents.map((d) => (
-                  <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <DocumentThumbnail doc={d} viewLabel={t("portalDocs.viewDocument")} />
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-800">{translateStatus(locale, "documentTypes", d.type)}</p>
-                        <p className="text-sm text-slate-500">{d.original_filename}</p>
-                        <p className="mt-1 text-xs text-slate-400">{formatDate(d.uploaded_at, locale)}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button type="button" size="sm" variant="secondary" onClick={() => setViewingDoc(d)}>
-                        {t("portalDocs.viewDocument")}
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => void handleDownloadDocument(d)}>
-                        {t("clientDetail.downloadDocument")}
-                      </Button>
-                      <VerificationBadge status={d.verification_status} />
-                      <DocumentVerificationTooltip
-                        doc={d}
-                        locale={locale}
-                        rejectionTitle={t("portalDocs.rejectionTitle")}
-                        approvalTitle={t("portalDocs.approvalTitle")}
-                        viewLabel={t("portalDocs.viewVerificationDetails")}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400">{t("clientDetail.noDocuments")}</p>
-            )}
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+              {t("clientDetail.documents")}
+            </h2>
+            <StaffClientDocumentsPanel
+              clientId={client.id}
+              documents={client.documents}
+              token={token}
+              locale={locale}
+              onUploaded={() => void load()}
+              onViewDocument={setViewingDoc}
+              onDownloadDocument={handleDownloadDocument}
+            />
           </Card>
         )}
 

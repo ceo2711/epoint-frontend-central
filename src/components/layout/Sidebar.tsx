@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { AppBrand } from "@/components/layout/AppBrand";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useShell } from "@/contexts/ShellContext";
@@ -50,7 +52,7 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, logout } = useAuth();
   const { t } = useTranslation();
   const { unreadCount } = useNotifications();
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
@@ -68,8 +70,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white shadow-xl transition-[width,transform] duration-300 ease-out lg:static lg:z-auto lg:shrink-0 lg:translate-x-0 ${
-        mobileOpen ? "translate-x-0 w-[min(17.5rem,85vw)]" : "-translate-x-full lg:translate-x-0"
+      className={`fixed inset-y-0 left-0 z-50 flex w-[min(17.5rem,85vw)] flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white shadow-xl max-lg:transition-transform max-lg:duration-300 max-lg:ease-[cubic-bezier(0.32,0.72,0,1)] lg:static lg:z-auto lg:shrink-0 lg:translate-x-0 lg:transition-[width] lg:duration-300 lg:ease-out ${
+        mobileOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
       } ${collapsed ? "lg:w-[4.75rem]" : "lg:w-[17.5rem]"}`}
     >
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-500/20 to-transparent" />
@@ -81,16 +83,8 @@ export function Sidebar() {
             : "items-center justify-between px-4 sm:px-6"
         }`}
       >
-        <div className={`flex min-w-0 items-center ${collapsed ? "gap-3 lg:justify-center lg:gap-0" : "gap-3"}`}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
-            <span className="text-sm font-bold">eP</span>
-          </div>
-          <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
-            <p className="text-base font-bold tracking-tight">ePoint Central</p>
-            <p className="text-xs text-slate-400">
-              {isClient ? t("nav.clientPortal") : t("nav.management")}
-            </p>
-          </div>
+        <div className={`flex min-w-0 items-center ${collapsed ? "gap-3 lg:justify-center lg:gap-0 lg:[&_.brand-label]:hidden" : "gap-3"}`}>
+          <AppBrand showSubtitle dark />
         </div>
         <div className={`flex shrink-0 items-center gap-1 ${collapsed ? "lg:w-full lg:justify-center" : ""}`}>
           <button
@@ -186,6 +180,23 @@ export function Sidebar() {
                 </p>
                 <p className="truncate text-xs text-slate-400">{user.role.name}</p>
               </div>
+            </div>
+
+            <div className={`mt-3 space-y-3 border-t border-white/10 pt-3 lg:hidden ${collapsed ? "hidden" : ""}`}>
+              <LanguageSwitcher
+                compact
+                className="w-full justify-center border-white/15 bg-white/5"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  closeMobile();
+                  logout();
+                }}
+                className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+              >
+                {t("common.logout")}
+              </button>
             </div>
           </>
         )}

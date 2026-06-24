@@ -20,6 +20,8 @@ const sampleClient: Client = {
   approved_at: null,
   date_of_birth: null,
   has_ssn: false,
+  source: "WEB",
+  merchant: null,
   registered_by_user_id: 1,
   created_at: new Date().toISOString(),
 };

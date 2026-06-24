@@ -464,7 +464,9 @@ body {
   font-size: 0.875rem;
   line-height: 1.65;
   color: #1e293b;
+  overflow-wrap: anywhere;
   word-break: break-word;
+  max-width: 100%;
 }
 
 .rich-text-content p {
@@ -689,8 +691,8 @@ body {
   right: 0;
   top: calc(100% + 0.5rem);
   z-index: 50;
-  width: 22rem;
-  max-width: min(22rem, calc(100vw - 2rem));
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-width: min(22rem, calc(100vw - 1.5rem));
   overflow: hidden;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-soft);

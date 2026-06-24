@@ -78,15 +78,14 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
     if (!token) return;
     if (!body.trim() && files.length === 0) return;
 
-    const created = await api.post<CardComment>(
-      `/boards/cards/${cardId}/comments`,
-      { body, is_internal: isInternal },
-      token,
-    );
-
+    const formData = new FormData();
+    formData.append("body", body);
+    formData.append("is_internal", String(isInternal));
     for (const file of files) {
-      await uploadAttachment(cardId, file, created.id);
+      formData.append("files", file);
     }
+
+    await api.upload<CardComment>(`/boards/cards/${cardId}/comments`, formData, token);
     await refresh();
   }
 
@@ -117,7 +116,8 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
 
   return (
     <>
-      <TaskBoard
+      <div className="min-w-0 max-w-full overflow-hidden">
+        <TaskBoard
         board={board}
         onSelectCard={setSelected}
         onMoveCard={canManageBoard ? moveCard : undefined}
@@ -125,6 +125,7 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
         canDrag={canManageBoard}
         canCreateCards={canManageBoard}
       />
+      </div>
 
       {selected && (
         <CardDetailModal

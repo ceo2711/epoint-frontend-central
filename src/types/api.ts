@@ -87,6 +87,13 @@ export interface MerchantBrief {
   name: string;
 }
 
+export interface AdvisorBrief {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface Client {
   id: number;
   status: string;
@@ -106,6 +113,7 @@ export interface Client {
   has_portal_access?: boolean;
   portal_email?: string | null;
   portal_login_url?: string | null;
+  advisor?: AdvisorBrief | null;
   addresses?: Address[];
   vehicles?: Vehicle[];
   documents?: DocumentBrief[];
@@ -236,7 +244,9 @@ export const DOCUMENT_TYPES = [
   { value: "PASSPORT", label: "Pasaporte" },
   { value: "GREEN_CARD", label: "Green Card" },
   { value: "WORK_PERMIT", label: "Permiso de trabajo" },
-];
+] as const;
+
+/** @deprecated Prefer DOCUMENT_SECTIONS from document-requirements for UI grouping */
 
 export const TASK_STATUS_LABELS: Record<string, string> = {
   PENDIENTE: "Pendiente",

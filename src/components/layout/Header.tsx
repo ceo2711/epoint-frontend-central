@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { AppBrand } from "@/components/layout/AppBrand";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -18,7 +19,6 @@ export function Header({
   title: string;
   subtitle?: string;
   actions?: ReactNode;
-  /** Si es true, no agrega el saludo con nombre. */
   bareTitle?: boolean;
 }) {
   const { logout, user } = useAuth();
@@ -26,35 +26,47 @@ export function Header({
   const { toggleMobile } = useShell();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-300 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6 sm:py-4 lg:px-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <button
-            type="button"
-            className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden"
-            aria-label={t("common.openMenu")}
-            onClick={toggleMobile}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl lg:text-2xl">
-              {user && !bareTitle ? (
-                <>
-                  {t("header.hello")}{" "}
-                  <span className="text-blue-600">{user.first_name}</span>,{" "}
-                  <span className="font-semibold text-slate-800">{title}</span>
-                </>
-              ) : (
-                <span className="truncate">{title}</span>
-              )}
-            </h1>
-            {subtitle && <p className="mt-0.5 truncate text-sm text-slate-600">{subtitle}</p>}
-          </div>
+    <header className="sticky top-0 z-30 w-full max-w-full shrink-0 border-b border-slate-300 bg-white/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
+      {/* Mobile / tablet: menú · marca · notificaciones */}
+      <div className="grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 px-3 py-2.5 lg:hidden">
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          aria-label={t("common.openMenu")}
+          onClick={toggleMobile}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+            <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <div className="flex min-w-0 justify-center">
+          <AppBrand />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+
+        <div className="flex justify-end">
+          <NotificationBell />
+        </div>
+      </div>
+
+      {/* Desktop: título completo + acciones */}
+      <div className="hidden px-6 lg:flex lg:items-start lg:justify-between lg:gap-4 lg:px-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900">
+            {user && !bareTitle ? (
+              <>
+                {t("header.hello")}{" "}
+                <span className="text-blue-600">{user.first_name}</span>,{" "}
+                <span className="font-semibold text-slate-800">{title}</span>
+              </>
+            ) : (
+              title
+            )}
+          </h1>
+          {subtitle && <p className="mt-0.5 truncate text-sm text-slate-600">{subtitle}</p>}
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
           {actions}
           <NotificationBell />
           <LanguageSwitcher compact />

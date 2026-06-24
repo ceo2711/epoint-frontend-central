@@ -19,6 +19,7 @@ import type { ClientFormData } from "@/features/clients/types";
 import { formatClientConflict } from "@/features/clients/utils";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { ApiError, api } from "@/lib/api";
+import { emitClientsRefresh } from "@/lib/clientEvents";
 
 export default function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
@@ -75,7 +76,7 @@ export default function ClientesPage() {
       );
       setShowForm(false);
       setForm(EMPTY_CLIENT_FORM);
-      await load();
+      emitClientsRefresh();
     } catch (err) {
       await modal.alert({
         title: t("common.error"),

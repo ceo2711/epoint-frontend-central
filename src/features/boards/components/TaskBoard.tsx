@@ -393,7 +393,7 @@ export function TaskBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex items-start snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
+      <div className="flex w-full min-w-0 max-w-full items-start snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
         {localBoard.lists
           .slice()
           .sort((a, b) => a.position - b.position)
