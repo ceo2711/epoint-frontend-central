@@ -9,7 +9,7 @@ import { PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
-import { CLIENTS_REFRESH_EVENT, shouldRefreshClient } from "@/lib/clientEvents";
+import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { prefetchDocuments } from "@/lib/contentBlobCache";
 import type { Client, DocumentBrief } from "@/types/api";
 
@@ -46,9 +46,11 @@ export default function PortalDocumentosPage() {
     if (!token || !user?.client_id) return;
 
     const handleRefresh = (event: Event) => {
-      const detail = (event as CustomEvent<{ clientId?: number }>).detail;
+      const detail = (event as CustomEvent<ClientsRefreshDetail>).detail;
       if (!shouldRefreshClient(detail, user.client_id)) return;
-      reload({ silent: true });
+      if (detail?.scope === "board" || !detail?.scope) {
+        reload({ silent: true });
+      }
     };
 
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);

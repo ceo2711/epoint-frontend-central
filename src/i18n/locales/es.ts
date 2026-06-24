@@ -469,6 +469,7 @@ export const es = {
     placeholder: "Escribí tu pregunta…",
     send: "Enviar",
     thinking: "Pensando…",
+    uploadingFile: "Subiendo {file}…",
     newConversation: "Nueva conversación",
     selectDocumentType: "Elegí el tipo de documento",
     selectBoardCard: "Elegí la tarjeta del tablero",

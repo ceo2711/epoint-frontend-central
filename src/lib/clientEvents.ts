@@ -1,7 +1,10 @@
 export const CLIENTS_REFRESH_EVENT = "epoint:clients-refresh";
 
+export type ClientsRefreshScope = "all" | "documents" | "board";
+
 export interface ClientsRefreshDetail {
   clientId?: number;
+  scope?: ClientsRefreshScope;
 }
 
 export function emitClientsRefresh(detail?: ClientsRefreshDetail): void {

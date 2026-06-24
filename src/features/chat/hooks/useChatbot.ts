@@ -64,6 +64,7 @@ export function useChatbot(
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fileUploading, setFileUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeClientId, setActiveClientId] = useState<number | null>(clientIdHint);
   const [pendingAction, setPendingAction] = useState<PendingChatAction | null>(null);
@@ -572,7 +573,7 @@ export function useChatbot(
 
   const finishDocumentUpload = useCallback(
     async (documentType: string) => {
-      if (!token || !stagedUpload || loading) return;
+      if (!token || !stagedUpload || loading || fileUploading) return;
 
       const clientId = resolveClientId();
       if (!clientId && needsStaffClientSelection()) {
@@ -580,46 +581,48 @@ export function useChatbot(
         return;
       }
 
-      setLoading(true);
+      const { file, fileName, selectedClientName } = stagedUpload;
+      setStagedUpload(null);
+      setFileUploading(fileName);
       setError(null);
 
       try {
         const formData = new FormData();
         formData.append("document_type", documentType);
-        formData.append("file", stagedUpload.file);
+        formData.append("file", file);
 
         const path = clientId ? `/documents/upload?client_id=${clientId}` : "/documents/upload";
         await api.upload(path, formData, token);
 
         const label = translate(chatLocale, `documentTypes.${documentType}`);
-        const clientName = stagedUpload.selectedClientName;
         if (canUploadToBoard) {
           appendAssistant(
             chatT("chat.uploadDocumentSuccessStaff", {
               type: label,
-              client: clientName ?? `#${clientId}`,
+              client: selectedClientName ?? `#${clientId}`,
             }),
           );
         } else {
           appendAssistant(chatT("chat.uploadDocumentSuccess", { type: label }));
         }
-        setStagedUpload(null);
-        emitClientsRefresh({ clientId: clientId ?? undefined });
+        emitClientsRefresh({ clientId: clientId ?? undefined, scope: "documents" });
       } catch (err) {
         const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
         setError(message);
         appendAssistant(chatT("chat.uploadError", { message }));
       } finally {
-        setLoading(false);
+        setFileUploading(null);
       }
     },
     [
       token,
       stagedUpload,
       loading,
+      fileUploading,
       resolveClientId,
       canUploadToBoard,
       needsStaffClientSelection,
+      goToClientStep,
       chatT,
       chatLocale,
       appendAssistant,
@@ -629,40 +632,40 @@ export function useChatbot(
 
   const finishBoardUpload = useCallback(
     async (cardId: number) => {
-      if (!token || !stagedUpload || loading) return;
+      if (!token || !stagedUpload || loading || fileUploading) return;
 
       const clientId = stagedUpload.selectedClientId ?? resolveClientId() ?? undefined;
+      const { file, fileName, selectedClientName } = stagedUpload;
 
-      setLoading(true);
+      setStagedUpload(null);
+      setFileUploading(fileName);
       setError(null);
 
       try {
         const formData = new FormData();
-        formData.append("file", stagedUpload.file);
+        formData.append("file", file);
         await api.upload(`/boards/cards/${cardId}/attachments`, formData, token);
 
         if (canUploadToBoard) {
           appendAssistant(
             chatT("chat.uploadBoardSuccessStaff", {
-              file: stagedUpload.fileName,
-              client: stagedUpload.selectedClientName ?? "",
+              file: fileName,
+              client: selectedClientName ?? "",
             }),
           );
         } else {
-          appendAssistant(chatT("chat.uploadBoardSuccess", { file: stagedUpload.fileName }));
+          appendAssistant(chatT("chat.uploadBoardSuccess", { file: fileName }));
         }
-        setStagedUpload(null);
-        setBoardCards([]);
-        emitClientsRefresh({ clientId });
+        emitClientsRefresh({ clientId, scope: "board" });
       } catch (err) {
         const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
         setError(message);
         appendAssistant(chatT("chat.uploadError", { message }));
       } finally {
-        setLoading(false);
+        setFileUploading(null);
       }
     },
-    [token, stagedUpload, loading, chatT, appendAssistant, t, canUploadToBoard, resolveClientId],
+    [token, stagedUpload, loading, fileUploading, chatT, appendAssistant, t, canUploadToBoard, resolveClientId],
   );
 
   const resetChat = useCallback(() => {
@@ -676,6 +679,7 @@ export function useChatbot(
     setPendingAction(null);
     setStagedUpload(null);
     setBoardCards([]);
+    setFileUploading(null);
     setClientOptions([]);
     setChatLocale(createInitialChatLocale(defaultLocale));
   }, [userId, clientIdHint, defaultLocale]);
@@ -685,6 +689,7 @@ export function useChatbot(
   return {
     messages,
     loading,
+    fileUploading,
     error,
     sendMessage,
     stageFile,

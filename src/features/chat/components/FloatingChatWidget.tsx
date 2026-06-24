@@ -78,6 +78,7 @@ export function FloatingChatWidget() {
   const {
     messages,
     loading,
+    fileUploading,
     error,
     sendMessage,
     stageFile,
@@ -125,7 +126,7 @@ export function FloatingChatWidget() {
   useEffect(() => {
     if (!open) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, loading, open]);
+  }, [messages, loading, fileUploading, open]);
 
   useEffect(() => {
     if (open) {
@@ -206,10 +207,17 @@ export function FloatingChatWidget() {
               </div>
             ))}
 
-            {loading && (
+            {loading && !fileUploading && (
               <div className="mr-8 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200">
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
                 <span>{chatT("chat.thinking")}</span>
+              </div>
+            )}
+
+            {fileUploading && (
+              <div className="mr-8 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                <span>{chatT("chat.uploadingFile", { file: fileUploading })}</span>
               </div>
             )}
 
@@ -220,7 +228,7 @@ export function FloatingChatWidget() {
             )}
           </div>
 
-          {stagedUpload && (
+          {stagedUpload && !fileUploading && (
             <div className="shrink-0 border-t border-blue-200 bg-blue-50/80 px-3 py-2">
               <ChatFileRoutePanel
                 staged={stagedUpload}
@@ -233,7 +241,7 @@ export function FloatingChatWidget() {
                 clientSearchLoadingMore={clientSearchLoadingMore}
                 clientSearchHasMore={clientSearchHasMore}
                 clientSearchTotal={clientSearchTotal}
-                disabled={loading}
+                disabled={loading || !!fileUploading}
                 onSelectDestination={(destination) => void selectDestination(destination)}
                 onSelectDocumentType={(value) => void finishDocumentUpload(value)}
                 onSelectBoardCard={(cardId) => void finishBoardUpload(cardId)}
@@ -260,7 +268,7 @@ export function FloatingChatWidget() {
                       type="file"
                       className="hidden"
                       accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
-                      disabled={loading}
+                      disabled={loading || !!fileUploading}
                       onChange={(e) => handleFileSelected(e.target.files)}
                     />
                   </label>
@@ -282,12 +290,12 @@ export function FloatingChatWidget() {
                       : chatT("chat.placeholder")
                   }
                   className="input-field min-h-[2.75rem] w-full resize-none py-2 text-sm"
-                  disabled={loading}
+                  disabled={loading || !!fileUploading}
                 />
               </div>
               <button
                 type="submit"
-                disabled={loading || !draft.trim()}
+                disabled={loading || !!fileUploading || !draft.trim()}
                 className="btn btn-primary btn-sm shrink-0 px-4"
               >
                 {chatT("chat.send")}

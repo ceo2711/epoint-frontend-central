@@ -470,6 +470,7 @@ export const en: Messages = {
     placeholder: "Type your question…",
     send: "Send",
     thinking: "Thinking…",
+    uploadingFile: "Uploading {file}…",
     newConversation: "New conversation",
     selectDocumentType: "Choose document type",
     selectBoardCard: "Choose a board card",

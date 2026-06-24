@@ -30,7 +30,7 @@ import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
-import { CLIENTS_REFRESH_EVENT, shouldRefreshClient } from "@/lib/clientEvents";
+import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
@@ -121,15 +121,16 @@ export default function ClienteDetailPage() {
     ? formatClientConflict(t, "phone", availability.phone)
     : undefined;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { silent?: boolean }) => {
     if (authLoading || loadInFlight.current) return;
     if (!token || !idValid) {
       setLoading(false);
       if (!idValid) setLoadError("No se pudo cargar el cliente.");
       return;
     }
+    const silent = options?.silent ?? false;
     loadInFlight.current = true;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setLoadError("");
     try {
       const c = await api.get<Client>(`/clients/${id}`, token);
@@ -157,9 +158,19 @@ export default function ClienteDetailPage() {
       }
     } finally {
       loadInFlight.current = false;
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [authLoading, token, id, idValid]);
+
+  const refreshDocuments = useCallback(async () => {
+    if (!token || !idValid) return;
+    try {
+      const c = await api.get<Client>(`/clients/${id}`, token);
+      setClient((prev) => (prev ? { ...prev, documents: c.documents } : c));
+    } catch {
+      // Keep current UI if a background refresh fails.
+    }
+  }, [token, id, idValid]);
 
   useEffect(() => {
     void load().catch(() => {});
@@ -169,14 +180,19 @@ export default function ClienteDetailPage() {
     if (!idValid) return;
 
     const handleRefresh = (event: Event) => {
-      const detail = (event as CustomEvent<{ clientId?: number }>).detail;
+      const detail = (event as CustomEvent<ClientsRefreshDetail>).detail;
       if (!shouldRefreshClient(detail, id)) return;
-      void load().catch(() => {});
+      if (detail?.scope === "board") return;
+      if (detail?.scope === "documents") {
+        void refreshDocuments();
+        return;
+      }
+      void load({ silent: true });
     };
 
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
-  }, [id, idValid, load]);
+  }, [id, idValid, load, refreshDocuments]);
 
   useEffect(() => {
     if (!client?.id) return;
@@ -503,7 +519,7 @@ export default function ClienteDetailPage() {
               documents={client.documents}
               token={token}
               locale={locale}
-              onUploaded={() => void load()}
+              onUploaded={() => void refreshDocuments()}
               onViewDocument={setViewingDoc}
               onDownloadDocument={handleDownloadDocument}
             />
