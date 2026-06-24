@@ -182,7 +182,7 @@ export function Sidebar() {
               </div>
             </div>
 
-            <div className={`mt-3 space-y-3 border-t border-white/10 pt-3 lg:hidden ${collapsed ? "hidden" : ""}`}>
+            <div className="mt-3 space-y-3 border-t border-white/10 pt-3 lg:hidden">
               <LanguageSwitcher
                 compact
                 className="w-full justify-center border-white/15 bg-white/5"
