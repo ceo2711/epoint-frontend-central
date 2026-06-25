@@ -174,6 +174,23 @@ export const en: Messages = {
     deleteConfirm: "Permanently delete {name}? All data, documents, and board will be removed. This cannot be undone.",
     deleting: "Deleting client...",
     deleteSuccess: "{name} was deleted successfully.",
+    remindersRunAction: "Send reminders",
+    remindersRunTitle: "Onboarding reminders",
+    remindersRunConfirm:
+      "All clients with incomplete onboarding will be checked and email plus WhatsApp will be sent to those with pending data or documents. Continue?",
+    remindersRunning: "Sending reminders…",
+    remindersRunSuccessTitle: "Reminders processed",
+    remindersRunSuccessMessage:
+      "Clients reviewed: {processed}. Reminders sent: {sent}. Nothing pending: {skipped}. Failed: {failed}.",
+    remindersRunDryRunNote:
+      "The backend has NOTIFICATIONS_DRY_RUN=true: deliveries were simulated (email/WhatsApp) but no real messages were sent.",
+    remindersRunNoSentNote:
+      "No clients had pending data or documents right now, or they did not meet the criteria (approved and in data upload/document review).",
+    remindersRunError: "Could not send reminders.",
+    remindersAutoEnabled:
+      "Automatic every {minutes} min while the API is running (first cycle on startup).",
+    remindersDisabled:
+      "Manual only: ONBOARDING_REMINDER_INTERVAL_MINUTES=0 on the backend.",
     empty: "No clients registered",
   },
   clientDetail: {

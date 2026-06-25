@@ -49,6 +49,24 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
     }
   }, [board, selected?.id]);
 
+  const isVerifyingAttachments = board?.lists.some((list) =>
+    list.cards.some((card) =>
+      card.attachments.some(
+        (attachment) =>
+          attachment.verification_status === "PENDIENTE" ||
+          attachment.verification_status === "EN_PROCESO",
+      ),
+    ),
+  );
+
+  useEffect(() => {
+    if (!token || !isVerifyingAttachments) return;
+    const interval = window.setInterval(() => {
+      void refresh();
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [token, isVerifyingAttachments, refresh]);
+
   async function moveCard(cardId: number, listId: number, position: number) {
     if (!token) return;
     await api.patch(`/boards/cards/${cardId}/move`, { list_id: listId, position }, token);

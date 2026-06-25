@@ -172,6 +172,23 @@ export const es = {
     deleteConfirm: "¿Eliminar definitivamente a {name}? Se borrarán sus datos, documentos y tablero. Esta acción no se puede deshacer.",
     deleting: "Eliminando cliente...",
     deleteSuccess: "{name} fue eliminado correctamente.",
+    remindersRunAction: "Enviar recordatorios",
+    remindersRunTitle: "Recordatorios de onboarding",
+    remindersRunConfirm:
+      "Se revisarán todos los clientes con onboarding incompleto y se enviará email y WhatsApp a quienes tengan datos o documentos pendientes. ¿Continuar?",
+    remindersRunning: "Enviando recordatorios…",
+    remindersRunSuccessTitle: "Recordatorios procesados",
+    remindersRunSuccessMessage:
+      "Clientes revisados: {processed}. Recordatorios enviados: {sent}. Sin pendientes: {skipped}. Fallidos: {failed}.",
+    remindersRunDryRunNote:
+      "El backend tiene NOTIFICATIONS_DRY_RUN=true: se simularon los envíos (email/WhatsApp) pero no salió ningún mensaje real.",
+    remindersRunNoSentNote:
+      "Ningún cliente tenía datos o documentos pendientes en este momento, o no cumplían los criterios (aprobados y en carga de datos/revisión de documentos).",
+    remindersRunError: "No se pudieron enviar los recordatorios.",
+    remindersAutoEnabled:
+      "Automático cada {minutes} min mientras la API esté encendida (primer ciclo al iniciar).",
+    remindersDisabled:
+      "Solo manual: ONBOARDING_REMINDER_INTERVAL_MINUTES=0 en el backend.",
     empty: "No hay clientes registrados",
   },
   clientDetail: {

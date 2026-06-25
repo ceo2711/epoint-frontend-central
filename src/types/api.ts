@@ -208,6 +208,9 @@ export interface CardAttachment {
   comment_id?: number | null;
   uploaded_by_name?: string | null;
   created_at?: string | null;
+  verification_status?: string | null;
+  rejection_reasons?: LocalizedStringList | null;
+  approval_reasons?: LocalizedStringList | null;
 }
 
 export interface BoardList {

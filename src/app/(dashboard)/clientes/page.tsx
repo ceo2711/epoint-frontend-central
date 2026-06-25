@@ -11,6 +11,7 @@ import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientCreateForm } from "@/features/clients/components/ClientCreateForm";
 import { ClientList } from "@/features/clients/components/ClientList";
+import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientAvailabilityCheck } from "@/features/clients/hooks/useClientAvailabilityCheck";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { useClients } from "@/features/clients/hooks/useClients";
@@ -100,17 +101,23 @@ export default function ClientesPage() {
     if (await resubmitClient(id, name)) await load();
   }
 
+  const canRunReminders =
+    roleCode === "ADMIN" || roleCode === "ONBOARDING_MANAGER";
+
   return (
     <>
       <Header
         title={t("clients.headerContext")}
         subtitle={clientsSubtitle}
         actions={
-          hasPermission("clients:create") ? (
-            <Button size="sm" onClick={() => setShowForm(!showForm)}>
-              {showForm ? t("common.cancel") : t("clients.register")}
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {canRunReminders && <OnboardingRemindersButton token={token} />}
+            {hasPermission("clients:create") ? (
+              <Button size="sm" onClick={() => setShowForm(!showForm)}>
+                {showForm ? t("common.cancel") : t("clients.register")}
+              </Button>
+            ) : null}
+          </div>
         }
       />
       <PageContent>

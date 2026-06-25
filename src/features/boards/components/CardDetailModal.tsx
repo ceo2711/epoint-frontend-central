@@ -3,10 +3,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { VerificationBadge } from "@/components/ui/Badge";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { ModalPortal } from "@/components/ui/ModalPortal";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
+import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { CardAttachmentThumbnail } from "@/features/boards/components/CardAttachmentThumbnail";
 import { CommentBody } from "@/features/boards/components/CommentBody";
 import { CommentMentionTextarea } from "@/features/boards/components/CommentMentionTextarea";
@@ -18,6 +20,7 @@ import { useAttachmentContentUrl } from "@/features/boards/hooks/useAttachmentCo
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { prefetchAttachments } from "@/lib/contentBlobCache";
 import type { BoardCard, CardAttachment, CardComment } from "@/features/boards/types";
+import type { DocumentBrief } from "@/types/api";
 
 interface CardDetailModalProps {
   card: BoardCard;
@@ -273,13 +276,32 @@ export function CardDetailModal({
                 {cardAttachments.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
                     {cardAttachments.map((attachment) => (
-                      <CardAttachmentThumbnail
-                        key={attachment.id}
-                        attachment={attachment}
-                        token={token}
-                        size="md"
-                        onView={() => setViewingAttachment(attachment)}
-                      />
+                      <div key={attachment.id} className="flex flex-col gap-1">
+                        <CardAttachmentThumbnail
+                          attachment={attachment}
+                          token={token}
+                          size="md"
+                          onView={() => setViewingAttachment(attachment)}
+                        />
+                        {attachment.verification_status && (
+                          <div className="flex flex-wrap items-center gap-1 px-0.5">
+                            <VerificationBadge status={attachment.verification_status} />
+                            <DocumentVerificationTooltip
+                              doc={
+                                {
+                                  verification_status: attachment.verification_status,
+                                  rejection_reasons: attachment.rejection_reasons,
+                                  approval_reasons: attachment.approval_reasons,
+                                } as DocumentBrief
+                              }
+                              locale={locale}
+                              rejectionTitle={t("documents.rejectionTitle")}
+                              approvalTitle={t("documents.approvalTitle")}
+                              viewLabel={t("documents.viewVerificationDetails")}
+                            />
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -416,14 +438,33 @@ export function CardDetailModal({
                         {(attachmentsByComment.get(item.id) ?? []).length > 0 && (
                           <div className="mt-2 space-y-0.5">
                             {(attachmentsByComment.get(item.id) ?? []).map((attachment) => (
-                              <button
-                                key={attachment.id}
-                                type="button"
-                                onClick={() => setViewingAttachment(attachment)}
-                                className="block text-left text-sm font-medium text-blue-600 hover:underline"
-                              >
-                                {attachment.original_filename}
-                              </button>
+                              <div key={attachment.id} className="flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingAttachment(attachment)}
+                                  className="text-left text-sm font-medium text-blue-600 hover:underline"
+                                >
+                                  {attachment.original_filename}
+                                </button>
+                                {attachment.verification_status && (
+                                  <>
+                                    <VerificationBadge status={attachment.verification_status} />
+                                    <DocumentVerificationTooltip
+                                      doc={
+                                        {
+                                          verification_status: attachment.verification_status,
+                                          rejection_reasons: attachment.rejection_reasons,
+                                          approval_reasons: attachment.approval_reasons,
+                                        } as DocumentBrief
+                                      }
+                                      locale={locale}
+                                      rejectionTitle={t("documents.rejectionTitle")}
+                                      approvalTitle={t("documents.approvalTitle")}
+                                      viewLabel={t("documents.viewVerificationDetails")}
+                                    />
+                                  </>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
