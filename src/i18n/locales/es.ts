@@ -185,10 +185,6 @@ export const es = {
     remindersRunNoSentNote:
       "Ningún cliente tenía datos o documentos pendientes en este momento, o no cumplían los criterios (aprobados y en carga de datos/revisión de documentos).",
     remindersRunError: "No se pudieron enviar los recordatorios.",
-    remindersAutoEnabled:
-      "Automático cada {minutes} min mientras la API esté encendida (primer ciclo al iniciar).",
-    remindersDisabled:
-      "Solo manual: ONBOARDING_REMINDER_INTERVAL_MINUTES=0 en el backend.",
     empty: "No hay clientes registrados",
   },
   clientDetail: {

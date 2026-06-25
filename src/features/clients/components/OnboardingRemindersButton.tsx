@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { useModal } from "@/contexts/ModalContext";
@@ -15,12 +15,6 @@ interface OnboardingReminderRunResult {
   dry_run: boolean;
 }
 
-interface OnboardingReminderConfig {
-  interval_minutes: number;
-  automatic_enabled: boolean;
-  dry_run: boolean;
-}
-
 interface OnboardingRemindersButtonProps {
   token: string | null;
 }
@@ -29,15 +23,6 @@ export function OnboardingRemindersButton({ token }: OnboardingRemindersButtonPr
   const { t } = useTranslation();
   const modal = useModal();
   const [running, setRunning] = useState(false);
-  const [config, setConfig] = useState<OnboardingReminderConfig | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    api
-      .get<OnboardingReminderConfig>("/onboarding-reminders/config", token)
-      .then(setConfig)
-      .catch(() => setConfig(null));
-  }, [token]);
 
   async function handleRun() {
     if (!token || running) return;
@@ -91,17 +76,8 @@ export function OnboardingRemindersButton({ token }: OnboardingRemindersButtonPr
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button size="sm" variant="secondary" onClick={() => void handleRun()} disabled={running}>
-        {running ? t("clients.remindersRunning") : t("clients.remindersRunAction")}
-      </Button>
-      {config?.automatic_enabled ? (
-        <p className="text-xs text-muted-foreground">
-          {t("clients.remindersAutoEnabled", { minutes: String(config.interval_minutes) })}
-        </p>
-      ) : config ? (
-        <p className="text-xs text-muted-foreground">{t("clients.remindersDisabled")}</p>
-      ) : null}
-    </div>
+    <Button size="sm" variant="secondary" onClick={() => void handleRun()} disabled={running}>
+      {running ? t("clients.remindersRunning") : t("clients.remindersRunAction")}
+    </Button>
   );
 }
