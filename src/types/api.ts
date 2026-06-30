@@ -19,6 +19,7 @@ export interface User {
   role: RoleBrief;
   area: AreaBrief | null;
   must_change_password: boolean;
+  totp_enabled: boolean;
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
@@ -54,11 +55,18 @@ export interface Paginated<T> {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
+  requires_2fa?: boolean;
+  temp_token?: string | null;
+  access_token?: string | null;
+  refresh_token?: string | null;
   token_type: string;
   must_change_password: boolean;
-  user: User;
+  user: User | null;
+}
+
+export interface TotpSetupResponse {
+  secret: string;
+  provisioning_uri: string;
 }
 
 export interface Notification {

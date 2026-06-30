@@ -21,14 +21,21 @@ import {
   restoreSession,
   revokeSession,
 } from "@/features/auth/auth-session";
-import { clearToken } from "@/features/auth/auth-storage";
+import {
+  clearToken,
+  clearTwoFactorTempToken,
+  getTwoFactorTempToken,
+  setTwoFactorTempToken,
+} from "@/features/auth/auth-storage";
 import type { LoginResponse, User } from "@/types/api";
 
 interface AuthContextValue {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ requiresTwoFactor: boolean; userName?: string }>;
+  completeTwoFactorLogin: (code: string) => Promise<void>;
+  cancelTwoFactorLogin: () => void;
   logout: () => void;
   refreshUser: () => Promise<User | null>;
   hasPermission: (permission: string) => boolean;
@@ -83,9 +90,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email.trim().toLowerCase(),
         password: password.trim(),
       });
+
+      if (response.requires_2fa && response.temp_token) {
+        setTwoFactorTempToken(response.temp_token);
+        const userName = response.user
+          ? `${response.user.first_name} ${response.user.last_name}`.trim()
+          : undefined;
+        return { requiresTwoFactor: true, userName };
+      }
+
+      if (!response.access_token || !response.refresh_token || !response.user) {
+        throw new Error("Respuesta de login inválida");
+      }
+
       persistLoginSession(response.access_token, response.refresh_token);
       setTokenState(response.access_token);
       setUser(response.user);
+      if (response.must_change_password) {
+        router.push("/cambiar-contrasena");
+      } else {
+        router.push(getDefaultAppPath(response.user.role.code));
+      }
+      return { requiresTwoFactor: false };
+    },
+    [router],
+  );
+
+  const cancelTwoFactorLogin = useCallback(() => {
+    clearTwoFactorTempToken();
+  }, []);
+
+  const completeTwoFactorLogin = useCallback(
+    async (code: string) => {
+      const tempToken = getTwoFactorTempToken();
+      if (!tempToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await api.post<LoginResponse>("/auth/2fa/verify", {
+        temp_token: tempToken,
+        code,
+      });
+
+      if (!response.access_token || !response.refresh_token || !response.user) {
+        throw new Error("Respuesta 2FA inválida");
+      }
+
+      clearTwoFactorTempToken();
+      persistLoginSession(response.access_token, response.refresh_token);
+      setTokenState(response.access_token);
+      setUser(response.user);
+
       if (response.must_change_password) {
         router.push("/cambiar-contrasena");
       } else {
@@ -98,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     void revokeSession();
     clearToken();
+    clearTwoFactorTempToken();
     setUser(null);
     setTokenState(null);
     router.push("/login");
@@ -113,8 +170,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ user, token, isLoading, login, logout, refreshUser, hasPermission }),
-    [user, token, isLoading, login, logout, refreshUser, hasPermission],
+    () => ({
+      user,
+      token,
+      isLoading,
+      login,
+      completeTwoFactorLogin,
+      cancelTwoFactorLogin,
+      logout,
+      refreshUser,
+      hasPermission,
+    }),
+    [user, token, isLoading, login, completeTwoFactorLogin, cancelTwoFactorLogin, logout, refreshUser, hasPermission],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
