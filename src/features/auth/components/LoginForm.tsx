@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -89,17 +90,20 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             hideLabel={t("login.hidePassword")}
           />
 
+          <div className="flex flex-col items-center gap-0.5 text-center">
+            <Link
+              href="/recuperar-contrasena"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              {t("login.forgotPassword")}
+            </Link>
+            <span className="text-xs text-slate-400">{t("login.forgotPasswordHint")}</span>
+          </div>
+
           <Button type="submit" fullWidth size="lg" disabled={submitting}>
             {submitting ? t("login.submitting") : t("login.submit")}
           </Button>
         </form>
-
-        <div className="mt-8 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-          <p className="text-center text-xs font-medium text-slate-500">{t("login.demoAccount")}</p>
-          <p className="mt-1 text-center font-mono text-xs text-slate-600">
-            admin@epoint.com · Admin123!
-          </p>
-        </div>
       </div>
     </div>
   );
