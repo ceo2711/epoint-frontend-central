@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { ChangePasswordForm } from "@/features/auth/components/ChangePasswordForm";
 import { useAuth } from "@/features/auth/AuthContext";
+import { getDefaultAppPath } from "@/features/auth/auth-redirect";
 import { api } from "@/lib/api";
 
 export default function CambiarContrasenaPage() {
@@ -16,8 +17,8 @@ export default function CambiarContrasenaPage() {
       { current_password: currentPassword, new_password: newPassword },
       token,
     );
-    await refreshUser();
-    router.push("/dashboard");
+    const updatedUser = await refreshUser();
+    router.push(getDefaultAppPath(updatedUser?.role.code ?? "CLIENT"));
   }
 
   return <ChangePasswordForm onSubmit={handleSubmit} />;

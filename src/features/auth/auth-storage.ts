@@ -1,5 +1,6 @@
 const TOKEN_KEY = "epoint_access_token";
 const REFRESH_TOKEN_KEY = "epoint_refresh_token";
+const TWO_FA_TEMP_TOKEN_KEY = "epoint_2fa_temp_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -27,4 +28,18 @@ export function setSession(accessToken: string, refreshToken: string): void {
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(TWO_FA_TEMP_TOKEN_KEY);
+}
+
+export function setTwoFactorTempToken(token: string): void {
+  localStorage.setItem(TWO_FA_TEMP_TOKEN_KEY, token);
+}
+
+export function getTwoFactorTempToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TWO_FA_TEMP_TOKEN_KEY);
+}
+
+export function clearTwoFactorTempToken(): void {
+  localStorage.removeItem(TWO_FA_TEMP_TOKEN_KEY);
 }
