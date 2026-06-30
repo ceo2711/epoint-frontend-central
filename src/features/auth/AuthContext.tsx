@@ -10,6 +10,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  getDefaultAppPath,
+  mustForcePasswordChange,
+} from "@/features/auth/auth-redirect";
 import { api } from "@/lib/api";
 import { setUnauthorizedHandler } from "@/features/auth/auth-unauthorized";
 import {
@@ -26,7 +30,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   hasPermission: (permission: string) => boolean;
 }
 
@@ -43,10 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!session) {
       setUser(null);
       setTokenState(null);
-      return;
+      return null;
     }
     setUser(session.user);
     setTokenState(session.token);
+    return session.user;
   }, []);
 
   useEffect(() => {
@@ -55,9 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!session) return;
         setUser(session.user);
         setTokenState(session.token);
+        if (mustForcePasswordChange(session.user)) {
+          router.replace("/cambiar-contrasena");
+        }
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -80,10 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(response.user);
       if (response.must_change_password) {
         router.push("/cambiar-contrasena");
-      } else if (response.user.role.code === "CLIENT") {
-        router.push("/portal");
       } else {
-        router.push("/dashboard");
+        router.push(getDefaultAppPath(response.user.role.code));
       }
     },
     [router],

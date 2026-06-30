@@ -7,10 +7,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ShellProvider } from "@/contexts/ShellContext";
 import { useAuth } from "@/features/auth/AuthContext";
+import { useRequirePasswordChanged } from "@/features/auth/PasswordChangeGuard";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  useRequirePasswordChanged(user, isLoading);
 
   useEffect(() => {
     if (isLoading) return;
