@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
-import { useAuth } from "@/features/auth/AuthContext";
+import { NotificationDetailModal } from "@/features/notifications/components/NotificationDetailModal";
 import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useNotificationNavigation } from "@/features/notifications/hooks/useNotificationNavigation";
@@ -49,18 +48,15 @@ function NotificationItem({
 }
 
 export function NotificationBell() {
-  const { user } = useAuth();
   const { t, locale } = useTranslation();
-  const { unreadCount, recent, loading, refresh, markAllRead } = useNotifications();
+  const { unreadCount, recent, loading, markRead, markAllRead } = useNotifications();
   const { openNotification, getHref } = useNotificationNavigation();
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Notification | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const isClient = user?.role.code === "CLIENT";
-  const allNotificationsHref = isClient ? "/portal/notificaciones" : "/notificaciones";
 
   useEffect(() => {
     if (!open) return;
-    refresh();
     function handleClick(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -75,74 +71,91 @@ export function NotificationBell() {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open, refresh]);
+  }, [open]);
 
-  async function handleSelect(n: Notification) {
+  useEffect(() => {
+    if (!selected || selected.read_at) return;
+    void markRead([selected.id]);
+  }, [selected, markRead]);
+
+  function handleSelect(notification: Notification) {
     setOpen(false);
-    if (getHref(n)) {
-      await openNotification(n);
+    setSelected(notification);
+  }
+
+  function handleCloseModal() {
+    setSelected(null);
+  }
+
+  async function handleNavigateFromModal() {
+    if (!selected) return;
+    const notification = selected;
+    setSelected(null);
+    if (getHref(notification)) {
+      await openNotification(notification);
     }
   }
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-        aria-label={t("notifications.bell")}
-        aria-expanded={open}
-      >
-        <BellIcon />
-        {unreadCount > 0 && (
-          <NotificationBadge count={unreadCount} className="absolute -right-1 -top-1 ring-white" />
-        )}
-      </button>
+    <>
+      <div ref={rootRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+          aria-label={t("notifications.bell")}
+          aria-expanded={open}
+        >
+          <BellIcon />
+          {unreadCount > 0 && (
+            <NotificationBadge count={unreadCount} className="absolute -right-1 -top-1 ring-white" />
+          )}
+        </button>
 
-      {open && (
-        <div className="notification-dropdown">
-          <div className="notification-dropdown-header">
-            <div>
-              <p className="text-sm font-bold text-slate-900">{t("notifications.title")}</p>
+        {open && (
+          <div className="notification-dropdown">
+            <div className="notification-dropdown-header">
+              <div>
+                <p className="text-sm font-bold text-slate-900">{t("notifications.title")}</p>
+                {unreadCount > 0 && (
+                  <p className="text-xs text-slate-500">{t("notifications.unreadCount", { count: unreadCount })}</p>
+                )}
+              </div>
               {unreadCount > 0 && (
-                <p className="text-xs text-slate-500">{t("notifications.unreadCount", { count: unreadCount })}</p>
+                <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-800" onClick={markAllRead}>
+                  {t("notifications.markAllRead")}
+                </button>
               )}
             </div>
-            {unreadCount > 0 && (
-              <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-800" onClick={markAllRead}>
-                {t("notifications.markAllRead")}
-              </button>
-            )}
-          </div>
 
-          <div className="notification-dropdown-body">
-            {loading && recent.length === 0 && (
-              <p className="px-4 py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>
-            )}
-            {!loading && recent.length === 0 && (
-              <p className="px-4 py-8 text-center text-sm text-slate-400">{t("notifications.empty")}</p>
-            )}
-            {recent.map((n) => (
-              <NotificationItem
-                key={n.id}
-                item={n}
-                locale={locale}
-                onSelect={handleSelect}
-              />
-            ))}
+            <div className="notification-dropdown-body">
+              {loading && recent.length === 0 && (
+                <p className="px-4 py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>
+              )}
+              {!loading && recent.length === 0 && (
+                <p className="px-4 py-8 text-center text-sm text-slate-400">{t("notifications.empty")}</p>
+              )}
+              {recent.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  item={notification}
+                  locale={locale}
+                  onSelect={handleSelect}
+                />
+              ))}
+            </div>
           </div>
+        )}
+      </div>
 
-          <div className="notification-dropdown-footer">
-            <Link
-              href={allNotificationsHref}
-              className="block text-center text-xs font-semibold text-blue-600 hover:text-blue-800"
-              onClick={() => setOpen(false)}
-            >
-              {t("notifications.viewAll")}
-            </Link>
-          </div>
-        </div>
+      {selected && (
+        <NotificationDetailModal
+          notification={selected}
+          canNavigate={!!getHref(selected)}
+          onNavigate={handleNavigateFromModal}
+          onClose={handleCloseModal}
+        />
       )}
-    </div>
+    </>
   );
 }

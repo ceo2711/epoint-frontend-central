@@ -106,21 +106,17 @@ export default function ClientesPage() {
 
   return (
     <>
-      <Header
-        title={t("clients.headerContext")}
-        subtitle={clientsSubtitle}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {canRunReminders && <OnboardingRemindersButton token={token} />}
-            {hasPermission("clients:create") ? (
-              <Button size="sm" onClick={() => setShowForm(!showForm)}>
-                {showForm ? t("common.cancel") : t("clients.register")}
-              </Button>
-            ) : null}
-          </div>
-        }
-      />
+      <Header title={t("clients.headerContext")} subtitle={clientsSubtitle} />
       <PageContent>
+        <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+          {canRunReminders && <OnboardingRemindersButton token={token} />}
+          {hasPermission("clients:create") ? (
+            <Button size="sm" onClick={() => setShowForm(!showForm)}>
+              {showForm ? t("common.cancel") : t("clients.register")}
+            </Button>
+          ) : null}
+        </div>
+
         {showForm && (
           <ClientCreateForm
             form={form}
