@@ -330,11 +330,11 @@ export const en: Messages = {
     remindersRunning: "Sending reminders…",
     remindersRunSuccessTitle: "Reminders processed",
     remindersRunSuccessMessage:
-      "Clients reviewed: {processed}. Reminders sent: {sent}. Nothing pending: {skipped}. On cooldown (24 h): {skippedCooldown}. Failed: {failed}.",
+      "Clients reviewed: {processed}. Reminders sent: {sent}. Nothing pending: {skipped}. Failed: {failed}.",
     remindersRunDryRunNote:
       "The backend has NOTIFICATIONS_DRY_RUN=true: deliveries were simulated (email/WhatsApp) but no real messages were sent.",
     remindersRunNoSentNote:
-      "No reminders were sent: the client may have nothing pending, be on cooldown (max 1 every 24 h), lack an active portal user, or delivery failed (check Resend/Twilio).",
+      "No reminders were sent: the client may have nothing pending, lack an active portal user, or delivery failed (check Resend/Twilio).",
     remindersRunError: "Could not send reminders.",
     empty: "No clients registered",
   },

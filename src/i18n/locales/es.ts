@@ -328,11 +328,11 @@ export const es = {
     remindersRunning: "Enviando recordatorios…",
     remindersRunSuccessTitle: "Recordatorios procesados",
     remindersRunSuccessMessage:
-      "Clientes revisados: {processed}. Recordatorios enviados: {sent}. Sin pendientes: {skipped}. En cooldown (24 h): {skippedCooldown}. Fallidos: {failed}.",
+      "Clientes revisados: {processed}. Recordatorios enviados: {sent}. Sin pendientes: {skipped}. Fallidos: {failed}.",
     remindersRunDryRunNote:
       "El backend tiene NOTIFICATIONS_DRY_RUN=true: se simularon los envíos (email/WhatsApp) pero no salió ningún mensaje real.",
     remindersRunNoSentNote:
-      "Ningún recordatorio salió: el cliente puede no tener pendientes, estar en cooldown (máx. 1 cada 24 h), no tener usuario de portal activo, o el envío falló (revisá Resend/Twilio).",
+      "Ningún recordatorio salió: el cliente puede no tener pendientes, no tener usuario de portal activo, o el envío falló (revisá Resend/Twilio).",
     remindersRunError: "No se pudieron enviar los recordatorios.",
     empty: "No hay clientes registrados",
   },
