@@ -5,10 +5,12 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { translate } from "@/i18n";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ChatFileRoutePanel } from "@/features/chat/components/ChatFileRoutePanel";
+import { ChatCalendlyPanel } from "@/features/chat/components/ChatCalendlyPanel";
 import { useChatbot } from "@/features/chat/hooks/useChatbot";
 import { useChatClientIdHint } from "@/features/chat/hooks/useChatClientIdHint";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { RichTextContent } from "@/components/ui/RichTextContent";
+import { useModalOverlayOpen } from "@/lib/modalOverlay";
 
 const BOARD_UPLOAD_ROLES = new Set(["ADMIN", "ONBOARDING_MANAGER", "ADVISOR"]);
 
@@ -69,6 +71,7 @@ export function FloatingChatWidget() {
   const { user, token } = useAuth();
   const { locale } = useTranslation();
   const clientIdHint = useChatClientIdHint();
+  const modalOverlayOpen = useModalOverlayOpen();
 
   const canUploadDocuments = Boolean(
     user && (user.role.code === "CLIENT" || BOARD_UPLOAD_ROLES.has(user.role.code)),
@@ -81,6 +84,7 @@ export function FloatingChatWidget() {
     fileUploading,
     error,
     sendMessage,
+    sendCalendlySelection,
     stageFile,
     selectDestination,
     finishDocumentUpload,
@@ -101,6 +105,7 @@ export function FloatingChatWidget() {
     selectClient,
     changeClient,
     canAttachFile,
+    calendlyOptions,
   } = useChatbot(token, locale, {
     userId: user?.id ?? null,
     clientIdHint,
@@ -126,7 +131,7 @@ export function FloatingChatWidget() {
   useEffect(() => {
     if (!open) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, loading, fileUploading, open]);
+  }, [messages, loading, fileUploading, open, calendlyOptions]);
 
   useEffect(() => {
     if (open) {
@@ -156,6 +161,10 @@ export function FloatingChatWidget() {
 
   function handleToggle() {
     setOpen((prev) => !prev);
+  }
+
+  if (modalOverlayOpen) {
+    return null;
   }
 
   return (
@@ -224,6 +233,40 @@ export function FloatingChatWidget() {
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error}
+              </div>
+            )}
+
+            {calendlyOptions && !fileUploading && (
+              <div className="mr-8 rounded-2xl rounded-bl-md bg-white px-3 py-2 shadow-sm ring-1 ring-slate-200">
+                <ChatCalendlyPanel
+                  options={calendlyOptions}
+                  chatLocale={chatLocale}
+                  disabled={loading || !!fileUploading}
+                  onSelectEventType={(uri, name) =>
+                    void sendCalendlySelection({ type: "event_type", uri, name }, locale)
+                  }
+                  onSelectDate={(value, draft) =>
+                    void sendCalendlySelection({ type: "date", value, draft }, locale)
+                  }
+                  onSelectSlot={(value, label, draft) =>
+                    void sendCalendlySelection({ type: "slot", value, label, draft }, locale)
+                  }
+                  onSubmitCreate={(payload) =>
+                    void sendCalendlySelection({ type: "submit_create", ...payload }, locale)
+                  }
+                  onSubmitUpdate={(payload) =>
+                    void sendCalendlySelection({ type: "submit_update", ...payload }, locale)
+                  }
+                  onCancelEvent={(eventId) =>
+                    void sendCalendlySelection({ type: "cancel_event", event_id: eventId }, locale)
+                  }
+                  onStartEdit={(eventId) =>
+                    void sendCalendlySelection({ type: "start_edit", event_id: eventId }, locale)
+                  }
+                  onStartCreate={() =>
+                    void sendCalendlySelection({ type: "start_create" }, locale)
+                  }
+                />
               </div>
             )}
           </div>

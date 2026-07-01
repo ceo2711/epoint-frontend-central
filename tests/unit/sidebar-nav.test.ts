@@ -7,7 +7,6 @@ const portalHrefs = [
   "/portal/datos",
   "/portal/documentos",
   "/portal/tablero",
-  "/portal/notificaciones",
 ];
 
 describe("resolveActiveHref", () => {

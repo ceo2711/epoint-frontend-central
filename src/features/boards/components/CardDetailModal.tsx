@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { VerificationBadge } from "@/components/ui/Badge";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { ModalCloseButton } from "@/components/ui/Modal";
 import { ModalPortal } from "@/components/ui/ModalPortal";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
@@ -195,9 +196,7 @@ export function CardDetailModal({
               <h2 className="min-w-0 flex-1 pr-2 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
                 {card.title}
               </h2>
-              <button type="button" className="btn btn-ghost btn-sm shrink-0" onClick={onClose}>
-                {t("common.close")}
-              </button>
+              <ModalCloseButton onClick={onClose} />
             </div>
           </div>
 

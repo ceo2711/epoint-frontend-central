@@ -12,7 +12,6 @@ const internalNav = [
   { href: "/comercios", permission: "merchants:create" },
   { href: "/areas", permission: "areas:read" },
   { href: "/roles", permission: "roles:read" },
-  { href: "/notificaciones", permission: null },
 ] as const;
 
 const clientNav = [
@@ -20,7 +19,6 @@ const clientNav = [
   "/portal/datos",
   "/portal/documentos",
   "/portal/tablero",
-  "/portal/notificaciones",
 ] as const;
 
 type StaffRole = "ADMIN" | "AREA_LEADER" | "SALES_REP" | "ONBOARDING_MANAGER" | "ADVISOR";
@@ -77,12 +75,11 @@ describe("role navigation matrix", () => {
       "/comercios",
       "/areas",
       "/roles",
-      "/notificaciones",
     ]);
   });
 
-  it("SALES_REP solo ve dashboard, clientes y notificaciones", () => {
-    expect(visibleInternalHrefs("SALES_REP")).toEqual(["/dashboard", "/clientes", "/notificaciones"]);
+  it("SALES_REP solo ve dashboard y clientes", () => {
+    expect(visibleInternalHrefs("SALES_REP")).toEqual(["/dashboard", "/clientes"]);
   });
 
   it("ONBOARDING_MANAGER no ve usuarios ni comercios", () => {
@@ -95,7 +92,7 @@ describe("role navigation matrix", () => {
 
   it("ADVISOR no ve usuarios ni merchants", () => {
     const hrefs = visibleInternalHrefs("ADVISOR");
-    expect(hrefs).toEqual(["/dashboard", "/clientes", "/notificaciones"]);
+    expect(hrefs).toEqual(["/dashboard", "/clientes"]);
   });
 
   it("CLIENT usa rutas de portal", () => {

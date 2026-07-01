@@ -7,10 +7,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { connectNotificationStream } from "@/features/notifications/notificationStream";
 import { api } from "@/lib/api";
 import type { Notification, Paginated } from "@/types/api";
 
@@ -18,7 +20,7 @@ interface NotificationsContextValue {
   unreadCount: number;
   recent: Notification[];
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: (options?: { silent?: boolean }) => Promise<void>;
   markRead: (ids: number[], options?: { optimistic?: boolean }) => Promise<void>;
   markAllRead: () => Promise<void>;
 }
@@ -26,20 +28,30 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
 const POLL_MS = 60_000;
+const STREAM_RECONNECT_MS = 3_000;
+const RECENT_LIMIT = 20;
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { token, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [recent, setRecent] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const hasLoadedRef = useRef(false);
+  const refreshRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { silent?: boolean }) => {
     if (!token || !user) {
       setUnreadCount(0);
       setRecent([]);
+      hasLoadedRef.current = false;
       return;
     }
-    setLoading(true);
+
+    const silent = options?.silent ?? hasLoadedRef.current;
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
       const unread = await api.get<Paginated<Notification>>(
         "/notifications?unread_only=true&page_size=20",
@@ -47,13 +59,29 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       );
       setUnreadCount(unread.total);
       setRecent(unread.items);
+      hasLoadedRef.current = true;
     } catch {
-      setUnreadCount(0);
-      setRecent([]);
+      if (!silent) {
+        setUnreadCount(0);
+        setRecent([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [token, user]);
+
+  const applyNotification = useCallback((notification: Notification) => {
+    if (notification.read_at) return;
+    setRecent((prev) => {
+      if (prev.some((item) => item.id === notification.id)) {
+        return prev;
+      }
+      return [notification, ...prev].slice(0, RECENT_LIMIT);
+    });
+    void refreshRef.current({ silent: true });
+  }, []);
 
   const markRead = useCallback(
     async (ids: number[], options?: { optimistic?: boolean }) => {
@@ -66,7 +94,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       setUnreadCount((prev) => Math.max(0, prev - ids.length));
       await api.post("/notifications/mark-read", { notification_ids: ids }, token);
       if (optimistic) {
-        await refresh();
+        await refresh({ silent: true });
       }
     },
     [token, refresh],
@@ -78,20 +106,59 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     await markRead(ids);
   }, [token, recent, markRead]);
 
+  refreshRef.current = refresh;
+  const applyNotificationRef = useRef(applyNotification);
+  applyNotificationRef.current = applyNotification;
+
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    void refreshRef.current();
+  }, [token, user]);
 
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(refresh, POLL_MS);
-    const onFocus = () => refresh();
+
+    const interval = setInterval(() => {
+      void refreshRef.current({ silent: true });
+    }, POLL_MS);
+
+    const onFocus = () => {
+      void refreshRef.current({ silent: true });
+    };
     window.addEventListener("focus", onFocus);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [token, refresh]);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    const abortController = new AbortController();
+
+    const startStream = () => {
+      connectNotificationStream(
+        token,
+        {
+          onNotification: (notification) => applyNotificationRef.current(notification),
+          onError: () => {
+            if (abortController.signal.aborted) return;
+            reconnectTimer = setTimeout(startStream, STREAM_RECONNECT_MS);
+          },
+        },
+        abortController.signal,
+      );
+    };
+
+    startStream();
+
+    return () => {
+      abortController.abort();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [token]);
 
   const value = useMemo(
     () => ({ unreadCount, recent, loading, refresh, markRead, markAllRead }),

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 type Variant = "success" | "error" | "info" | "warning";
@@ -102,12 +103,9 @@ function ModalShell({
   dismissible?: boolean;
 }) {
   return (
-    <div className="modal-overlay" onClick={dismissible ? onClose : undefined}>
-      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-        <div className="mt-4">{children}</div>
-      </div>
-    </div>
+    <Modal title={title} onClose={onClose} dismissible={dismissible} usePortal={false}>
+      {children}
+    </Modal>
   );
 }
 
@@ -251,7 +249,13 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
     const isDanger = state.options.variant === "danger";
     const hasAsync = !!state.options.onConfirmAsync;
     return (
-      <ModalShell title={state.options.title}>
+      <ModalShell
+        title={state.options.title}
+        onClose={() => {
+          state.resolve(false);
+          onClose();
+        }}
+      >
         <p className="text-sm leading-relaxed text-slate-600">{state.options.message}</p>
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={() => { state.resolve(false); onClose(); }}>
@@ -283,7 +287,13 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
     const minLen = state.options.minLength ?? 1;
     const valid = value.trim().length >= minLen;
     return (
-      <ModalShell title={state.options.title}>
+      <ModalShell
+        title={state.options.title}
+        onClose={() => {
+          state.resolve(null);
+          onClose();
+        }}
+      >
         {state.options.multiline ? (
           <textarea
             className="input-field min-h-[6rem] resize-y"
@@ -321,7 +331,13 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
     const effectiveId = selected ?? defaultId ?? null;
 
     return (
-      <ModalShell title={state.options.title}>
+      <ModalShell
+        title={state.options.title}
+        onClose={() => {
+          state.resolve(false);
+          onClose();
+        }}
+      >
         <p className="text-sm leading-relaxed text-slate-600">{state.options.message}</p>
         {state.options.advisors.length > 1 && (
           <div className="mt-4">
@@ -368,7 +384,13 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
     const minLen = state.options.minLength ?? 5;
     const valid = value.trim().length >= minLen;
     return (
-      <ModalShell title={state.options.title}>
+      <ModalShell
+        title={state.options.title}
+        onClose={() => {
+          state.resolve(false);
+          onClose();
+        }}
+      >
         <p className="text-sm leading-relaxed text-slate-600">{state.options.message}</p>
         <div className="mt-4">
           <label className="input-label">{state.options.reasonLabel}</label>

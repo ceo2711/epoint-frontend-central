@@ -11,6 +11,7 @@ interface OnboardingReminderRunResult {
   processed: number;
   sent: number;
   skipped: number;
+  skipped_cooldown?: number;
   failed: number;
   dry_run: boolean;
 }
@@ -47,6 +48,7 @@ export function OnboardingRemindersButton({ token }: OnboardingRemindersButtonPr
         processed: String(result.processed),
         sent: String(result.sent),
         skipped: String(result.skipped),
+        skippedCooldown: String(result.skipped_cooldown ?? 0),
         failed: String(result.failed),
       });
       const dryRunNote = result.dry_run ? `\n\n${t("clients.remindersRunDryRunNote")}` : "";

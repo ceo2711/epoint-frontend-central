@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NotificationBadge } from "@/components/ui/NotificationBadge";
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { AppBrand } from "@/components/layout/AppBrand";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useAuth } from "@/features/auth/AuthContext";
-import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveActiveHref } from "@/components/layout/sidebarNav";
@@ -15,11 +13,11 @@ import { resolveActiveHref } from "@/components/layout/sidebarNav";
 const internalNav = [
   { href: "/dashboard", labelKey: "nav.panel", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", permission: null },
   { href: "/clientes", labelKey: "nav.clients", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z", permission: "clients:read" },
+  { href: "/calendario", labelKey: "nav.calendar", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", permission: null, roles: ["ADMIN", "SALES_REP"] as const },
   { href: "/usuarios", labelKey: "nav.users", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z", permission: "users:read" },
   { href: "/comercios", labelKey: "nav.merchants", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", permission: "merchants:create" },
   { href: "/areas", labelKey: "nav.areas", icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", permission: "areas:read" },
   { href: "/roles", labelKey: "nav.roles", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", permission: "roles:read" },
-  { href: "/notificaciones", labelKey: "nav.notifications", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9", permission: null },
   { href: "/configuracion", labelKey: "nav.account", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", permission: null },
 ];
 
@@ -28,7 +26,6 @@ const clientNav = [
   { href: "/portal/datos", labelKey: "nav.myData", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
   { href: "/portal/documentos", labelKey: "nav.documents", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { href: "/portal/tablero", labelKey: "nav.myBoard", icon: "M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" },
-  { href: "/portal/notificaciones", labelKey: "nav.notifications", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
   { href: "/portal/cuenta", labelKey: "nav.account", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
 ];
 
@@ -56,14 +53,18 @@ export function Sidebar() {
   const pathname = usePathname();
   const { user, hasPermission, logout } = useAuth();
   const { t } = useTranslation();
-  const { unreadCount } = useNotifications();
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
   const isClient = user?.role.code === "CLIENT";
   const collapsed = sidebarCollapsed;
 
   const items = isClient
     ? clientNav.map((i) => ({ ...i, permission: null }))
-    : internalNav.filter((item) => !item.permission || hasPermission(item.permission));
+    : internalNav.filter((item) => {
+        if ("roles" in item && item.roles && user && !item.roles.includes(user.role.code as "ADMIN" | "SALES_REP")) {
+          return false;
+        }
+        return !item.permission || hasPermission(item.permission);
+      });
 
   const activeHref = resolveActiveHref(
     pathname,
@@ -122,8 +123,6 @@ export function Sidebar() {
         {items.map((item) => {
           const active = activeHref === item.href;
           const label = t(item.labelKey);
-          const showBadge =
-            (item.href === "/notificaciones" || item.href === "/portal/notificaciones") && unreadCount > 0;
 
           return (
             <Link
@@ -139,19 +138,8 @@ export function Sidebar() {
                   : "text-slate-400 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <span className="relative">
-                <NavIcon d={item.icon} />
-                {collapsed && showBadge && (
-                  <span className="absolute -right-1 -top-1 hidden h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-900 lg:block" />
-                )}
-              </span>
+              <NavIcon d={item.icon} />
               <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
-              {showBadge && (
-                <NotificationBadge
-                  count={unreadCount}
-                  className={`ring-slate-900 ${collapsed ? "lg:hidden" : ""}`}
-                />
-              )}
             </Link>
           );
         })}

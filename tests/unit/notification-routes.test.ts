@@ -39,6 +39,14 @@ describe("getNotificationHref", () => {
     expect(href).toBe("/portal/tablero");
   });
 
+  it("routes staff calendly events to calendar", () => {
+    const href = getNotificationHref(
+      makeNotification({ event_type: "CALENDLY_EVENT_SCHEDULED", payload: { calendly_event_id: 7 } }),
+      "SALES_REP",
+    );
+    expect(href).toBe("/calendario");
+  });
+
   it("returns null for staff when no client_id", () => {
     const href = getNotificationHref(
       makeNotification({ payload: {} }),

@@ -9,8 +9,9 @@ import { ApiError, api } from "@/lib/api";
 import { emitClientsRefresh } from "@/lib/clientEvents";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Board, Paginated, Client } from "@/types/api";
-import type { ChatMessage, ChatbotApiResponse, PendingChatAction } from "@/features/chat/types";
+import type { ChatMessage, ChatbotApiResponse, ChatCalendlyOptions, ChatCalendlySelection, PendingChatAction } from "@/features/chat/types";
 import { clearChatState, loadChatState, saveChatState } from "@/features/chat/chat-storage";
+import { emitCalendlyRefresh } from "@/lib/calendlyEvents";
 
 function newMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -68,6 +69,7 @@ export function useChatbot(
   const [error, setError] = useState<string | null>(null);
   const [activeClientId, setActiveClientId] = useState<number | null>(clientIdHint);
   const [pendingAction, setPendingAction] = useState<PendingChatAction | null>(null);
+  const [calendlyOptions, setCalendlyOptions] = useState<ChatCalendlyOptions | null>(null);
   const [stagedUpload, setStagedUpload] = useState<StagedUpload | null>(null);
   const [boardCards, setBoardCards] = useState<BoardCardOption[]>([]);
   const [boardCardsLoading, setBoardCardsLoading] = useState(false);
@@ -274,6 +276,7 @@ export function useChatbot(
       }
       pendingActionRef.current = response.pending_action;
       setPendingAction(response.pending_action);
+      setCalendlyOptions(response.calendly_options);
       setChatLocale(normalizeChatLocale(response.chat_locale));
 
       const registeredViaChat =
@@ -297,6 +300,10 @@ export function useChatbot(
 
       if (shouldRefreshClients) {
         emitClientsRefresh();
+      }
+
+      if (response.calendly_updated) {
+        emitCalendlyRefresh();
       }
 
       const approvals =
@@ -332,6 +339,45 @@ export function useChatbot(
       appendAssistant(response.reply);
     },
     [appendAssistant, modal, t],
+  );
+
+  const sendCalendlySelection = useCallback(
+    async (selection: ChatCalendlySelection, uiLocale: string) => {
+      if (!token || loading) return;
+
+      setLoading(true);
+      setError(null);
+      const currentPendingAction = pendingActionRef.current;
+
+      try {
+        const history = messages.slice(-20).map((item) => ({
+          role: item.role,
+          content: item.content,
+        }));
+
+        const response = await api.post<ChatbotApiResponse>(
+          "/chatbot/message",
+          {
+            message: ".",
+            history,
+            client_id: resolveClientId(),
+            locale: uiLocale,
+            chat_locale: chatLocale,
+            pending_action: currentPendingAction,
+            calendly_selection: selection,
+          },
+          token,
+        );
+
+        applyChatResponse(response, currentPendingAction);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error al enviar mensaje";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token, loading, messages, chatLocale, applyChatResponse, resolveClientId],
   );
 
   const sendMessage = useCallback(
@@ -677,6 +723,7 @@ export function useChatbot(
     setActiveClientId(clientIdHint ?? null);
     pendingActionRef.current = null;
     setPendingAction(null);
+    setCalendlyOptions(null);
     setStagedUpload(null);
     setBoardCards([]);
     setFileUploading(null);
@@ -692,6 +739,7 @@ export function useChatbot(
     fileUploading,
     error,
     sendMessage,
+    sendCalendlySelection,
     stageFile,
     selectDestination,
     finishDocumentUpload,
@@ -700,6 +748,7 @@ export function useChatbot(
     resetChat,
     activeClientId,
     pendingAction,
+    calendlyOptions,
     stagedUpload,
     boardCards,
     boardCardsLoading,

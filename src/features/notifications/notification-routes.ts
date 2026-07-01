@@ -9,6 +9,10 @@ export function getNotificationHref(
   const isClient = roleCode === "CLIENT";
   const clientId = payload?.client_id;
 
+  if (notification.event_type === "CALENDLY_EVENT_SCHEDULED" && !isClient) {
+    return "/calendario";
+  }
+
   if (clientId) {
     if (isClient) {
       switch (notification.event_type) {
