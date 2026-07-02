@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, api } from "@/lib/api";
 import type { Client, Paginated } from "@/features/clients/types";
+import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import type {
   DocusignConnection,
   DocusignEnvelope,
@@ -11,6 +12,9 @@ import type {
   DocusignTemplate,
   DocusignTemplateDetail,
 } from "@/features/docusign/types";
+import { hasPendingEnvelopes } from "@/features/docusign/utils";
+
+const POLL_MS = 30_000;
 
 export function useDocusign(token: string | null) {
   const [connection, setConnection] = useState<DocusignConnection | null>(null);
@@ -61,7 +65,11 @@ export function useDocusign(token: string | null) {
       const conn = await loadConnection();
       if (conn?.connected) {
         await Promise.all([loadTemplates(), loadEnvelopes()]);
-        void syncPendingEnvelopes().catch(() => undefined);
+        try {
+          await syncPendingEnvelopes();
+        } catch (syncErr) {
+          console.warn("DocuSign sync-pending failed", syncErr);
+        }
       } else {
         setTemplates([]);
         setEnvelopes([]);
@@ -76,6 +84,27 @@ export function useDocusign(token: string | null) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!token || !connection?.connected || !hasPendingEnvelopes(envelopes)) return;
+
+    const interval = window.setInterval(() => {
+      void syncPendingEnvelopes().catch(() => undefined);
+    }, POLL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [token, connection?.connected, envelopes, syncPendingEnvelopes]);
+
+  useEffect(() => {
+    if (!token || !connection?.connected) return;
+
+    const onRefresh = () => {
+      void syncPendingEnvelopes().catch(() => undefined);
+    };
+
+    window.addEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
+    return () => window.removeEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
+  }, [token, connection?.connected, syncPendingEnvelopes]);
 
   async function loadTemplateDetail(templateId: string) {
     if (!token) return null;
@@ -109,6 +138,11 @@ export function useDocusign(token: string | null) {
     return api.getBlob(`/docusign/envelopes/${envelopeId}/document`, token);
   }
 
+  async function downloadSentDocument(envelopeId: number) {
+    if (!token) return null;
+    return api.getBlob(`/docusign/envelopes/${envelopeId}/document/sent`, token);
+  }
+
   async function searchClients(query: string) {
     if (!token || !query.trim()) return [];
     const data = await api.get<Paginated<Client>>(
@@ -129,7 +163,9 @@ export function useDocusign(token: string | null) {
     loadTemplateDetail,
     sendEnvelope,
     syncEnvelope,
+    syncPendingEnvelopes,
     downloadSignedDocument,
+    downloadSentDocument,
     searchClients,
   };
 }

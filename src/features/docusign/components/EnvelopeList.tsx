@@ -5,11 +5,13 @@ import { useState } from "react";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import type { DocusignEnvelope } from "@/features/docusign/types";
+import { canDownloadSentDocument, canDownloadSignedDocument } from "@/features/docusign/utils";
 
 interface EnvelopeListProps {
   envelopes: DocusignEnvelope[];
   onSync: (envelopeId: number) => Promise<void>;
-  onDownload: (envelopeId: number) => Promise<void>;
+  onDownloadSigned: (envelopeId: number) => Promise<void>;
+  onDownloadSent: (envelopeId: number) => Promise<void>;
   syncingId?: number | null;
 }
 
@@ -31,9 +33,16 @@ function statusKey(status: string): string {
   return "docusign.statusUnknown";
 }
 
-export function EnvelopeList({ envelopes, onSync, onDownload, syncingId }: EnvelopeListProps) {
+export function EnvelopeList({
+  envelopes,
+  onSync,
+  onDownloadSigned,
+  onDownloadSent,
+  syncingId,
+}: EnvelopeListProps) {
   const { t } = useTranslation();
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingSentId, setDownloadingSentId] = useState<number | null>(null);
 
   if (envelopes.length === 0) {
     return (
@@ -41,12 +50,21 @@ export function EnvelopeList({ envelopes, onSync, onDownload, syncingId }: Envel
     );
   }
 
-  async function handleDownload(envelopeId: number) {
+  async function handleDownloadSigned(envelopeId: number) {
     setDownloadingId(envelopeId);
     try {
-      await onDownload(envelopeId);
+      await onDownloadSigned(envelopeId);
     } finally {
       setDownloadingId(null);
+    }
+  }
+
+  async function handleDownloadSent(envelopeId: number) {
+    setDownloadingSentId(envelopeId);
+    try {
+      await onDownloadSent(envelopeId);
+    } finally {
+      setDownloadingSentId(null);
     }
   }
 
@@ -71,7 +89,8 @@ export function EnvelopeList({ envelopes, onSync, onDownload, syncingId }: Envel
           </thead>
           <tbody>
             {envelopes.map((envelope) => {
-              const isCompleted = envelope.status.toLowerCase() === "completed";
+              const showSigned = canDownloadSignedDocument(envelope);
+              const showSent = canDownloadSentDocument(envelope) && !showSigned;
               return (
                 <tr key={envelope.id} className="border-t border-slate-100">
                   <td className="px-4 py-3 font-medium text-slate-900">{envelope.signer_name}</td>
@@ -92,12 +111,24 @@ export function EnvelopeList({ envelopes, onSync, onDownload, syncingId }: Envel
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
-                      {isCompleted ? (
+                      {showSent ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={downloadingSentId === envelope.id}
+                          onClick={() => void handleDownloadSent(envelope.id)}
+                        >
+                          {downloadingSentId === envelope.id
+                            ? t("docusign.downloading")
+                            : t("docusign.viewSent")}
+                        </Button>
+                      ) : null}
+                      {showSigned ? (
                         <Button
                           size="sm"
                           variant="secondary"
                           disabled={downloadingId === envelope.id}
-                          onClick={() => void handleDownload(envelope.id)}
+                          onClick={() => void handleDownloadSigned(envelope.id)}
                         >
                           {downloadingId === envelope.id
                             ? t("docusign.downloading")

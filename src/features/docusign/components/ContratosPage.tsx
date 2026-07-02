@@ -32,6 +32,7 @@ export function ContratosPage() {
     sendEnvelope,
     syncEnvelope,
     downloadSignedDocument,
+    downloadSentDocument,
     searchClients,
     loadTemplateDetail,
   } = useDocusign(token);
@@ -67,7 +68,7 @@ export function ContratosPage() {
     }
   }
 
-  async function handleDownload(envelopeId: number) {
+  async function handleDownloadSigned(envelopeId: number) {
     try {
       const blob = await downloadSignedDocument(envelopeId);
       if (!blob) return;
@@ -78,6 +79,22 @@ export function ContratosPage() {
       await modal.alert({
         title: t("common.error"),
         message: err instanceof ApiError ? err.message : t("docusign.downloadError"),
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleDownloadSent(envelopeId: number) {
+    try {
+      const blob = await downloadSentDocument(envelopeId);
+      if (!blob) return;
+      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: err instanceof ApiError ? err.message : t("docusign.downloadSentError"),
         variant: "error",
       });
     }
@@ -130,7 +147,8 @@ export function ContratosPage() {
                 <EnvelopeList
                   envelopes={envelopes}
                   onSync={handleSync}
-                  onDownload={handleDownload}
+                  onDownloadSigned={handleDownloadSigned}
+                  onDownloadSent={handleDownloadSent}
                   syncingId={syncingId}
                 />
               </>

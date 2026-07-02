@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import { connectNotificationStream } from "@/features/notifications/notificationStream";
 import { api } from "@/lib/api";
 import type { Notification, Paginated } from "@/types/api";
@@ -74,6 +75,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const applyNotification = useCallback((notification: Notification) => {
     if (notification.read_at) return;
+    if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED") {
+      const envelopeId = notification.payload?.envelope_id;
+      dispatchDocusignRefresh(
+        typeof envelopeId === "number" ? { envelopeId } : undefined,
+      );
+    }
     setRecent((prev) => {
       if (prev.some((item) => item.id === notification.id)) {
         return prev;

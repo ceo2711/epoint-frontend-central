@@ -6,8 +6,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import type { DocusignEnvelope } from "@/features/docusign/types";
+import { canDownloadSentDocument, canDownloadSignedDocument, hasPendingEnvelopes } from "@/features/docusign/utils";
 import { ApiError, api } from "@/lib/api";
+
+const POLL_MS = 30_000;
 
 interface ClientContractsPanelProps {
   clientId: number;
@@ -39,6 +43,9 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingSentId, setDownloadingSentId] = useState<number | null>(null);
+  const [syncingId, setSyncingId] = useState<number | null>(null);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -58,18 +65,56 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
     }
   }, [clientId, token, t]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  async function handleDownload(envelopeId: number) {
+  const syncAll = useCallback(async () => {
     if (!token) return;
+    setSyncingAll(true);
+    try {
+      await api.post<DocusignEnvelope[]>("/docusign/envelopes/sync-pending", {}, token);
+      await load();
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : t("docusign.syncError"));
+    } finally {
+      setSyncingAll(false);
+    }
+  }, [token, load, onError, t]);
+
+  useEffect(() => {
+    void syncAll();
+  }, [syncAll]);
+
+  useEffect(() => {
+    if (!token || !hasPendingEnvelopes(envelopes)) return;
+
+    const interval = window.setInterval(() => {
+      void syncAll();
+    }, POLL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [token, envelopes, syncAll]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const onRefresh = () => {
+      void syncAll();
+    };
+
+    window.addEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
+    return () => window.removeEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
+  }, [token, syncAll]);
+
+  async function openBlob(path: string) {
+    if (!token) return;
+    const blob = await api.getBlob(path, token);
+    const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  async function handleDownloadSigned(envelopeId: number) {
     setDownloadingId(envelopeId);
     try {
-      const blob = await api.getBlob(`/docusign/envelopes/${envelopeId}/document`, token);
-      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
-      window.open(url, "_blank", "noopener,noreferrer");
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await openBlob(`/docusign/envelopes/${envelopeId}/document`);
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : t("docusign.downloadError"));
     } finally {
@@ -77,13 +122,46 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
     }
   }
 
+  async function handleDownloadSent(envelopeId: number) {
+    setDownloadingSentId(envelopeId);
+    try {
+      await openBlob(`/docusign/envelopes/${envelopeId}/document/sent`);
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : t("docusign.downloadSentError"));
+    } finally {
+      setDownloadingSentId(null);
+    }
+  }
+
+  async function handleSync(envelopeId: number) {
+    if (!token) return;
+    setSyncingId(envelopeId);
+    try {
+      const updated = await api.post<DocusignEnvelope>(
+        `/docusign/envelopes/${envelopeId}/sync`,
+        {},
+        token,
+      );
+      setEnvelopes((prev) => prev.map((item) => (item.id === envelopeId ? updated : item)));
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : t("docusign.syncError"));
+    } finally {
+      setSyncingId(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-500">{t("docusign.clientContractsSubtitle")}</p>
-        <Link href="/contratos" className="text-sm font-medium text-blue-700 hover:underline">
-          {t("docusign.goToContracts")}
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" variant="ghost" disabled={syncingAll} onClick={() => void syncAll()}>
+            {syncingAll ? t("docusign.syncing") : t("docusign.syncAction")}
+          </Button>
+          <Link href="/contratos" className="text-sm font-medium text-blue-700 hover:underline">
+            {t("docusign.goToContracts")}
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -108,7 +186,8 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
             </thead>
             <tbody>
               {envelopes.map((envelope) => {
-                const isCompleted = envelope.status.toLowerCase() === "completed";
+                const showSigned = canDownloadSignedDocument(envelope);
+                const showSent = canDownloadSentDocument(envelope) && !showSigned;
                 return (
                   <tr key={envelope.id} className="border-t border-slate-100">
                     <td className="px-4 py-3 font-medium text-slate-900">{envelope.subject}</td>
@@ -126,20 +205,40 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
                         : t("common.dash")}
                     </td>
                     <td className="px-4 py-3">
-                      {isCompleted ? (
+                      <div className="flex flex-wrap gap-2">
+                        {showSent ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={downloadingSentId === envelope.id}
+                            onClick={() => void handleDownloadSent(envelope.id)}
+                          >
+                            {downloadingSentId === envelope.id
+                              ? t("docusign.downloading")
+                              : t("docusign.viewSent")}
+                          </Button>
+                        ) : null}
+                        {showSigned ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={downloadingId === envelope.id}
+                            onClick={() => void handleDownloadSigned(envelope.id)}
+                          >
+                            {downloadingId === envelope.id
+                              ? t("docusign.downloading")
+                              : t("docusign.viewSigned")}
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
-                          variant="secondary"
-                          disabled={downloadingId === envelope.id}
-                          onClick={() => void handleDownload(envelope.id)}
+                          variant="ghost"
+                          disabled={syncingId === envelope.id}
+                          onClick={() => void handleSync(envelope.id)}
                         >
-                          {downloadingId === envelope.id
-                            ? t("docusign.downloading")
-                            : t("docusign.viewSigned")}
+                          {syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")}
                         </Button>
-                      ) : (
-                        <span className="text-slate-400">{t("common.dash")}</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 );
