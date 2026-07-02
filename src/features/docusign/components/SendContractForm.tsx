@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
-import type { DocusignSendPayload, DocusignTemplate } from "@/features/docusign/types";
+import type {
+  DocusignSendPayload,
+  DocusignTemplate,
+  DocusignTemplateDetail,
+} from "@/features/docusign/types";
 
 interface SendContractFormProps {
   templates: DocusignTemplate[];
   defaultTemplateId?: string | null;
   defaultRoleName?: string | null;
   onSearchClients: (query: string) => Promise<Client[]>;
+  onLoadTemplateDetail?: (templateId: string) => Promise<DocusignTemplateDetail | null>;
   onSubmit: (payload: DocusignSendPayload) => Promise<void>;
 }
 
@@ -21,9 +26,11 @@ export function SendContractForm({
   defaultTemplateId,
   defaultRoleName,
   onSearchClients,
+  onLoadTemplateDetail,
   onSubmit,
 }: SendContractFormProps) {
   const { t } = useTranslation();
+  const submittingRef = useRef(false);
   const [signerName, setSignerName] = useState("");
   const [signerEmail, setSignerEmail] = useState("");
   const [templateId, setTemplateId] = useState(defaultTemplateId ?? "");
@@ -33,6 +40,7 @@ export function SendContractForm({
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>();
   const [submitting, setSubmitting] = useState(false);
+  const [templateDetail, setTemplateDetail] = useState<DocusignTemplateDetail | null>(null);
 
   useEffect(() => {
     if (defaultTemplateId) setTemplateId(defaultTemplateId);
@@ -54,6 +62,20 @@ export function SendContractForm({
     return () => window.clearTimeout(timer);
   }, [clientSearch, onSearchClients]);
 
+  useEffect(() => {
+    if (!templateId || !onLoadTemplateDetail) {
+      setTemplateDetail(null);
+      return;
+    }
+    let cancelled = false;
+    void onLoadTemplateDetail(templateId).then((detail) => {
+      if (!cancelled) setTemplateDetail(detail);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [templateId, onLoadTemplateDetail]);
+
   function selectClient(client: Client) {
     setSelectedClientId(client.id);
     setSignerName(`${client.first_name} ${client.last_name}`.trim());
@@ -64,6 +86,8 @@ export function SendContractForm({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       await onSubmit({
@@ -79,6 +103,7 @@ export function SendContractForm({
       setClientSearch("");
       setSelectedClientId(undefined);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -155,6 +180,17 @@ export function SendContractForm({
           required
         />
       </div>
+
+      {templateDetail && templateDetail.roles.length > 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <p className="font-medium text-slate-700">{t("docusign.templateRolesLabel")}</p>
+          <p className="mt-1">{templateDetail.roles.map((role) => role.role_name).join(", ")}</p>
+          {templateDetail.roles.length > 1 ? (
+            <p className="mt-2 text-amber-700">{t("docusign.templateMultiRoleWarning")}</p>
+          ) : null}
+          <p className="mt-2 text-slate-500">{t("docusign.templateSignatureHint")}</p>
+        </div>
+      ) : null}
 
       <Input
         label={t("docusign.subject")}

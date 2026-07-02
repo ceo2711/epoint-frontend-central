@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import type { Client, Paginated } from "@/features/clients/types";
 import type {
-  DocusignConnectPayload,
   DocusignConnection,
   DocusignEnvelope,
   DocusignSendPayload,
@@ -47,6 +46,13 @@ export function useDocusign(token: string | null) {
     return data;
   }, [token]);
 
+  const syncPendingEnvelopes = useCallback(async () => {
+    if (!token) return [];
+    const data = await api.post<DocusignEnvelope[]>("/docusign/envelopes/sync-pending", {}, token);
+    setEnvelopes(data);
+    return data;
+  }, [token]);
+
   const refresh = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -55,6 +61,7 @@ export function useDocusign(token: string | null) {
       const conn = await loadConnection();
       if (conn?.connected) {
         await Promise.all([loadTemplates(), loadEnvelopes()]);
+        void syncPendingEnvelopes().catch(() => undefined);
       } else {
         setTemplates([]);
         setEnvelopes([]);
@@ -64,32 +71,11 @@ export function useDocusign(token: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [token, loadConnection, loadTemplates, loadEnvelopes]);
+  }, [token, loadConnection, loadTemplates, loadEnvelopes, syncPendingEnvelopes]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  async function connect(payload: DocusignConnectPayload) {
-    if (!token) return;
-    const data = await api.post<DocusignConnection>("/docusign/connection", payload, token);
-    setConnection(data);
-    await Promise.all([loadTemplates(), loadEnvelopes()]);
-    return data;
-  }
-
-  async function disconnect() {
-    if (!token) return;
-    await api.delete("/docusign/connection", token);
-    setConnection({ connected: false });
-    setTemplates([]);
-    setEnvelopes([]);
-  }
-
-  async function getConsentUrl() {
-    if (!token) return null;
-    return api.get<{ consent_url: string; redirect_uri: string }>("/docusign/consent-url", token);
-  }
 
   async function loadTemplateDetail(templateId: string) {
     if (!token) return null;
@@ -118,6 +104,11 @@ export function useDocusign(token: string | null) {
     return updated;
   }
 
+  async function downloadSignedDocument(envelopeId: number) {
+    if (!token) return null;
+    return api.getBlob(`/docusign/envelopes/${envelopeId}/document`, token);
+  }
+
   async function searchClients(query: string) {
     if (!token || !query.trim()) return [];
     const data = await api.get<Paginated<Client>>(
@@ -135,12 +126,10 @@ export function useDocusign(token: string | null) {
     loadingTemplates,
     error,
     refresh,
-    connect,
-    disconnect,
-    getConsentUrl,
     loadTemplateDetail,
     sendEnvelope,
     syncEnvelope,
+    downloadSignedDocument,
     searchClients,
   };
 }

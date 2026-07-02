@@ -10,6 +10,7 @@ import { PortalCredentialsCard } from "@/features/clients/components/PortalCrede
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
 import { StaffClientDocumentsPanel } from "@/features/documents/components/StaffClientDocumentsPanel";
 import { ClientBoardPanel } from "@/features/boards/components/ClientBoardPanel";
+import { ClientContractsPanel } from "@/features/docusign/components/ClientContractsPanel";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -35,6 +36,7 @@ import { loadPortalCredentials, savePortalCredentials } from "@/features/clients
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 const EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"];
+const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -522,6 +524,21 @@ export default function ClienteDetailPage() {
               onUploaded={() => void refreshDocuments()}
               onViewDocument={setViewingDoc}
               onDownloadDocument={handleDownloadDocument}
+            />
+          </Card>
+        )}
+
+        {user && CONTRACT_ROLES.has(user.role.code) && (
+          <Card className="p-4 sm:p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+              {t("docusign.clientContractsTitle")}
+            </h2>
+            <ClientContractsPanel
+              clientId={client.id}
+              token={token}
+              onError={(message) =>
+                void modal.alert({ title: t("common.error"), message, variant: "error" })
+              }
             />
           </Card>
         )}

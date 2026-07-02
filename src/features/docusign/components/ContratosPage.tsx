@@ -9,7 +9,6 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
-import { DocusignConnectForm } from "@/features/docusign/components/DocusignConnectForm";
 import { EnvelopeList } from "@/features/docusign/components/EnvelopeList";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
@@ -22,7 +21,6 @@ export function ContratosPage() {
   const modal = useModal();
   const { user, token } = useAuth();
   const { t } = useTranslation();
-  const isAdmin = user?.role.code === "ADMIN";
   const [syncingId, setSyncingId] = useState<number | null>(null);
 
   const {
@@ -31,13 +29,11 @@ export function ContratosPage() {
     envelopes,
     loading,
     error,
-    connect,
-    disconnect,
-    getConsentUrl,
     sendEnvelope,
     syncEnvelope,
+    downloadSignedDocument,
     searchClients,
-    refresh,
+    loadTemplateDetail,
   } = useDocusign(token);
 
   useEffect(() => {
@@ -54,57 +50,6 @@ export function ContratosPage() {
     );
   }
 
-  async function handleConnect(payload: Parameters<typeof connect>[0]) {
-    try {
-      await connect(payload);
-      await modal.alert({
-        title: t("docusign.connectSuccessTitle"),
-        message: t("docusign.connectSuccessMessage"),
-        variant: "success",
-      });
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.connectError"),
-        variant: "error",
-      });
-    }
-  }
-
-  async function handleConsent() {
-    try {
-      const result = await getConsentUrl();
-      if (result?.consent_url) {
-        window.open(result.consent_url, "_blank", "noopener,noreferrer");
-      }
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.consentError"),
-        variant: "error",
-      });
-    }
-  }
-
-  async function handleDisconnect() {
-    const confirmed = await modal.confirm({
-      title: t("docusign.disconnectTitle"),
-      message: t("docusign.disconnectConfirm"),
-      confirmLabel: t("docusign.disconnectAction"),
-      cancelLabel: t("common.cancel"),
-    });
-    if (!confirmed) return;
-    try {
-      await disconnect();
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.disconnectError"),
-        variant: "error",
-      });
-    }
-  }
-
   async function handleSend(payload: Parameters<typeof sendEnvelope>[0]) {
     try {
       const result = await sendEnvelope(payload);
@@ -117,6 +62,22 @@ export function ContratosPage() {
       await modal.alert({
         title: t("common.error"),
         message: err instanceof ApiError ? err.message : t("docusign.sendError"),
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleDownload(envelopeId: number) {
+    try {
+      const blob = await downloadSignedDocument(envelopeId);
+      if (!blob) return;
+      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: err instanceof ApiError ? err.message : t("docusign.downloadError"),
         variant: "error",
       });
     }
@@ -153,69 +114,27 @@ export function ContratosPage() {
               </div>
             ) : null}
 
-            {isAdmin && !connection?.connected ? (
-              <div className="card-flat space-y-4 p-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">{t("docusign.connectTitle")}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{t("docusign.connectSubtitle")}</p>
-                </div>
-                <DocusignConnectForm onSubmit={handleConnect} onConsent={handleConsent} />
-              </div>
-            ) : null}
-
-            {connection?.connected ? (
+            {!connection?.connected ? (
+              <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>
+            ) : (
               <>
-                <div className="card-flat flex flex-wrap items-center justify-between gap-4 p-4">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {t("docusign.connectedAs", {
-                        account: connection.account_name ?? connection.account_id ?? "",
-                      })}
-                    </p>
-                    {connection.impersonated_user_email ? (
-                      <p className="text-sm text-slate-500">{connection.impersonated_user_email}</p>
-                    ) : null}
-                  </div>
-                  {isAdmin ? (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="text-sm text-blue-600 hover:underline"
-                        onClick={() => void handleConsent()}
-                      >
-                        {t("docusign.consentAction")}
-                      </button>
-                      <button
-                        type="button"
-                        className="text-sm text-red-600 hover:underline"
-                        onClick={() => void handleDisconnect()}
-                      >
-                        {t("docusign.disconnectAction")}
-                      </button>
-                      <button
-                        type="button"
-                        className="text-sm text-slate-600 hover:underline"
-                        onClick={() => void refresh()}
-                      >
-                        {t("docusign.refreshAction")}
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-
                 <SendContractForm
                   templates={templates}
                   defaultTemplateId={connection.default_template_id}
                   defaultRoleName={connection.default_template_role_name}
                   onSearchClients={searchClients}
+                  onLoadTemplateDetail={loadTemplateDetail}
                   onSubmit={handleSend}
                 />
 
-                <EnvelopeList envelopes={envelopes} onSync={handleSync} syncingId={syncingId} />
+                <EnvelopeList
+                  envelopes={envelopes}
+                  onSync={handleSync}
+                  onDownload={handleDownload}
+                  syncingId={syncingId}
+                />
               </>
-            ) : !isAdmin ? (
-              <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConnectedStaff")}</div>
-            ) : null}
+            )}
           </>
         )}
       </PageContent>

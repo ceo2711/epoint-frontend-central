@@ -1,12 +1,9 @@
 export interface DocusignConnection {
   connected: boolean;
   account_id?: string | null;
-  account_name?: string | null;
-  impersonated_user_email?: string | null;
-  auth_server?: string | null;
   default_template_id?: string | null;
   default_template_role_name?: string | null;
-  connected_at?: string | null;
+  auth_server?: string | null;
 }
 
 export interface DocusignTemplate {
@@ -39,16 +36,7 @@ export interface DocusignEnvelope {
   sent_by_name?: string | null;
   sent_at: string;
   completed_at?: string | null;
-}
-
-export interface DocusignConnectPayload {
-  integration_key: string;
-  impersonated_user_id: string;
-  account_id: string;
-  private_key: string;
-  auth_server?: string;
-  default_template_id?: string;
-  default_template_role_name?: string;
+  has_signed_document?: boolean;
 }
 
 export interface DocusignSendPayload {

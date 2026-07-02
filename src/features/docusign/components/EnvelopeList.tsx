@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import type { DocusignEnvelope } from "@/features/docusign/types";
@@ -7,6 +9,7 @@ import type { DocusignEnvelope } from "@/features/docusign/types";
 interface EnvelopeListProps {
   envelopes: DocusignEnvelope[];
   onSync: (envelopeId: number) => Promise<void>;
+  onDownload: (envelopeId: number) => Promise<void>;
   syncingId?: number | null;
 }
 
@@ -18,8 +21,19 @@ function statusClass(status: string): string {
   return "badge-amber";
 }
 
-export function EnvelopeList({ envelopes, onSync, syncingId }: EnvelopeListProps) {
+function statusKey(status: string): string {
+  const normalized = status.toLowerCase();
+  if (normalized === "completed") return "docusign.statusCompleted";
+  if (normalized === "declined") return "docusign.statusDeclined";
+  if (normalized === "voided") return "docusign.statusVoided";
+  if (normalized === "delivered") return "docusign.statusDelivered";
+  if (normalized === "sent") return "docusign.statusSent";
+  return "docusign.statusUnknown";
+}
+
+export function EnvelopeList({ envelopes, onSync, onDownload, syncingId }: EnvelopeListProps) {
   const { t } = useTranslation();
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   if (envelopes.length === 0) {
     return (
@@ -27,10 +41,20 @@ export function EnvelopeList({ envelopes, onSync, syncingId }: EnvelopeListProps
     );
   }
 
+  async function handleDownload(envelopeId: number) {
+    setDownloadingId(envelopeId);
+    try {
+      await onDownload(envelopeId);
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   return (
     <div className="card-flat overflow-hidden">
       <div className="border-b border-slate-100 px-6 py-4">
         <h2 className="text-lg font-semibold text-slate-900">{t("docusign.historyTitle")}</h2>
+        <p className="mt-1 text-sm text-slate-500">{t("docusign.historySubtitle")}</p>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -41,33 +65,58 @@ export function EnvelopeList({ envelopes, onSync, syncingId }: EnvelopeListProps
               <th className="px-4 py-3 font-medium">{t("common.client")}</th>
               <th className="px-4 py-3 font-medium">{t("common.status")}</th>
               <th className="px-4 py-3 font-medium">{t("docusign.sentAt")}</th>
+              <th className="px-4 py-3 font-medium">{t("docusign.completedAt")}</th>
               <th className="px-4 py-3 font-medium">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {envelopes.map((envelope) => (
-              <tr key={envelope.id} className="border-t border-slate-100">
-                <td className="px-4 py-3 font-medium text-slate-900">{envelope.signer_name}</td>
-                <td className="px-4 py-3 text-slate-600">{envelope.signer_email}</td>
-                <td className="px-4 py-3 text-slate-600">{envelope.client_name ?? t("common.dash")}</td>
-                <td className="px-4 py-3">
-                  <span className={`badge ${statusClass(envelope.status)}`}>{envelope.status}</span>
-                </td>
-                <td className="px-4 py-3 text-slate-600">
-                  {new Date(envelope.sent_at).toLocaleString()}
-                </td>
-                <td className="px-4 py-3">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={syncingId === envelope.id}
-                    onClick={() => void onSync(envelope.id)}
-                  >
-                    {syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")}
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {envelopes.map((envelope) => {
+              const isCompleted = envelope.status.toLowerCase() === "completed";
+              return (
+                <tr key={envelope.id} className="border-t border-slate-100">
+                  <td className="px-4 py-3 font-medium text-slate-900">{envelope.signer_name}</td>
+                  <td className="px-4 py-3 text-slate-600">{envelope.signer_email}</td>
+                  <td className="px-4 py-3 text-slate-600">{envelope.client_name ?? t("common.dash")}</td>
+                  <td className="px-4 py-3">
+                    <span className={`badge ${statusClass(envelope.status)}`}>
+                      {t(statusKey(envelope.status))}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {new Date(envelope.sent_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {envelope.completed_at
+                      ? new Date(envelope.completed_at).toLocaleString()
+                      : t("common.dash")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      {isCompleted ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={downloadingId === envelope.id}
+                          onClick={() => void handleDownload(envelope.id)}
+                        >
+                          {downloadingId === envelope.id
+                            ? t("docusign.downloading")
+                            : t("docusign.viewSigned")}
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={syncingId === envelope.id}
+                        onClick={() => void onSync(envelope.id)}
+                      >
+                        {syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
