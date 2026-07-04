@@ -270,6 +270,8 @@ export const es = {
     templateRolesLabel: "Roles definidos en la plantilla DocuSign",
     templateMultiRoleWarning:
       "Esta plantilla tiene más de un firmante. DocuSign puede enviar un email por cada rol. Dejá solo un rol «Signer» si querés un único email al cliente.",
+    templateRoleHint:
+      "El rol debe coincidir exactamente con el nombre en DocuSign (ej. «Signer»). Si usás un rol incorrecto, se crean firmantes duplicados y el estado no se actualiza.",
     templateSignatureHint:
       "La ubicación de la firma se configura en DocuSign al editar la plantilla (arrastrar campos «Sign Here» al PDF). El CRM no define dónde firmar.",
     subject: "Asunto del email",

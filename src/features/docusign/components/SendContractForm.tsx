@@ -47,8 +47,12 @@ export function SendContractForm({
   }, [defaultTemplateId]);
 
   useEffect(() => {
-    if (defaultRoleName) setRoleName(defaultRoleName);
-  }, [defaultRoleName]);
+    if (!templateDetail?.roles.length) return;
+    const validRoles = templateDetail.roles.map((role) => role.role_name);
+    if (!validRoles.includes(roleName)) {
+      setRoleName(validRoles[0]);
+    }
+  }, [templateDetail, roleName]);
 
   useEffect(() => {
     const query = clientSearch.trim();
@@ -188,6 +192,7 @@ export function SendContractForm({
           {templateDetail.roles.length > 1 ? (
             <p className="mt-2 text-amber-700">{t("docusign.templateMultiRoleWarning")}</p>
           ) : null}
+          <p className="mt-2 text-slate-500">{t("docusign.templateRoleHint")}</p>
           <p className="mt-2 text-slate-500">{t("docusign.templateSignatureHint")}</p>
         </div>
       ) : null}

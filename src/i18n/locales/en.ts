@@ -272,6 +272,8 @@ export const en: Messages = {
     templateRolesLabel: "Roles defined in the DocuSign template",
     templateMultiRoleWarning:
       "This template has more than one signer. DocuSign may send one email per role. Keep only one Signer role if you want a single email to the client.",
+    templateRoleHint:
+      "The role must match the DocuSign template exactly (e.g. «Signer»). Using the wrong role creates duplicate signers and the status will not update.",
     templateSignatureHint:
       "Signature placement is configured in DocuSign when editing the template (drag «Sign Here» fields onto the PDF). The CRM does not control where to sign.",
     subject: "Email subject",
