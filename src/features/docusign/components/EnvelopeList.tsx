@@ -12,7 +12,9 @@ interface EnvelopeListProps {
   onSync: (envelopeId: number) => Promise<void>;
   onDownloadSigned: (envelopeId: number) => Promise<void>;
   onDownloadSent: (envelopeId: number) => Promise<void>;
+  onRegisterClient?: (envelope: DocusignEnvelope) => void;
   syncingId?: number | null;
+  showClientColumn?: boolean;
 }
 
 function statusClass(status: string): string {
@@ -38,7 +40,9 @@ export function EnvelopeList({
   onSync,
   onDownloadSigned,
   onDownloadSent,
+  onRegisterClient,
   syncingId,
+  showClientColumn = true,
 }: EnvelopeListProps) {
   const { t } = useTranslation();
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
@@ -80,7 +84,9 @@ export function EnvelopeList({
             <tr>
               <th className="px-4 py-3 font-medium">{t("docusign.signerName")}</th>
               <th className="px-4 py-3 font-medium">{t("common.email")}</th>
-              <th className="px-4 py-3 font-medium">{t("common.client")}</th>
+              {showClientColumn ? (
+                <th className="px-4 py-3 font-medium">{t("common.client")}</th>
+              ) : null}
               <th className="px-4 py-3 font-medium">{t("common.status")}</th>
               <th className="px-4 py-3 font-medium">{t("docusign.sentAt")}</th>
               <th className="px-4 py-3 font-medium">{t("docusign.completedAt")}</th>
@@ -95,7 +101,16 @@ export function EnvelopeList({
                 <tr key={envelope.id} className="border-t border-slate-100">
                   <td className="px-4 py-3 font-medium text-slate-900">{envelope.signer_name}</td>
                   <td className="px-4 py-3 text-slate-600">{envelope.signer_email}</td>
-                  <td className="px-4 py-3 text-slate-600">{envelope.client_name ?? t("common.dash")}</td>
+                  {showClientColumn ? (
+                    <td className="px-4 py-3 text-slate-600">
+                      {envelope.client_registered && envelope.client_name
+                        ? envelope.client_name
+                        : envelope.client_name ?? t("common.dash")}
+                      {envelope.client_registered ? (
+                        <span className="ml-2 badge badge-green">{t("docusign.clientRegisteredBadge")}</span>
+                      ) : null}
+                    </td>
+                  ) : null}
                   <td className="px-4 py-3">
                     <span className={`badge ${statusClass(envelope.status)}`}>
                       {t(statusKey(envelope.status))}
@@ -133,6 +148,11 @@ export function EnvelopeList({
                           {downloadingId === envelope.id
                             ? t("docusign.downloading")
                             : t("docusign.viewSigned")}
+                        </Button>
+                      ) : null}
+                      {envelope.can_register_client && onRegisterClient ? (
+                        <Button size="sm" onClick={() => onRegisterClient(envelope)}>
+                          {t("docusign.registerClientAction")}
                         </Button>
                       ) : null}
                       <Button

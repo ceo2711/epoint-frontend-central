@@ -1,35 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { fetchAreas } from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Area } from "@/features/areas/types";
 
-export function useAreas(token: string | null, canRead: boolean, loadErrorMessage: string, noPermissionMessage: string) {
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export function useAreas(
+  token: string | null,
+  canRead: boolean,
+  loadErrorMessage: string,
+  noPermissionMessage: string,
+) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: queryKeys.areas.list,
+    queryFn: () => fetchAreas(token!),
+    enabled: !!token && canRead,
+  });
 
-  const loadAreas = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const data = await api.get<Area[]>("/areas?include_inactive=true", token);
-      setAreas(data);
-    } catch {
-      setError(loadErrorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, loadErrorMessage]);
-
-  useEffect(() => {
-    if (canRead) loadAreas();
-    else {
-      setLoading(false);
-      setError(noPermissionMessage);
-    }
-  }, [canRead, loadAreas, noPermissionMessage]);
-
-  return { areas, loading, error };
+  return {
+    areas: (data ?? []) as Area[],
+    loading: canRead ? isLoading : false,
+    error: canRead ? (isError ? loadErrorMessage : "") : noPermissionMessage,
+  };
 }

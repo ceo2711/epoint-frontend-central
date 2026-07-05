@@ -1,4 +1,4 @@
-import { createObjectUrlFromBuffer, resolveMimeType } from "@/features/documents/utils/documentMime";
+import { createObjectUrlFromBuffer, inferMimeFromFilename, isPdfMime, resolveMimeType } from "@/features/documents/utils/documentMime";
 import { api } from "@/lib/api";
 
 interface CachedBlob {
@@ -125,8 +125,12 @@ export function prefetchAttachmentContent(
 export function prefetchDocuments(
   documents: Array<{ id: number; mime_type?: string | null; original_filename: string }>,
   token: string,
+  limit = 3,
 ): void {
-  for (const doc of documents) {
+  for (const doc of documents.slice(0, limit)) {
+    if (isPdfMime(doc.mime_type ?? inferMimeFromFilename(doc.original_filename))) {
+      continue;
+    }
     prefetchDocumentContent(doc.id, token, doc.mime_type, doc.original_filename);
   }
 }

@@ -7,40 +7,32 @@ import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader"
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePortalDocuments, usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { prefetchDocuments } from "@/lib/contentBlobCache";
-import type { Client, DocumentBrief } from "@/types/api";
+import type { DocumentBrief } from "@/types/api";
 
 export default function PortalDocumentosPage() {
   const { token, user } = useAuth();
   const { t, locale } = useTranslation();
-  const [client, setClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(true);
+  const profileQuery = usePortalMe(token);
+  const documentsQuery = usePortalDocuments(token);
+  const client =
+    profileQuery.data && documentsQuery.data
+      ? { ...profileQuery.data, documents: documentsQuery.data }
+      : profileQuery.data ?? null;
+  const loading = profileQuery.isLoading || documentsQuery.isLoading;
   const [uploading, setUploading] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
   function reload(options?: { silent?: boolean }) {
     if (!token) return;
-    const silent = options?.silent ?? false;
-    if (!silent) setLoading(true);
-    Promise.all([
-      api.get<Client>("/portal/me", token),
-      api.get<DocumentBrief[]>("/portal/documents", token),
-    ])
-      .then(([profile, documents]) => {
-        setClient({ ...profile, documents });
-      })
-      .finally(() => {
-        if (!silent) setLoading(false);
-      });
+    void profileQuery.refetch();
+    void documentsQuery.refetch();
   }
-
-  useEffect(() => {
-    reload();
-  }, [token]);
 
   useEffect(() => {
     if (!token || !user?.client_id) return;
@@ -59,7 +51,7 @@ export default function PortalDocumentosPage() {
 
   useEffect(() => {
     if (!token || !client?.documents?.length) return;
-    prefetchDocuments(client.documents, token);
+    prefetchDocuments(client.documents, token, 3);
   }, [client?.documents, token]);
 
   const isVerifying = client?.documents?.some(
@@ -73,11 +65,7 @@ export default function PortalDocumentosPage() {
   }, [token, isVerifying]);
 
   function mergeUploadedDoc(uploaded: DocumentBrief) {
-    setClient((prev) => {
-      if (!prev) return prev;
-      const others = (prev.documents ?? []).filter((d) => d.type !== uploaded.type);
-      return { ...prev, documents: [...others, uploaded] };
-    });
+    void documentsQuery.refetch();
   }
 
   async function handleUpload(docType: string, file: File) {

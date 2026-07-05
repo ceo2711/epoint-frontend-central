@@ -24,9 +24,10 @@ export function Header({
   const { logout, user } = useAuth();
   const { t } = useTranslation();
   const { toggleMobile } = useShell();
+  const showNotifications = user?.role.code !== "CLIENT";
 
   return (
-    <header className="sticky top-0 z-30 w-full max-w-full shrink-0 border-b border-slate-300 bg-white/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
+    <header className="sticky top-0 z-30 w-full max-w-full shrink-0 border-b border-cream-600 bg-cream-100/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
       {/* Mobile / tablet: menú · marca · notificaciones */}
       <div className="grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 px-3 py-2.5 lg:hidden">
         <button
@@ -45,7 +46,7 @@ export function Header({
         </div>
 
         <div className="flex justify-end">
-          <NotificationBell />
+          {showNotifications ? <NotificationBell /> : null}
         </div>
       </div>
 
@@ -56,7 +57,7 @@ export function Header({
             {user && !bareTitle ? (
               <>
                 {t("header.hello")}{" "}
-                <span className="text-blue-600">{user.first_name}</span>,{" "}
+                <span className="text-brand">{user.first_name}</span>,{" "}
                 <span className="font-semibold text-slate-800">{title}</span>
               </>
             ) : (
@@ -68,7 +69,7 @@ export function Header({
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
           {actions}
-          <NotificationBell />
+          {showNotifications ? <NotificationBell /> : null}
           <LanguageSwitcher compact />
           {user && (
             <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 md:flex">

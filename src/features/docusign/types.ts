@@ -37,6 +37,23 @@ export interface DocusignEnvelope {
   sent_at: string;
   completed_at?: string | null;
   has_signed_document?: boolean;
+  can_register_client?: boolean;
+  client_registered?: boolean;
+}
+
+export interface DocusignRegisterClientPayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  source: string;
+  merchant_id: number;
+}
+
+export interface DocusignRegisterClientResponse {
+  envelope: DocusignEnvelope;
+  client_id: number;
+  message: string;
 }
 
 export interface DocusignSendPayload {

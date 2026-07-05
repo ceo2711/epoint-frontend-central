@@ -1,6 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+"use client";
+
+import { useCallback, useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import {
+  fetchCalendlyConnection,
+  fetchCalendlyEventTypes,
+  fetchCalendlyEvents,
+  fetchCalendlySalesReps,
+  calendlyUserQuery,
+} from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
 import type {
   CalendlyAvailableTime,
   CalendlyConnection,
@@ -10,12 +21,7 @@ import type {
   CalendlySalesRep,
 } from "@/features/calendly/types";
 import { getAvailableTimesRange } from "@/features/calendly/utils/dateRange";
-import {
-  EVENTS_AUTO_SYNC_MS,
-  isEventTypesCacheStale,
-  readEventTypesCache,
-  writeEventTypesCache,
-} from "@/features/calendly/utils/eventTypesCache";
+import { EVENTS_AUTO_SYNC_MS } from "@/features/calendly/utils/eventTypesCache";
 
 export function useCalendly(
   token: string | null,
@@ -23,105 +29,37 @@ export function useCalendly(
   options?: { enabled?: boolean },
 ) {
   const enabled = options?.enabled ?? true;
-  const [connection, setConnection] = useState<CalendlyConnection | null>(null);
-  const [events, setEvents] = useState<CalendlyEvent[]>([]);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [eventTypes, setEventTypes] = useState<CalendlyEventType[]>([]);
-  const [loadingEventTypes, setLoadingEventTypes] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
   const connectionRef = useRef<CalendlyConnection | null>(null);
-  const fetchGenerationRef = useRef(0);
-  const refreshGenerationRef = useRef(0);
+  const userQuery = calendlyUserQuery(selectedUserId);
 
-  const userQuery = selectedUserId ? `?user_id=${selectedUserId}` : "";
+  const connectionQuery = useQuery({
+    queryKey: queryKeys.calendly.connection(selectedUserId),
+    queryFn: () => fetchCalendlyConnection(token!, selectedUserId),
+    enabled: !!token && enabled,
+  });
 
-  const fetchEvents = useCallback(async () => {
-    if (!token || !enabled) return null;
-    const generation = ++fetchGenerationRef.current;
-    const [connectionData, eventsData] = await Promise.all([
-      api.get<CalendlyConnection>(`/calendly/connection${userQuery}`, token),
-      api.get<CalendlyEvent[]>(`/calendly/events${userQuery}`, token),
-    ]);
-    if (generation !== fetchGenerationRef.current) {
-      return null;
-    }
-    setConnection(connectionData);
-    connectionRef.current = connectionData;
-    setEvents(eventsData);
-    return connectionData;
-  }, [token, userQuery, enabled]);
+  const connected = connectionQuery.data?.connected ?? false;
+  connectionRef.current = connectionQuery.data ?? null;
 
-  const fetchEventTypes = useCallback(
-    async (options?: { force?: boolean; useCache?: boolean }) => {
-      if (!token) return [];
+  const eventsQuery = useQuery({
+    queryKey: queryKeys.calendly.events(selectedUserId),
+    queryFn: () => fetchCalendlyEvents(token!, selectedUserId),
+    enabled: !!token && enabled && connected,
+  });
 
-      const cached = readEventTypesCache(selectedUserId);
-      if (options?.useCache !== false && cached && !options?.force && !isEventTypesCacheStale(selectedUserId)) {
-        setEventTypes(cached.types);
-        return cached.types;
-      }
+  const eventTypesQuery = useQuery({
+    queryKey: queryKeys.calendly.eventTypes(selectedUserId),
+    queryFn: () => fetchCalendlyEventTypes(token!, selectedUserId),
+    enabled: !!token && enabled && connected,
+  });
 
-      setLoadingEventTypes(true);
-      try {
-        const types = await api.get<CalendlyEventType[]>(`/calendly/event-types${userQuery}`, token);
-        const normalized = types.map((type) => ({
-          ...type,
-          description: type.description ?? null,
-          custom_questions: type.custom_questions ?? [],
-        }));
-        setEventTypes(normalized);
-        writeEventTypesCache(selectedUserId, normalized);
-        return normalized;
-      } catch {
-        if (cached) {
-          setEventTypes(cached.types);
-          return cached.types;
-        }
-        setEventTypes([]);
-        return [];
-      } finally {
-        setLoadingEventTypes(false);
-      }
-    },
-    [token, userQuery, selectedUserId],
-  );
-
-  const refresh = useCallback(async () => {
-    if (!token || !enabled) return;
-    const generation = ++refreshGenerationRef.current;
-    setLoading(true);
-    setError("");
-    try {
-      const connectionData = await fetchEvents();
-      if (generation !== refreshGenerationRef.current) {
-        return;
-      }
-      if (connectionData?.connected) {
-        await fetchEventTypes({ useCache: true });
-      } else {
-        setEventTypes([]);
-      }
-    } catch (err) {
-      if (generation !== refreshGenerationRef.current) {
-        return;
-      }
-      setError(err instanceof Error ? err.message : "Error cargando calendario");
-    } finally {
-      if (generation === refreshGenerationRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [token, enabled, fetchEvents, fetchEventTypes]);
-
-  const refreshEventsOnly = useCallback(async () => {
-    if (!token) return;
-    try {
-      await fetchEvents();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error cargando calendario");
-    }
-  }, [token, fetchEvents]);
+  const salesRepsQuery = useQuery({
+    queryKey: queryKeys.calendly.salesReps,
+    queryFn: () => fetchCalendlySalesReps(token!),
+    enabled: !!token,
+    staleTime: 60_000,
+  });
 
   const syncAndRefreshEvents = useCallback(async () => {
     if (!token || !connectionRef.current?.connected) return;
@@ -130,34 +68,14 @@ export function useCalendly(
     } catch {
       // Si falla la sync, igual refrescamos eventos locales.
     }
-    await refreshEventsOnly();
-  }, [token, userQuery, refreshEventsOnly]);
-
-  const loadSalesReps = useCallback(async () => {
-    if (!token) return;
-    try {
-      const reps = await api.get<CalendlySalesRep[]>("/calendly/sales-reps", token);
-      setSalesReps(reps);
-    } catch {
-      setSalesReps([]);
-    }
-  }, [token]);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.connection(selectedUserId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.events(selectedUserId) }),
+    ]);
+  }, [token, userQuery, queryClient, selectedUserId]);
 
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      setConnection(null);
-      connectionRef.current = null;
-      setEvents([]);
-      setEventTypes([]);
-      setError("");
-      return;
-    }
-    void refresh();
-  }, [refresh, enabled]);
-
-  useEffect(() => {
-    if (!token || !connection?.connected) return;
+    if (!token || !connected || !enabled) return;
 
     void syncAndRefreshEvents();
 
@@ -173,37 +91,40 @@ export function useCalendly(
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [token, connection?.connected, userQuery, syncAndRefreshEvents]);
+  }, [token, connected, enabled, syncAndRefreshEvents]);
 
-  async function connect(accessToken: string, schedulingUrl?: string) {
-    if (!token) return;
-    await api.post<CalendlyConnection>(
-      "/calendly/connection",
-      {
-        access_token: accessToken,
-        scheduling_url: schedulingUrl || undefined,
-      },
-      token,
-    );
-    await refresh();
-    await fetchEventTypes({ force: true });
-  }
+  const refresh = useCallback(async () => {
+    if (!token || !enabled) return;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.connection(selectedUserId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.events(selectedUserId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.eventTypes(selectedUserId) }),
+    ]);
+  }, [token, enabled, queryClient, selectedUserId]);
 
-  async function disconnect() {
-    if (!token) return;
-    await api.delete("/calendly/connection", token);
-    await refresh();
-  }
-
-  async function sync() {
-    if (!token) return;
-    await api.post(`/calendly/sync${userQuery}`, {}, token);
-    await refreshEventsOnly();
-  }
+  const loadSalesReps = useCallback(async () => {
+    if (!token) return [];
+    const reps = await queryClient.fetchQuery({
+      queryKey: queryKeys.calendly.salesReps,
+      queryFn: () => fetchCalendlySalesReps(token),
+    });
+    return reps;
+  }, [token, queryClient]);
 
   const loadEventTypes = useCallback(
-    async (force = false) => fetchEventTypes({ force, useCache: !force }),
-    [fetchEventTypes],
+    async (force = false) => {
+      if (!token) return [];
+      if (force) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.calendly.eventTypes(selectedUserId),
+        });
+      }
+      return queryClient.fetchQuery({
+        queryKey: queryKeys.calendly.eventTypes(selectedUserId),
+        queryFn: () => fetchCalendlyEventTypes(token, selectedUserId),
+      });
+    },
+    [token, queryClient, selectedUserId],
   );
 
   const loadAvailableTimes = useCallback(
@@ -231,7 +152,10 @@ export function useCalendly(
       if (selectedUserId) {
         query.set("user_id", String(selectedUserId));
       }
-      const detail = await api.get<CalendlyEventType>(`/calendly/event-types/detail?${query.toString()}`, token);
+      const detail = await api.get<CalendlyEventType>(
+        `/calendly/event-types/detail?${query.toString()}`,
+        token,
+      );
       return {
         ...detail,
         description: detail.description ?? null,
@@ -241,44 +165,99 @@ export function useCalendly(
     [token, selectedUserId],
   );
 
-  async function createEvent(values: CalendlyEventFormValues) {
+  async function connect(accessToken: string, schedulingUrl?: string) {
     if (!token) return;
-    await api.post<CalendlyEvent>(
-      "/calendly/events",
+    await api.post<CalendlyConnection>(
+      "/calendly/connection",
       {
-        ...values,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        access_token: accessToken,
+        scheduling_url: schedulingUrl || undefined,
       },
       token,
     );
-    await sync();
+    await refresh();
+    await loadEventTypes(true);
+  }
+
+  async function disconnect() {
+    if (!token) return;
+    await api.delete("/calendly/connection", token);
+    await refresh();
+  }
+
+  async function sync() {
+    await syncAndRefreshEvents();
+  }
+
+  const createEventMutation = useMutation({
+    mutationFn: (values: CalendlyEventFormValues) =>
+      api.post<CalendlyEvent>(
+        "/calendly/events",
+        {
+          ...values,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        token!,
+      ),
+    onSuccess: () => {
+      void syncAndRefreshEvents();
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({ eventId, values }: { eventId: number; values: CalendlyEventFormValues }) =>
+      api.patch<CalendlyEvent>(
+        `/calendly/events/${eventId}`,
+        {
+          ...values,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        token!,
+      ),
+    onSuccess: () => {
+      void syncAndRefreshEvents();
+    },
+  });
+
+  const cancelEventMutation = useMutation({
+    mutationFn: (eventId: number) => api.delete(`/calendly/events/${eventId}`, token!),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendly.events(selectedUserId) });
+    },
+  });
+
+  async function createEvent(values: CalendlyEventFormValues) {
+    if (!token) return;
+    await createEventMutation.mutateAsync(values);
   }
 
   async function updateEvent(eventId: number, values: CalendlyEventFormValues) {
     if (!token) return;
-    await api.patch<CalendlyEvent>(
-      `/calendly/events/${eventId}`,
-      {
-        ...values,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-      token,
-    );
-    await sync();
+    await updateEventMutation.mutateAsync({ eventId, values });
   }
 
   async function cancelEvent(eventId: number) {
     if (!token) return;
-    await api.delete(`/calendly/events/${eventId}`, token);
-    await refreshEventsOnly();
+    await cancelEventMutation.mutateAsync(eventId);
   }
 
+  const loading =
+    enabled &&
+    (connectionQuery.isLoading || (connected && (eventsQuery.isLoading || eventTypesQuery.isLoading)));
+
+  const error =
+    connectionQuery.error instanceof Error
+      ? connectionQuery.error.message
+      : eventsQuery.error instanceof Error
+        ? eventsQuery.error.message
+        : "";
+
   return {
-    connection,
-    events,
-    salesReps,
-    eventTypes,
-    loadingEventTypes,
+    connection: connectionQuery.data ?? null,
+    events: eventsQuery.data ?? [],
+    salesReps: salesRepsQuery.data ?? [],
+    eventTypes: eventTypesQuery.data ?? [],
+    loadingEventTypes: eventTypesQuery.isFetching,
     loading,
     error,
     refresh,

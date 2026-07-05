@@ -1,5 +1,5 @@
-import { ContratosPage } from "@/features/docusign/components/ContratosPage";
+import { LazyContratosPage } from "@/lib/lazyPanels";
 
 export default function Page() {
-  return <ContratosPage />;
+  return <LazyContratosPage />;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { AppLogo } from "@/components/layout/AppLogo";
 import { ApiError } from "@/lib/api";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
@@ -42,11 +43,12 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
         </div>
 
         <div className="mb-8 lg:hidden">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
-              eP
+          <div className="mb-4 flex items-center gap-4">
+            <AppLogo size="xl" priority className="rounded-2xl" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-500">ePoint Corp</p>
+              <p className="text-2xl font-bold tracking-tight text-slate-900">ePoint Central</p>
             </div>
-            <span className="text-lg font-bold text-slate-900">ePoint Central</span>
           </div>
         </div>
 

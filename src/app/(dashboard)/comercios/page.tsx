@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -9,10 +9,10 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { MerchantForm } from "@/features/merchants/components/MerchantForm";
+import { MerchantFormModal } from "@/features/merchants/components/MerchantFormModal";
 import { MerchantsTable } from "@/features/merchants/components/MerchantsTable";
 import { useMerchants } from "@/features/merchants/hooks/useMerchants";
-import { EMPTY_MERCHANT_FORM, type Merchant, type MerchantFormData } from "@/features/merchants/types";
+import type { Merchant } from "@/features/merchants/types";
 import { ApiError, api } from "@/lib/api";
 
 export default function MerchantsPage() {
@@ -26,58 +26,22 @@ export default function MerchantsPage() {
     t("merchants.noPermission"),
     true,
   );
-  const [showForm, setShowForm] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Merchant | null>(null);
-  const [form, setForm] = useState<MerchantFormData>(EMPTY_MERCHANT_FORM);
-  const [submitting, setSubmitting] = useState(false);
 
   function openCreate() {
     setEditing(null);
-    setForm(EMPTY_MERCHANT_FORM);
-    setShowForm(true);
+    setModalMode("create");
   }
 
   function openEdit(merchant: Merchant) {
     setEditing(merchant);
-    setForm({
-      code: merchant.code,
-      name: merchant.name,
-      description: merchant.description ?? "",
-    });
-    setShowForm(true);
+    setModalMode("edit");
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!token) return;
-    setSubmitting(true);
-    try {
-      if (editing) {
-        await api.patch(
-          `/merchants/${editing.id}`,
-          { name: form.name, description: form.description || null },
-          token,
-        );
-      } else {
-        await api.post(
-          "/merchants",
-          { code: form.code, name: form.name, description: form.description || null },
-          token,
-        );
-      }
-      setShowForm(false);
-      setEditing(null);
-      setForm(EMPTY_MERCHANT_FORM);
-      await reload();
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("common.error"),
-        variant: "error",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+  function closeModal() {
+    setModalMode(null);
+    setEditing(null);
   }
 
   async function handleDeactivate(merchant: Merchant) {
@@ -108,22 +72,13 @@ export default function MerchantsPage() {
         subtitle={t("merchants.subtitle")}
         actions={
           hasPermission("merchants:create") ? (
-            <Button size="sm" onClick={() => (showForm ? setShowForm(false) : openCreate())}>
-              {showForm ? t("common.cancel") : t("merchants.add")}
+            <Button size="sm" onClick={openCreate}>
+              {t("merchants.add")}
             </Button>
           ) : undefined
         }
       />
       <PageContent>
-        {showForm && hasPermission(editing ? "merchants:update" : "merchants:create") && (
-          <MerchantForm
-            form={form}
-            onChange={setForm}
-            onSubmit={handleSubmit}
-            submitting={submitting}
-            isEdit={!!editing}
-          />
-        )}
         {loading && (
           <div className="flex justify-center py-16">
             <LoadingSpinner />
@@ -140,6 +95,15 @@ export default function MerchantsPage() {
           />
         )}
       </PageContent>
+
+      {modalMode && hasPermission(modalMode === "edit" ? "merchants:update" : "merchants:create") ? (
+        <MerchantFormModal
+          token={token}
+          merchant={modalMode === "edit" ? editing : null}
+          onClose={closeModal}
+          onSuccess={() => void reload()}
+        />
+      ) : null}
     </>
   );
 }

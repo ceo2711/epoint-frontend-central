@@ -57,9 +57,9 @@ export function NightSkyBackground() {
 
     function paintSky(width: number, height: number) {
       const gradient = ctxEl.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, "#01030a");
-      gradient.addColorStop(0.45, "#020617");
-      gradient.addColorStop(1, "#030712");
+      gradient.addColorStop(0, "#1a1008");
+      gradient.addColorStop(0.45, "#2d1b0f");
+      gradient.addColorStop(1, "#3d2817");
       ctxEl.fillStyle = gradient;
       ctxEl.fillRect(0, 0, width, height);
 
@@ -71,8 +71,8 @@ export function NightSkyBackground() {
         height * 0.15,
         width * 0.75,
       );
-      haze.addColorStop(0, "rgba(15, 23, 42, 0.35)");
-      haze.addColorStop(1, "rgba(1, 3, 10, 0)");
+      haze.addColorStop(0, "rgba(67, 47, 35, 0.35)");
+      haze.addColorStop(1, "rgba(26, 16, 8, 0)");
       ctxEl.fillStyle = haze;
       ctxEl.fillRect(0, 0, width, height);
     }
@@ -117,7 +117,7 @@ export function NightSkyBackground() {
           if (linkStrength < 0.05) continue;
 
           ctxEl.beginPath();
-          ctxEl.strokeStyle = `rgba(186, 210, 255, ${linkStrength * 0.55})`;
+          ctxEl.strokeStyle = `rgba(196, 168, 130, ${linkStrength * 0.55})`;
           ctxEl.lineWidth = 1.2 + linkStrength * 1.1;
           ctxEl.moveTo(a.x, a.y);
           ctxEl.lineTo(b.x, b.y);
@@ -149,13 +149,13 @@ export function NightSkyBackground() {
 
         if (star.highlight > 0.12 && star.radius > 0.7) {
           ctxEl.beginPath();
-          ctxEl.fillStyle = `rgba(186, 210, 255, ${opacity * star.highlight * 0.4})`;
+          ctxEl.fillStyle = `rgba(196, 168, 130, ${opacity * star.highlight * 0.4})`;
           ctxEl.arc(star.x, star.y, radius * 4.2, 0, Math.PI * 2);
           ctxEl.fill();
         }
 
         ctxEl.beginPath();
-        ctxEl.fillStyle = `rgba(248, 250, 252, ${opacity})`;
+        ctxEl.fillStyle = `rgba(248, 244, 237, ${opacity})`;
         ctxEl.arc(star.x, star.y, radius, 0, Math.PI * 2);
         ctxEl.fill();
       }

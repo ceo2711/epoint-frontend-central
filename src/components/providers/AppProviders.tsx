@@ -3,15 +3,15 @@
 import { AuthProvider } from "@/features/auth/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ModalProvider } from "@/contexts/ModalContext";
-import { NotificationsProvider } from "@/features/notifications/NotificationsContext";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
       <ModalProvider>
-        <AuthProvider>
-          <NotificationsProvider>{children}</NotificationsProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
       </ModalProvider>
     </LanguageProvider>
   );

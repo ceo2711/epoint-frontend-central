@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
@@ -9,10 +10,16 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
+import { SalesRepList } from "@/features/calendly/components/SalesRepList";
+import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
+import type { CalendlySalesRep } from "@/features/calendly/types";
 import { EnvelopeList } from "@/features/docusign/components/EnvelopeList";
+import { RegisterClientFromContractModal } from "@/features/docusign/components/RegisterClientFromContractModal";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
+import type { DocusignEnvelope, DocusignRegisterClientPayload } from "@/features/docusign/types";
 import { ApiError } from "@/lib/api";
+import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 
 const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
 
@@ -22,26 +29,47 @@ export function ContratosPage() {
   const { user, token } = useAuth();
   const { t } = useTranslation();
   const [syncingId, setSyncingId] = useState<number | null>(null);
+  const [registerEnvelope, setRegisterEnvelope] = useState<DocusignEnvelope | null>(null);
+  const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
+  const [loadingReps, setLoadingReps] = useState(false);
+
+  const isAdmin = user?.role.code === "ADMIN";
+  const isSalesRep = user?.role.code === "SALES_REP";
 
   const {
     connection,
     templates,
     envelopes,
     loading,
+    loadingEnvelopes,
     error,
     sendEnvelope,
     syncEnvelope,
     downloadSignedDocument,
     downloadSentDocument,
+    registerClientFromEnvelope,
     searchClients,
     loadTemplateDetail,
-  } = useDocusign(token);
+  } = useDocusign(token, {
+    adminView: isAdmin,
+    salesRepId: isAdmin ? selectedRepId : undefined,
+  });
 
   useEffect(() => {
     if (user && !CONTRACT_ROLES.has(user.role.code)) {
       router.replace("/dashboard");
     }
   }, [user, router]);
+
+  useEffect(() => {
+    if (!token || !isAdmin) return;
+    setLoadingReps(true);
+    fetchCalendlySalesReps(token)
+      .then(setSalesReps)
+      .catch(() => setSalesReps([]))
+      .finally(() => setLoadingReps(false));
+  }, [token, isAdmin]);
 
   if (!user || !CONTRACT_ROLES.has(user.role.code)) {
     return (
@@ -50,6 +78,8 @@ export function ContratosPage() {
       </div>
     );
   }
+
+  const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
 
   async function handleSend(payload: Parameters<typeof sendEnvelope>[0]) {
     try {
@@ -115,11 +145,33 @@ export function ContratosPage() {
     }
   }
 
+  async function handleRegisterClient(envelopeId: number, payload: DocusignRegisterClientPayload) {
+    try {
+      const result = await registerClientFromEnvelope(envelopeId, payload);
+      setRegisterEnvelope(null);
+      window.dispatchEvent(new CustomEvent(CLIENTS_REFRESH_EVENT));
+      await modal.alert({
+        title: t("docusign.registerClientSuccessTitle"),
+        message: t("docusign.registerClientSuccessMessage", { clientId: result?.client_id ?? "" }),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: err instanceof ApiError ? err.message : t("docusign.registerClientError"),
+        variant: "error",
+      });
+      throw err;
+    }
+  }
+
+  const pageSubtitle = isAdmin ? t("docusign.adminPageSubtitle") : t("docusign.pageSubtitle");
+
   return (
     <>
-      <Header title={t("docusign.pageTitle")} subtitle={t("docusign.pageSubtitle")} />
+      <Header title={t("docusign.pageTitle")} subtitle={pageSubtitle} />
       <PageContent className="space-y-6">
-        {loading ? (
+        {loading && !isAdmin ? (
           <div className="flex justify-center py-16">
             <LoadingSpinner />
           </div>
@@ -133,6 +185,56 @@ export function ContratosPage() {
 
             {!connection?.connected ? (
               <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>
+            ) : isAdmin ? (
+              selectedRepId === null ? (
+                loadingReps ? (
+                  <div className="flex justify-center py-16">
+                    <LoadingSpinner />
+                  </div>
+                ) : (
+                  <SalesRepList
+                    reps={salesReps}
+                    onSelect={setSelectedRepId}
+                    hintKey="calendly.contractsSalesRepsHint"
+                    showConnectionStatus={false}
+                  />
+                )
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRepId(null)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                  >
+                    <VscArrowLeft className="h-4 w-4" aria-hidden />
+                    {t("docusign.backToSalesReps")}
+                  </button>
+
+                  <div className="card-flat p-5">
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      {selectedRep
+                        ? `${selectedRep.first_name} ${selectedRep.last_name}`
+                        : t("common.dash")}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">{t("docusign.adminRepContractsHint")}</p>
+                  </div>
+
+                  {loadingEnvelopes ? (
+                    <div className="flex justify-center py-16">
+                      <LoadingSpinner />
+                    </div>
+                  ) : (
+                    <EnvelopeList
+                      envelopes={envelopes}
+                      onSync={handleSync}
+                      onDownloadSigned={handleDownloadSigned}
+                      onDownloadSent={handleDownloadSent}
+                      syncingId={syncingId}
+                      showClientColumn={false}
+                    />
+                  )}
+                </>
+              )
             ) : (
               <>
                 <SendContractForm
@@ -149,13 +251,24 @@ export function ContratosPage() {
                   onSync={handleSync}
                   onDownloadSigned={handleDownloadSigned}
                   onDownloadSent={handleDownloadSent}
+                  onRegisterClient={setRegisterEnvelope}
                   syncingId={syncingId}
+                  showClientColumn={false}
                 />
               </>
             )}
           </>
         )}
       </PageContent>
+
+      {registerEnvelope && isSalesRep ? (
+        <RegisterClientFromContractModal
+          envelope={registerEnvelope}
+          token={token}
+          onSubmit={handleRegisterClient}
+          onClose={() => setRegisterEnvelope(null)}
+        />
+      ) : null}
     </>
   );
 }

@@ -1,50 +1,65 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, isUnauthorizedError } from "@/lib/api";
+import { isUnauthorizedError } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
-import type { Client, Paginated } from "@/features/clients/types";
+import { fetchClientsList } from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
+
+export const CLIENTS_PAGE_SIZE = 10;
 
 export function useClients(
   token: string | null,
   authLoading: boolean,
-  options?: { onboardingOnly?: boolean },
+  options?: { onboardingOnly?: boolean; page?: number; pageSize?: number },
 ) {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const onboardingOnly = options?.onboardingOnly ?? false;
+  const page = options?.page ?? 1;
+  const pageSize = options?.pageSize ?? CLIENTS_PAGE_SIZE;
 
-  const load = useCallback(async (loadOptions?: { bustCache?: boolean }) => {
-    if (authLoading || !token) return;
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (onboardingOnly) params.set("onboarding_only", "true");
-      if (loadOptions?.bustCache) params.set("_", String(Date.now()));
-      const query = params.toString();
-      const data = await api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
-      setClients(data.items);
-    } catch (err) {
-      if (!isUnauthorizedError(err)) {
-        throw err;
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [authLoading, token, onboardingOnly]);
-
-  useEffect(() => {
-    void load().catch(() => {});
-  }, [load]);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize),
+    queryFn: async () => fetchClientsList(token!, { onboardingOnly, page, pageSize }),
+    enabled: !authLoading && !!token,
+  });
 
   useEffect(() => {
     const handleRefresh = () => {
-      void load({ bustCache: true }).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     };
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
-  }, [load]);
+  }, [queryClient]);
 
-  return { clients, loading, load };
+  const load = useCallback(
+    async (loadOptions?: { bustCache?: boolean }) => {
+      if (authLoading || !token) return;
+      if (loadOptions?.bustCache) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize),
+        });
+      }
+      try {
+        await refetch();
+      } catch (err) {
+        if (!isUnauthorizedError(err)) {
+          throw err;
+        }
+      }
+    },
+    [authLoading, token, queryClient, onboardingOnly, page, pageSize, refetch],
+  );
+
+  return {
+    clients: data?.items ?? [],
+    total: data?.total ?? 0,
+    page: data?.page ?? page,
+    pageSize: data?.page_size ?? pageSize,
+    pages: data?.pages ?? 1,
+    loading: isLoading,
+    load,
+  };
 }

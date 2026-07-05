@@ -22,6 +22,7 @@ interface ClientCreateFormProps {
   hasConflict: boolean;
   emailError?: string;
   phoneError?: string;
+  embedded?: boolean;
 }
 
 export function ClientCreateForm({
@@ -35,6 +36,7 @@ export function ClientCreateForm({
   hasConflict,
   emailError,
   phoneError,
+  embedded = false,
 }: ClientCreateFormProps) {
   const { t } = useTranslation();
   const formComplete =
@@ -45,55 +47,56 @@ export function ClientCreateForm({
     form.source &&
     form.merchant_id;
 
-  return (
-    <Card className="mb-6 p-4 sm:p-6">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-        {t("clients.newClient")}
-      </h3>
-      <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-        <Input
-          label={t("common.firstName")}
-          required
-          value={form.first_name}
-          onChange={(e) => onChange({ ...form, first_name: e.target.value })}
-          placeholder="Juan"
-        />
-        <Input
-          label={t("common.lastName")}
-          required
-          value={form.last_name}
-          onChange={(e) => onChange({ ...form, last_name: e.target.value })}
-          placeholder="Pérez"
-        />
-        <Input
-          label={t("common.email")}
-          type="email"
-          required
-          value={form.email}
-          onChange={(e) => onChange({ ...form, email: e.target.value })}
-          placeholder="cliente@email.com"
-          error={emailError}
-        />
-        <Input
-          label={t("common.phone")}
-          required
-          value={form.phone}
-          onChange={(e) => onChange({ ...form, phone: e.target.value })}
-          placeholder="1131432490"
-          error={phoneError}
-        />
-        <ClientSourceSelect
-          value={form.source}
-          onChange={(source) => onChange({ ...form, source })}
-          required
-        />
-        <MerchantSelect
-          merchants={merchants}
-          value={form.merchant_id}
-          onChange={(merchant_id) => onChange({ ...form, merchant_id })}
-          required
-          loading={merchantsLoading}
-        />
+  const formBody = (
+    <form
+      id={embedded ? "client-create-form" : undefined}
+      onSubmit={onSubmit}
+      className="grid gap-4 sm:grid-cols-2"
+    >
+      <Input
+        label={t("common.firstName")}
+        required
+        value={form.first_name}
+        onChange={(e) => onChange({ ...form, first_name: e.target.value })}
+        placeholder="Juan"
+      />
+      <Input
+        label={t("common.lastName")}
+        required
+        value={form.last_name}
+        onChange={(e) => onChange({ ...form, last_name: e.target.value })}
+        placeholder="Pérez"
+      />
+      <Input
+        label={t("common.email")}
+        type="email"
+        required
+        value={form.email}
+        onChange={(e) => onChange({ ...form, email: e.target.value })}
+        placeholder="cliente@email.com"
+        error={emailError}
+      />
+      <Input
+        label={t("common.phone")}
+        required
+        value={form.phone}
+        onChange={(e) => onChange({ ...form, phone: e.target.value })}
+        placeholder="1131432490"
+        error={phoneError}
+      />
+      <ClientSourceSelect
+        value={form.source}
+        onChange={(source) => onChange({ ...form, source })}
+        required
+      />
+      <MerchantSelect
+        merchants={merchants}
+        value={form.merchant_id}
+        onChange={(merchant_id) => onChange({ ...form, merchant_id })}
+        required
+        loading={merchantsLoading}
+      />
+      {!embedded ? (
         <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
           {checking && (
             <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
@@ -102,7 +105,20 @@ export function ClientCreateForm({
             {submitting ? t("common.loading") : t("clients.saveClient")}
           </Button>
         </div>
-      </form>
+      ) : checking ? (
+        <p className="text-xs text-slate-400 sm:col-span-2">{t("clients.checkingAvailability")}</p>
+      ) : null}
+    </form>
+  );
+
+  if (embedded) return formBody;
+
+  return (
+    <Card className="mb-6 p-4 sm:p-6">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+        {t("clients.newClient")}
+      </h3>
+      {formBody}
     </Card>
   );
 }

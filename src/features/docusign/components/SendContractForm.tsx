@@ -19,6 +19,11 @@ interface SendContractFormProps {
   onSearchClients: (query: string) => Promise<Client[]>;
   onLoadTemplateDetail?: (templateId: string) => Promise<DocusignTemplateDetail | null>;
   onSubmit: (payload: DocusignSendPayload) => Promise<void>;
+  /** Sin card ni título; para usar dentro de un modal. */
+  embedded?: boolean;
+  /** Datos precargados (p. ej. invitado de Calendly). */
+  initialSigner?: { name: string; email: string; clientId?: number };
+  hideClientSearch?: boolean;
 }
 
 export function SendContractForm({
@@ -28,23 +33,41 @@ export function SendContractForm({
   onSearchClients,
   onLoadTemplateDetail,
   onSubmit,
+  embedded = false,
+  initialSigner,
+  hideClientSearch = false,
 }: SendContractFormProps) {
   const { t } = useTranslation();
   const submittingRef = useRef(false);
-  const [signerName, setSignerName] = useState("");
-  const [signerEmail, setSignerEmail] = useState("");
+  const [signerName, setSignerName] = useState(initialSigner?.name ?? "");
+  const [signerEmail, setSignerEmail] = useState(initialSigner?.email ?? "");
   const [templateId, setTemplateId] = useState(defaultTemplateId ?? "");
   const [roleName, setRoleName] = useState(defaultRoleName ?? "Signer");
   const [subject, setSubject] = useState(t("docusign.defaultSubject"));
   const [clientSearch, setClientSearch] = useState("");
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<number | undefined>();
+  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(initialSigner?.clientId);
   const [submitting, setSubmitting] = useState(false);
   const [templateDetail, setTemplateDetail] = useState<DocusignTemplateDetail | null>(null);
 
   useEffect(() => {
     if (defaultTemplateId) setTemplateId(defaultTemplateId);
   }, [defaultTemplateId]);
+
+  useEffect(() => {
+    if (!initialSigner?.email || initialSigner.clientId) return;
+    const email = initialSigner.email.trim();
+    if (!email) return;
+    let cancelled = false;
+    void onSearchClients(email).then((clients) => {
+      if (cancelled) return;
+      const match = clients.find((client) => client.email.toLowerCase() === email.toLowerCase());
+      if (match) setSelectedClientId(match.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSigner?.email, initialSigner?.clientId, onSearchClients]);
 
   useEffect(() => {
     if (!templateDetail?.roles.length) return;
@@ -78,6 +101,7 @@ export function SendContractForm({
     return () => {
       cancelled = true;
     };
+    // Solo recargar al cambiar plantilla; onLoadTemplateDetail es estable (useCallback en el hook).
   }, [templateId, onLoadTemplateDetail]);
 
   function selectClient(client: Client) {
@@ -102,10 +126,12 @@ export function SendContractForm({
         subject: subject.trim(),
         client_id: selectedClientId,
       });
-      setSignerName("");
-      setSignerEmail("");
-      setClientSearch("");
-      setSelectedClientId(undefined);
+      if (!embedded) {
+        setSignerName("");
+        setSignerEmail("");
+        setClientSearch("");
+        setSelectedClientId(undefined);
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -113,35 +139,45 @@ export function SendContractForm({
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="card-flat space-y-4 p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">{t("docusign.sendTitle")}</h2>
-        <p className="mt-1 text-sm text-slate-500">{t("docusign.sendSubtitle")}</p>
-      </div>
+    <form
+      id={embedded ? "send-contract-form" : undefined}
+      onSubmit={(e) => void handleSubmit(e)}
+      className={embedded ? "space-y-4" : "card-flat space-y-4 p-6"}
+    >
+      {!embedded ? (
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">{t("docusign.sendTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t("docusign.sendSubtitle")}</p>
+        </div>
+      ) : null}
 
-      <Input
-        label={t("docusign.searchClient")}
-        value={clientSearch}
-        onChange={(e) => setClientSearch(e.target.value)}
-        placeholder={t("docusign.searchClientPlaceholder")}
-      />
-      {clientOptions.length > 0 ? (
-        <ul className="rounded-lg border border-slate-200 bg-white shadow-sm">
-          {clientOptions.map((client) => (
-            <li key={client.id}>
-              <button
-                type="button"
-                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50"
-                onClick={() => selectClient(client)}
-              >
-                <span className="font-medium text-slate-900">
-                  {client.first_name} {client.last_name}
-                </span>
-                <span className="text-slate-500">{client.email}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      {!hideClientSearch ? (
+        <>
+          <Input
+            label={t("docusign.searchClient")}
+            value={clientSearch}
+            onChange={(e) => setClientSearch(e.target.value)}
+            placeholder={t("docusign.searchClientPlaceholder")}
+          />
+          {clientOptions.length > 0 ? (
+            <ul className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              {clientOptions.map((client) => (
+                <li key={client.id}>
+                  <button
+                    type="button"
+                    className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    onClick={() => selectClient(client)}
+                  >
+                    <span className="font-medium text-slate-900">
+                      {client.first_name} {client.last_name}
+                    </span>
+                    <span className="text-slate-500">{client.email}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -185,18 +221,6 @@ export function SendContractForm({
         />
       </div>
 
-      {templateDetail && templateDetail.roles.length > 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <p className="font-medium text-slate-700">{t("docusign.templateRolesLabel")}</p>
-          <p className="mt-1">{templateDetail.roles.map((role) => role.role_name).join(", ")}</p>
-          {templateDetail.roles.length > 1 ? (
-            <p className="mt-2 text-amber-700">{t("docusign.templateMultiRoleWarning")}</p>
-          ) : null}
-          <p className="mt-2 text-slate-500">{t("docusign.templateRoleHint")}</p>
-          <p className="mt-2 text-slate-500">{t("docusign.templateSignatureHint")}</p>
-        </div>
-      ) : null}
-
       <Input
         label={t("docusign.subject")}
         value={subject}
@@ -204,9 +228,11 @@ export function SendContractForm({
         required
       />
 
-      <Button type="submit" disabled={submitting || templates.length === 0}>
-        {submitting ? t("docusign.sending") : t("docusign.sendAction")}
-      </Button>
+      {!embedded ? (
+        <Button type="submit" disabled={submitting || templates.length === 0}>
+          {submitting ? t("docusign.sending") : t("docusign.sendAction")}
+        </Button>
+      ) : null}
     </form>
   );
 }

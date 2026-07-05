@@ -1,5 +1,5 @@
-import { CalendarioPage } from "@/features/calendly/components/CalendarioPage";
+import { LazyCalendarioPage } from "@/lib/lazyPanels";
 
 export default function CalendarioRoutePage() {
-  return <CalendarioPage />;
+  return <LazyCalendarioPage />;
 }

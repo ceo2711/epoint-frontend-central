@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -11,6 +12,11 @@ interface ClientListProps {
   clients: Client[];
   canApprove: boolean;
   canUpdate: boolean;
+  page: number;
+  pages: number;
+  total: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
   onApprove: (id: number, name: string) => Promise<void>;
   onReject: (id: number, name: string) => Promise<void>;
   onResubmit: (id: number, name: string) => Promise<void>;
@@ -20,6 +26,11 @@ export function ClientList({
   clients,
   canApprove,
   canUpdate,
+  page,
+  pages,
+  total,
+  pageSize,
+  onPageChange,
   onApprove,
   onReject,
   onResubmit,
@@ -127,6 +138,14 @@ export function ClientList({
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={page}
+        pages={pages}
+        total={total}
+        pageSize={pageSize}
+        onPageChange={onPageChange}
+      />
     </>
   );
 }

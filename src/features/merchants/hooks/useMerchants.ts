@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { fetchMerchants } from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Merchant } from "@/features/merchants/types";
 
 export function useMerchants(
@@ -12,32 +13,20 @@ export function useMerchants(
   noPermissionMessage: string,
   includeInactive = false,
 ) {
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.merchants.list(includeInactive),
+    queryFn: () => fetchMerchants(token!, includeInactive),
+    enabled: !!token && canRead,
+  });
 
-  const loadMerchants = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const query = includeInactive ? "?include_inactive=true" : "";
-      const data = await api.get<Merchant[]>(`/merchants${query}`, token);
-      setMerchants(data);
-      setError("");
-    } catch {
-      setError(loadErrorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, loadErrorMessage, includeInactive]);
-
-  useEffect(() => {
-    if (canRead) void loadMerchants();
-    else {
-      setLoading(false);
-      setError(noPermissionMessage);
-    }
-  }, [canRead, loadMerchants, noPermissionMessage]);
-
-  return { merchants, loading, error, reload: loadMerchants };
+  return {
+    merchants: (data ?? []) as Merchant[],
+    loading: canRead ? isLoading : false,
+    error: canRead ? (isError ? loadErrorMessage : "") : noPermissionMessage,
+    reload: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.merchants.list(includeInactive) });
+      await refetch();
+    },
+  };
 }

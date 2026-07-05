@@ -102,6 +102,13 @@ export interface AdvisorBrief {
   email: string;
 }
 
+export interface ClientSignedContractBrief {
+  envelope_id: number;
+  signed_at: string;
+  subject: string;
+  has_document: boolean;
+}
+
 export interface Client {
   id: number;
   status: string;
@@ -118,6 +125,8 @@ export interface Client {
   has_ssn: boolean;
   registered_by_user_id: number;
   created_at: string;
+  docusign_contract_signed_at?: string | null;
+  signed_contract?: ClientSignedContractBrief | null;
   has_portal_access?: boolean;
   portal_email?: string | null;
   portal_login_url?: string | null;

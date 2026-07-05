@@ -1,20 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { SendContractModal } from "@/features/docusign/components/SendContractModal";
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
+import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import type { DocusignEnvelope } from "@/features/docusign/types";
 import { canDownloadSentDocument, canDownloadSignedDocument, hasPendingEnvelopes } from "@/features/docusign/utils";
 import { ApiError, api } from "@/lib/api";
 
-const POLL_MS = 30_000;
+const POLL_MS = 15_000;
+const MIN_SYNC_GAP_MS = 5_000;
 
 interface ClientContractsPanelProps {
   clientId: number;
+  clientName: string;
+  clientEmail: string;
   token: string | null;
   onError?: (message: string) => void;
 }
@@ -37,8 +42,15 @@ function statusKey(status: string): string {
   return "docusign.statusUnknown";
 }
 
-export function ClientContractsPanel({ clientId, token, onError }: ClientContractsPanelProps) {
+export function ClientContractsPanel({
+  clientId,
+  clientName,
+  clientEmail,
+  token,
+  onError,
+}: ClientContractsPanelProps) {
   const { t } = useTranslation();
+  const modal = useModal();
   const [envelopes, setEnvelopes] = useState<DocusignEnvelope[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +58,19 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
   const [downloadingSentId, setDownloadingSentId] = useState<number | null>(null);
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const syncInFlightRef = useRef(false);
+  const lastSyncAtRef = useRef(0);
+
+  const {
+    connection,
+    templates,
+    sendEnvelope,
+    loadTemplateDetail,
+    searchClients,
+  } = useDocusign(token);
+
+  const canSendContract = !!connection?.connected && templates.length > 0;
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -65,38 +90,62 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
     }
   }, [clientId, token, t]);
 
-  const syncAll = useCallback(async () => {
+  const syncAll = useCallback(async (options?: { force?: boolean }) => {
     if (!token) return;
+    const now = Date.now();
+    if (
+      !options?.force &&
+      (syncInFlightRef.current || now - lastSyncAtRef.current < MIN_SYNC_GAP_MS)
+    ) {
+      return;
+    }
+
+    syncInFlightRef.current = true;
     setSyncingAll(true);
     try {
       await api.post<DocusignEnvelope[]>("/docusign/envelopes/sync-pending", {}, token);
+      lastSyncAtRef.current = Date.now();
       await load();
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : t("docusign.syncError"));
     } finally {
+      syncInFlightRef.current = false;
       setSyncingAll(false);
     }
   }, [token, load, onError, t]);
 
-  useEffect(() => {
-    void syncAll();
-  }, [syncAll]);
+  const shouldPoll = useMemo(() => hasPendingEnvelopes(envelopes), [envelopes]);
 
   useEffect(() => {
-    if (!token || !hasPendingEnvelopes(envelopes)) return;
+    lastSyncAtRef.current = 0;
+    void syncAll();
+  }, [clientId, token]);
+
+  useEffect(() => {
+    if (!token || !shouldPoll) return;
 
     const interval = window.setInterval(() => {
       void syncAll();
     }, POLL_MS);
 
-    return () => window.clearInterval(interval);
-  }, [token, envelopes, syncAll]);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void syncAll({ force: true });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [token, shouldPoll, syncAll]);
 
   useEffect(() => {
     if (!token) return;
 
     const onRefresh = () => {
-      void syncAll();
+      void syncAll({ force: true });
     };
 
     window.addEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
@@ -150,19 +199,48 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
     }
   }
 
+  async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
+    try {
+      const result = await sendEnvelope({
+        ...payload,
+        client_id: clientId,
+        signer_name: clientName.trim(),
+        signer_email: clientEmail.trim(),
+      });
+      setSendOpen(false);
+      await load();
+      await modal.alert({
+        title: t("docusign.sendSuccessTitle"),
+        message: result?.message ?? t("docusign.sendSuccessMessage"),
+        variant: "success",
+      });
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : t("docusign.sendError"));
+      throw err;
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-500">{t("docusign.clientContractsSubtitle")}</p>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            disabled={!canSendContract}
+            onClick={() => setSendOpen(true)}
+          >
+            {t("docusign.sendAction")}
+          </Button>
           <Button size="sm" variant="ghost" disabled={syncingAll} onClick={() => void syncAll()}>
             {syncingAll ? t("docusign.syncing") : t("docusign.syncAction")}
           </Button>
-          <Link href="/contratos" className="text-sm font-medium text-blue-700 hover:underline">
-            {t("docusign.goToContracts")}
-          </Link>
         </div>
       </div>
+
+      {!connection?.connected ? (
+        <p className="text-sm text-slate-500">{t("docusign.notConfigured")}</p>
+      ) : null}
 
       {loading ? (
         <div className="flex justify-center py-8">
@@ -247,6 +325,21 @@ export function ClientContractsPanel({ clientId, token, onError }: ClientContrac
           </table>
         </div>
       )}
+
+      {sendOpen ? (
+        <SendContractModal
+          signerName={clientName}
+          signerEmail={clientEmail}
+          clientId={clientId}
+          templates={templates}
+          defaultTemplateId={connection?.default_template_id}
+          defaultRoleName={connection?.default_template_role_name}
+          onSearchClients={searchClients}
+          onLoadTemplateDetail={loadTemplateDetail}
+          onSubmit={handleSendContract}
+          onClose={() => setSendOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

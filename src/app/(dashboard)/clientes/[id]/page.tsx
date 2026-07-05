@@ -7,11 +7,13 @@ import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
-import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
-import { StaffClientDocumentsPanel } from "@/features/documents/components/StaffClientDocumentsPanel";
-import { ClientBoardPanel } from "@/features/boards/components/ClientBoardPanel";
-import { ClientContractsPanel } from "@/features/docusign/components/ClientContractsPanel";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
+import {
+  LazyClientBoardPanel,
+  LazyClientContractsPanel,
+  LazyDocumentViewerModal,
+  LazyStaffClientDocumentsPanel,
+} from "@/lib/lazyPanels";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
@@ -24,6 +26,7 @@ import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { formatClientConflict, useClientAvailabilityCheck } from "@/features/clients/hooks/useClientAvailabilityCheck";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
+import { canEditClientProfile, canViewApprovedClientWorkspace, canViewClientOnboardingWorkspace } from "@/features/clients/client-access";
 import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { translateStatus } from "@/i18n";
@@ -35,8 +38,18 @@ import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail }
 import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
-const EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"];
-const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
+function buildClientForm(client: Client) {
+  return {
+    first_name: client.first_name,
+    last_name: client.last_name,
+    email: client.email,
+    phone: client.phone,
+    source: client.source ?? "",
+    merchant_id: client.merchant ? String(client.merchant.id) : "",
+    date_of_birth: client.date_of_birth ?? "",
+    ssn: "",
+  };
+}
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -84,10 +97,13 @@ export default function ClienteDetailPage() {
     phone: "",
     source: "",
     merchant_id: "",
+    date_of_birth: "",
+    ssn: "",
   });
   const [saving, setSaving] = useState(false);
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
+  const [downloadingContract, setDownloadingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
   const loadInFlight = useRef(false);
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
@@ -113,8 +129,10 @@ export default function ClienteDetailPage() {
 
   useEffect(() => {
     if (!token || !client?.documents?.length) return;
-    prefetchDocuments(client.documents, token);
-  }, [client?.documents, token]);
+    if (!canViewApprovedClientWorkspace(user, client)) return;
+    if (activeTab !== "documents") return;
+    prefetchDocuments(client.documents, token, 3);
+  }, [client, token, activeTab, user]);
 
   const emailError = availability?.email
     ? formatClientConflict(t, "email", availability.email)
@@ -145,14 +163,7 @@ export default function ClienteDetailPage() {
         });
         setPortalPassword(c.portal_temp_password);
       }
-      setForm({
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.email,
-        phone: c.phone,
-        source: c.source ?? "",
-        merchant_id: c.merchant ? String(c.merchant.id) : "",
-      });
+      setForm(buildClientForm(c));
     } catch (err) {
       if (!isUnauthorizedError(err)) {
         setClient(null);
@@ -204,9 +215,7 @@ export default function ClienteDetailPage() {
 
   const clientName = client ? `${client.first_name} ${client.last_name}` : "";
   const canEdit =
-    client &&
-    hasPermission("clients:update") &&
-    EDITABLE_STATUSES.includes(client.status);
+    client && canEditClientProfile(user, client, hasPermission("clients:update"));
   const canApprove =
     client?.status === "PENDIENTE_DE_REVISION" && hasPermission("clients:approve");
   const canResubmit =
@@ -240,23 +249,46 @@ export default function ClienteDetailPage() {
     }
   }
 
+  async function handleDownloadSignedContract() {
+    if (!token || !client) return;
+    setDownloadingContract(true);
+    try {
+      const blob = await api.getBlob(`/clients/${client.id}/signed-contract`, token);
+      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: err instanceof ApiError ? err.message : t("clientDetail.signedContractDownloadError"),
+        variant: "error",
+      });
+    } finally {
+      setDownloadingContract(false);
+    }
+  }
+
+  const signedContract = client?.signed_contract;
+  const hasSignedContract = !!signedContract || !!client?.docusign_contract_signed_at;
+
   async function handleSave(e: FormEvent) {
     e.preventDefault();
     if (!token || !client || hasConflict) return;
     setSaving(true);
     try {
-      const updated = await api.patch<Client>(
-        `/clients/${client.id}`,
-        {
-          first_name: form.first_name,
-          last_name: form.last_name,
-          email: form.email,
-          phone: form.phone,
-          source: form.source || null,
-          merchant_id: form.merchant_id ? Number(form.merchant_id) : null,
-        },
-        token,
-      );
+      const payload: Record<string, unknown> = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        phone: form.phone,
+        source: form.source || null,
+        merchant_id: form.merchant_id ? Number(form.merchant_id) : null,
+      };
+      if (client && canViewApprovedClientWorkspace(user, client)) {
+        if (form.date_of_birth) payload.date_of_birth = form.date_of_birth;
+        if (form.ssn.trim()) payload.ssn = form.ssn.trim();
+      }
+      const updated = await api.patch<Client>(`/clients/${client.id}`, payload, token);
       setClient((prev) => (prev ? { ...prev, ...updated } : updated));
       setEditing(false);
       await modal.alert({
@@ -330,6 +362,11 @@ export default function ClienteDetailPage() {
   }
 
   const isApproved = !!client.approved_at;
+  const canViewOnboarding = canViewClientOnboardingWorkspace(user, client);
+  const showApprovedWorkspace = canViewApprovedClientWorkspace(user, client);
+  const showOverviewSection = !canViewOnboarding || !isApproved || activeTab === "overview";
+  const showOnboardingOverviewExtras = showApprovedWorkspace && activeTab === "overview";
+  const showDocumentsSection = showApprovedWorkspace && activeTab === "documents";
   const workspaceHint =
     user?.role.code === "ADVISOR"
       ? t("clientDetail.workspaceHintAdvisor")
@@ -386,7 +423,7 @@ export default function ClienteDetailPage() {
           )}
         </Card>
 
-        {client.has_portal_access && (
+        {showApprovedWorkspace && client.has_portal_access && (
           <PortalCredentialsCard
             client={client}
             tempPassword={portalPassword}
@@ -409,15 +446,15 @@ export default function ClienteDetailPage() {
           />
         )}
 
-        {isApproved && workspaceHint && (
+        {showApprovedWorkspace && workspaceHint && (
           <p className="text-sm text-slate-500">{workspaceHint}</p>
         )}
 
-        {isApproved && (
+        {showApprovedWorkspace && (
           <ClientOnboardingTabs active={activeTab} onChange={setActiveTab} />
         )}
 
-        {(!isApproved || activeTab === "overview") && (
+        {showOverviewSection && (
           <>
             {editing ? (
               <Card className="p-4 sm:p-6">
@@ -437,12 +474,35 @@ export default function ClienteDetailPage() {
                     required
                     loading={merchantsLoading}
                   />
+                  {showApprovedWorkspace ? (
+                    <>
+                      <Input
+                        label={t("clientDetail.dateOfBirth")}
+                        type="date"
+                        value={form.date_of_birth}
+                        onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+                      />
+                      <div>
+                        <Input
+                          label={t("portal.ssn")}
+                          value={form.ssn}
+                          onChange={(e) => setForm({ ...form, ssn: e.target.value })}
+                          placeholder={
+                            client.has_ssn ? t("portal.ssnPlaceholderUpdate") : t("portal.ssnPlaceholder")
+                          }
+                        />
+                        {client.has_ssn ? (
+                          <p className="mt-1 text-xs text-slate-500">{t("portal.ssnHint")}</p>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
                   <div className="flex flex-wrap items-center gap-2 pe-[4.75rem] sm:col-span-2 sm:pe-[5.75rem]">
                     {checking && (
                       <p className="text-xs text-slate-400">{t("clients.checkingAvailability")}</p>
                     )}
                     <Button type="submit" disabled={saving || checking || hasConflict}>{saving ? t("common.loading") : t("common.saveChanges")}</Button>
-                    <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm({ first_name: client.first_name, last_name: client.last_name, email: client.email, phone: client.phone, source: client.source ?? "", merchant_id: client.merchant ? String(client.merchant.id) : "" }); }}>
+                    <Button type="button" variant="secondary" onClick={() => { setEditing(false); setForm(buildClientForm(client)); }}>
                       {t("common.cancel")}
                     </Button>
                   </div>
@@ -460,12 +520,58 @@ export default function ClienteDetailPage() {
                   <InfoRow label={t("clientDetail.phone")} value={client.phone} />
                   <InfoRow label={t("clients.source")} value={sourceLabel} />
                   <InfoRow label={t("clients.merchant")} value={client.merchant?.name ?? "—"} />
-                  <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
-                  <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
+                  {showApprovedWorkspace ? (
+                    <>
+                      <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
+                      <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
+                    </>
+                  ) : null}
                 </div>
               </Card>
             )}
 
+            {showOnboardingOverviewExtras && hasSignedContract ? (
+              <Card className="p-4 sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                      {t("clientDetail.signedContractTitle")}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="badge badge-green">{t("clientDetail.signedContractBadge")}</span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <InfoRow
+                        label={t("clientDetail.signedContractAt")}
+                        value={formatDate(
+                          signedContract?.signed_at ?? client.docusign_contract_signed_at ?? null,
+                          locale,
+                        )}
+                      />
+                      {signedContract?.subject ? (
+                        <InfoRow label={t("clientDetail.signedContractSubject")} value={signedContract.subject} />
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm text-slate-500">{t("clientDetail.signedContractHint")}</p>
+                  </div>
+                  {(signedContract?.has_document ?? true) ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={downloadingContract}
+                      onClick={() => void handleDownloadSignedContract()}
+                    >
+                      {downloadingContract
+                        ? t("docusign.downloading")
+                        : t("clientDetail.signedContractDownload")}
+                    </Button>
+                  ) : null}
+                </div>
+              </Card>
+            ) : null}
+
+            {showOnboardingOverviewExtras ? (
+              <>
             <Card className="p-4 sm:p-6">
               <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.timeline")}</h2>
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
@@ -508,15 +614,17 @@ export default function ClienteDetailPage() {
                 <p className="text-sm text-slate-400">{t("clientDetail.noVehicles")}</p>
               )}
             </Card>
+              </>
+            ) : null}
           </>
         )}
 
-        {(!isApproved || activeTab === "documents") && (
+        {showDocumentsSection && (
           <Card className="p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
               {t("clientDetail.documents")}
             </h2>
-            <StaffClientDocumentsPanel
+            <LazyStaffClientDocumentsPanel
               clientId={client.id}
               documents={client.documents}
               token={token}
@@ -528,13 +636,15 @@ export default function ClienteDetailPage() {
           </Card>
         )}
 
-        {user && CONTRACT_ROLES.has(user.role.code) && (
+        {showApprovedWorkspace && (
           <Card className="p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
               {t("docusign.clientContractsTitle")}
             </h2>
-            <ClientContractsPanel
+            <LazyClientContractsPanel
               clientId={client.id}
+              clientName={clientName}
+              clientEmail={client.email}
               token={token}
               onError={(message) =>
                 void modal.alert({ title: t("common.error"), message, variant: "error" })
@@ -543,16 +653,16 @@ export default function ClienteDetailPage() {
           </Card>
         )}
 
-        {isApproved && activeTab === "board" && (
+        {showApprovedWorkspace && activeTab === "board" && (
           <Card className="overflow-hidden p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.board")}</h2>
-            <ClientBoardPanel token={token} clientId={client.id} />
+            <LazyClientBoardPanel token={token} clientId={client.id} />
           </Card>
         )}
       </PageContent>
 
       {viewingDoc && (
-        <DocumentViewerModal
+        <LazyDocumentViewerModal
           url={viewingDocUrl ?? ""}
           loading={!viewingDocIsPdf && (viewingDocLoading || !viewingDocUrl)}
           filename={viewingDoc.original_filename}

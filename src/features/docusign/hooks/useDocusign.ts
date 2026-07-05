@@ -1,163 +1,284 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import {
+  fetchDocusignConnection,
+  fetchDocusignEnvelopes,
+  fetchDocusignTemplates,
+} from "@/lib/queryFetchers";
 import { ApiError, api } from "@/lib/api";
-import type { Client, Paginated } from "@/features/clients/types";
-import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
+import { DOCUSIGN_REFRESH_EVENT, dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import type {
   DocusignConnection,
   DocusignEnvelope,
+  DocusignRegisterClientPayload,
+  DocusignRegisterClientResponse,
   DocusignSendPayload,
   DocusignTemplate,
   DocusignTemplateDetail,
 } from "@/features/docusign/types";
 import { hasPendingEnvelopes } from "@/features/docusign/utils";
+import { queryKeys } from "@/lib/queryKeys";
+import type { Client, Paginated } from "@/features/clients/types";
 
-const POLL_MS = 30_000;
+const POLL_MS = 15_000;
+const MIN_SYNC_GAP_MS = 5_000;
 
-export function useDocusign(token: string | null) {
-  const [connection, setConnection] = useState<DocusignConnection | null>(null);
-  const [templates, setTemplates] = useState<DocusignTemplate[]>([]);
-  const [envelopes, setEnvelopes] = useState<DocusignEnvelope[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export interface UseDocusignOptions {
+  /** Vista admin: solo lectura por vendedor, sin formulario de envío. */
+  adminView?: boolean;
+  /** Filtra contratos por vendedor (requerido en vista admin). */
+  salesRepId?: number | null;
+}
 
-  const loadConnection = useCallback(async () => {
-    if (!token) return;
-    const data = await api.get<DocusignConnection>("/docusign/connection", token);
-    setConnection(data);
-    return data;
-  }, [token]);
+export function useDocusign(token: string | null, options?: UseDocusignOptions) {
+  const adminView = options?.adminView ?? false;
+  const salesRepId = options?.salesRepId ?? null;
+  const queryClient = useQueryClient();
+  const syncInFlightRef = useRef(false);
+  const lastSyncAtRef = useRef(0);
 
-  const loadTemplates = useCallback(async () => {
-    if (!token) return [];
-    setLoadingTemplates(true);
+  const envelopesQueryKey =
+    adminView && salesRepId != null
+      ? queryKeys.docusign.envelopesBySalesRep(salesRepId)
+      : queryKeys.docusign.envelopes;
+
+  const connectionQuery = useQuery({
+    queryKey: queryKeys.docusign.connection,
+    queryFn: () => fetchDocusignConnection(token!),
+    enabled: !!token,
+  });
+
+  const connected = connectionQuery.data?.connected ?? false;
+
+  const templatesQuery = useQuery({
+    queryKey: queryKeys.docusign.templates,
+    queryFn: () => fetchDocusignTemplates(token!),
+    enabled: !!token && connected && !adminView,
+  });
+
+  const envelopesEnabled =
+    !!token && connected && (!adminView || salesRepId != null);
+
+  const envelopesQuery = useQuery({
+    queryKey: envelopesQueryKey,
+    queryFn: () =>
+      fetchDocusignEnvelopes(token!, adminView ? salesRepId : undefined),
+    enabled: envelopesEnabled,
+  });
+
+  const envelopes = envelopesQuery.data ?? [];
+  const shouldPoll = useMemo(() => hasPendingEnvelopes(envelopes), [envelopes]);
+
+  const syncPendingEnvelopes = useCallback(async (options?: { force?: boolean }) => {
+    if (!token || !connected || !envelopesEnabled) return [];
+    const now = Date.now();
+    if (
+      !options?.force &&
+      (syncInFlightRef.current || now - lastSyncAtRef.current < MIN_SYNC_GAP_MS)
+    ) {
+      return queryClient.getQueryData<DocusignEnvelope[]>(envelopesQueryKey) ?? [];
+    }
+
+    syncInFlightRef.current = true;
     try {
-      const data = await api.get<DocusignTemplate[]>("/docusign/templates", token);
-      setTemplates(data);
+      const qs =
+        adminView && salesRepId != null
+          ? `?sent_by_user_id=${encodeURIComponent(String(salesRepId))}`
+          : "";
+      const data = await api.post<DocusignEnvelope[]>(
+        `/docusign/envelopes/sync-pending${qs}`,
+        {},
+        token,
+      );
+      lastSyncAtRef.current = Date.now();
+      queryClient.setQueryData(envelopesQueryKey, data);
       return data;
     } finally {
-      setLoadingTemplates(false);
+      syncInFlightRef.current = false;
     }
-  }, [token]);
+  }, [token, connected, envelopesEnabled, adminView, salesRepId, queryClient, envelopesQueryKey]);
 
-  const loadEnvelopes = useCallback(async () => {
-    if (!token) return [];
-    const data = await api.get<DocusignEnvelope[]>("/docusign/envelopes", token);
-    setEnvelopes(data);
-    return data;
-  }, [token]);
-
-  const syncPendingEnvelopes = useCallback(async () => {
-    if (!token) return [];
-    const data = await api.post<DocusignEnvelope[]>("/docusign/envelopes/sync-pending", {}, token);
-    setEnvelopes(data);
-    return data;
-  }, [token]);
-
-  const refresh = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const conn = await loadConnection();
-      if (conn?.connected) {
-        await Promise.all([loadTemplates(), loadEnvelopes()]);
-        try {
-          await syncPendingEnvelopes();
-        } catch (syncErr) {
-          console.warn("DocuSign sync-pending failed", syncErr);
-        }
-      } else {
-        setTemplates([]);
-        setEnvelopes([]);
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al cargar DocuSign");
-    } finally {
-      setLoading(false);
-    }
-  }, [token, loadConnection, loadTemplates, loadEnvelopes, syncPendingEnvelopes]);
+  const syncPendingRef = useRef(syncPendingEnvelopes);
+  syncPendingRef.current = syncPendingEnvelopes;
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (!envelopesEnabled) return;
+    lastSyncAtRef.current = 0;
+    void syncPendingRef.current().catch(() => undefined);
+  }, [envelopesEnabled, token, connected, salesRepId]);
 
   useEffect(() => {
-    if (!token || !connection?.connected || !hasPendingEnvelopes(envelopes)) return;
+    if (!envelopesEnabled || !shouldPoll) return;
 
     const interval = window.setInterval(() => {
       void syncPendingEnvelopes().catch(() => undefined);
     }, POLL_MS);
 
-    return () => window.clearInterval(interval);
-  }, [token, connection?.connected, envelopes, syncPendingEnvelopes]);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void syncPendingEnvelopes({ force: true }).catch(() => undefined);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [envelopesEnabled, shouldPoll, syncPendingEnvelopes]);
 
   useEffect(() => {
-    if (!token || !connection?.connected) return;
+    if (!envelopesEnabled) return;
 
     const onRefresh = () => {
-      void syncPendingEnvelopes().catch(() => undefined);
+      void syncPendingEnvelopes({ force: true }).catch(() => undefined);
     };
 
     window.addEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
     return () => window.removeEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
-  }, [token, connection?.connected, syncPendingEnvelopes]);
+  }, [envelopesEnabled, syncPendingEnvelopes]);
 
-  async function loadTemplateDetail(templateId: string) {
-    if (!token) return null;
-    return api.get<DocusignTemplateDetail>(`/docusign/templates/${templateId}`, token);
-  }
+  const refresh = useCallback(async () => {
+    if (!token) return;
+    await Promise.all([
+      connectionQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: queryKeys.docusign.all }),
+    ]);
+  }, [token, connectionQuery, queryClient]);
 
-  async function sendEnvelope(payload: DocusignSendPayload) {
-    if (!token) return null;
-    const result = await api.post<{ envelope: DocusignEnvelope; message: string }>(
-      "/docusign/envelopes",
+  const loadTemplateDetail = useCallback(
+    async (templateId: string) => {
+      if (!token) return null;
+      return queryClient.fetchQuery({
+        queryKey: queryKeys.docusign.templateDetail(templateId),
+        queryFn: () => api.get<DocusignTemplateDetail>(`/docusign/templates/${templateId}`, token),
+        staleTime: 60_000,
+      });
+    },
+    [token, queryClient],
+  );
+
+  const sendEnvelopeMutation = useMutation({
+    mutationFn: (payload: DocusignSendPayload) =>
+      api.post<{ envelope: DocusignEnvelope; message: string }>("/docusign/envelopes", payload, token!),
+    onSuccess: (result) => {
+      queryClient.setQueryData<DocusignEnvelope[]>(envelopesQueryKey, (prev) =>
+        prev ? [result.envelope, ...prev] : [result.envelope],
+      );
+      dispatchDocusignRefresh({ envelopeId: result.envelope.id });
+    },
+  });
+
+  const syncEnvelopeMutation = useMutation({
+    mutationFn: (envelopeId: number) =>
+      api.post<DocusignEnvelope>(`/docusign/envelopes/${envelopeId}/sync`, {}, token!),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<DocusignEnvelope[]>(envelopesQueryKey, (prev) =>
+        prev ? prev.map((item) => (item.id === updated.id ? updated : item)) : [updated],
+      );
+    },
+  });
+
+  const registerClientMutation = useMutation({
+    mutationFn: ({
+      envelopeId,
       payload,
-      token,
-    );
-    setEnvelopes((prev) => [result.envelope, ...prev]);
-    return result;
-  }
+    }: {
+      envelopeId: number;
+      payload: DocusignRegisterClientPayload;
+    }) =>
+      api.post<DocusignRegisterClientResponse>(
+        `/docusign/envelopes/${envelopeId}/register-client`,
+        payload,
+        token!,
+      ),
+    onSuccess: (result) => {
+      queryClient.setQueryData<DocusignEnvelope[]>(envelopesQueryKey, (prev) =>
+        prev
+          ? prev.map((item) => (item.id === result.envelope.id ? result.envelope : item))
+          : [result.envelope],
+      );
+    },
+  });
 
-  async function syncEnvelope(envelopeId: number) {
-    if (!token) return null;
-    const updated = await api.post<DocusignEnvelope>(
-      `/docusign/envelopes/${envelopeId}/sync`,
-      {},
-      token,
-    );
-    setEnvelopes((prev) => prev.map((item) => (item.id === envelopeId ? updated : item)));
-    return updated;
-  }
+  const sendEnvelope = useCallback(
+    async (payload: DocusignSendPayload) => {
+      if (!token) return null;
+      return sendEnvelopeMutation.mutateAsync(payload);
+    },
+    [token, sendEnvelopeMutation],
+  );
 
-  async function downloadSignedDocument(envelopeId: number) {
-    if (!token) return null;
-    return api.getBlob(`/docusign/envelopes/${envelopeId}/document`, token);
-  }
+  const syncEnvelope = useCallback(
+    async (envelopeId: number) => {
+      if (!token) return null;
+      return syncEnvelopeMutation.mutateAsync(envelopeId);
+    },
+    [token, syncEnvelopeMutation],
+  );
 
-  async function downloadSentDocument(envelopeId: number) {
-    if (!token) return null;
-    return api.getBlob(`/docusign/envelopes/${envelopeId}/document/sent`, token);
-  }
+  const registerClientFromEnvelope = useCallback(
+    async (envelopeId: number, payload: DocusignRegisterClientPayload) => {
+      if (!token) return null;
+      return registerClientMutation.mutateAsync({ envelopeId, payload });
+    },
+    [token, registerClientMutation],
+  );
 
-  async function searchClients(query: string) {
-    if (!token || !query.trim()) return [];
-    const data = await api.get<Paginated<Client>>(
-      `/clients?search=${encodeURIComponent(query.trim())}&page_size=10`,
-      token,
-    );
-    return data.items ?? [];
-  }
+  const downloadSignedDocument = useCallback(
+    async (envelopeId: number) => {
+      if (!token) return null;
+      return api.getBlob(`/docusign/envelopes/${envelopeId}/document`, token);
+    },
+    [token],
+  );
+
+  const downloadSentDocument = useCallback(
+    async (envelopeId: number) => {
+      if (!token) return null;
+      return api.getBlob(`/docusign/envelopes/${envelopeId}/document/sent`, token);
+    },
+    [token],
+  );
+
+  const searchClients = useCallback(
+    async (query: string) => {
+      if (!token || !query.trim()) return [];
+      const data = await api.get<Paginated<Client>>(
+        `/clients?search=${encodeURIComponent(query.trim())}&page_size=10`,
+        token,
+      );
+      return data.items ?? [];
+    },
+    [token],
+  );
+
+  const loading =
+    connectionQuery.isLoading ||
+    (connected &&
+      !adminView &&
+      templatesQuery.isLoading) ||
+    (envelopesEnabled && envelopesQuery.isLoading);
+
+  const loadingEnvelopes = envelopesEnabled && envelopesQuery.isLoading;
+
+  const error =
+    connectionQuery.error instanceof ApiError
+      ? connectionQuery.error.message
+      : connectionQuery.error
+        ? "Error al cargar DocuSign"
+        : null;
 
   return {
-    connection,
-    templates,
+    connection: connectionQuery.data ?? null,
+    templates: templatesQuery.data ?? [],
     envelopes,
     loading,
-    loadingTemplates,
+    loadingEnvelopes,
+    loadingTemplates: templatesQuery.isFetching,
     error,
     refresh,
     loadTemplateDetail,
@@ -166,6 +287,7 @@ export function useDocusign(token: string | null) {
     syncPendingEnvelopes,
     downloadSignedDocument,
     downloadSentDocument,
+    registerClientFromEnvelope,
     searchClients,
   };
 }

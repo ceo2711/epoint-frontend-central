@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { ChatFileRoutePanel } from "@/features/chat/components/ChatFileRoutePanel";
 import { ChatCalendlyPanel } from "@/features/chat/components/ChatCalendlyPanel";
 import { useChatbot } from "@/features/chat/hooks/useChatbot";
+import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/chat/types";
 import { useChatClientIdHint } from "@/features/chat/hooks/useChatClientIdHint";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { RichTextContent } from "@/components/ui/RichTextContent";
@@ -175,22 +176,22 @@ export function FloatingChatWidget() {
           role="dialog"
           aria-label={chatT("chat.title")}
         >
-          <header className="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-blue-700 to-blue-600 px-4 py-3 text-white">
+          <header className="flex items-center justify-between gap-3 border-b border-cream-500 bg-gradient-to-r from-brown-800 to-brand px-4 py-3 text-white">
             <div>
               <p className="text-sm font-semibold">{chatT("chat.title")}</p>
-              <p className="text-xs text-blue-100">{chatT("chat.subtitle")}</p>
+              <p className="text-xs text-cream-700">{chatT("chat.subtitle")}</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-blue-100 transition hover:bg-white/15 hover:text-white"
+              className="rounded-lg p-1.5 text-cream-700 transition hover:bg-white/15 hover:text-white"
               aria-label={chatT("common.close")}
             >
               <CloseIcon className="h-4 w-4" />
             </button>
           </header>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-3 py-4">
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-cream-400 px-3 py-4">
             <div className="mr-8 rounded-2xl rounded-bl-md bg-white px-3 py-2 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200">
               {greeting}
             </div>
@@ -319,7 +320,7 @@ export function FloatingChatWidget() {
                 <textarea
                   ref={inputRef}
                   value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) => setDraft(event.target.value.slice(0, CHAT_MESSAGE_MAX_LENGTH))}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
@@ -327,6 +328,7 @@ export function FloatingChatWidget() {
                     }
                   }}
                   rows={2}
+                  maxLength={CHAT_MESSAGE_MAX_LENGTH}
                   placeholder={
                     stagedUpload?.step === "client"
                       ? chatT("chat.searchClientPlaceholder")
@@ -359,14 +361,14 @@ export function FloatingChatWidget() {
 
       <div className="pointer-events-auto flex flex-col items-end gap-1">
         {!open && (
-          <span className="rounded-full bg-slate-900/80 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+          <span className="rounded-full bg-brown-950/80 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
             {chatT("chat.helpHint")}
           </span>
         )}
         <button
           type="button"
           onClick={handleToggle}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-xl shadow-brand/30 transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           aria-label={open ? chatT("common.close") : chatT("chat.open")}
           aria-expanded={open}
         >
