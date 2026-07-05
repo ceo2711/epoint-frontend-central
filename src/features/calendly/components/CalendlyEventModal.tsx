@@ -8,9 +8,11 @@ import type { CalendlyEvent } from "@/features/calendly/types";
 interface CalendlyEventModalProps {
   event: CalendlyEvent;
   canManage: boolean;
+  canSendContract?: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onSendContract?: () => void;
 }
 
 function formatEventRange(start: string, end: string, locale: string) {
@@ -30,7 +32,15 @@ function formatEventRange(start: string, end: string, locale: string) {
   return `${dateFormatter.format(startDate)} · ${timeFormatter.format(startDate)} – ${timeFormatter.format(endDate)}`;
 }
 
-export function CalendlyEventModal({ event, canManage, onClose, onEdit, onDelete }: CalendlyEventModalProps) {
+export function CalendlyEventModal({
+  event,
+  canManage,
+  canSendContract = false,
+  onClose,
+  onEdit,
+  onDelete,
+  onSendContract,
+}: CalendlyEventModalProps) {
   const { t, locale } = useTranslation();
 
   return (
@@ -63,16 +73,23 @@ export function CalendlyEventModal({ event, canManage, onClose, onEdit, onDelete
           <span className="font-medium text-slate-900">{t("calendly.scheduledAt")}:</span>{" "}
           {formatEventRange(event.start_time, event.end_time, locale)}
         </p>
-        {event.meeting_url && (
-          <div>
-            <Button
-              type="button"
-              onClick={() => window.open(event.meeting_url!, "_blank", "noopener,noreferrer")}
-            >
-              {t("calendly.joinMeeting")}
-            </Button>
+        {event.meeting_url || canSendContract ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {event.meeting_url ? (
+              <Button
+                type="button"
+                onClick={() => window.open(event.meeting_url!, "_blank", "noopener,noreferrer")}
+              >
+                {t("calendly.joinMeeting")}
+              </Button>
+            ) : null}
+            {canSendContract && event.invitee_email ? (
+              <Button type="button" variant="secondary" onClick={onSendContract}>
+                {t("docusign.sendAction")}
+              </Button>
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       {canManage && (

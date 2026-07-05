@@ -10,6 +10,7 @@ import { emitClientsRefresh } from "@/lib/clientEvents";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Board, Paginated, Client } from "@/types/api";
 import type { ChatMessage, ChatbotApiResponse, ChatCalendlyOptions, ChatCalendlySelection, PendingChatAction } from "@/features/chat/types";
+import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/chat/types";
 import { clearChatState, loadChatState, saveChatState } from "@/features/chat/chat-storage";
 import { emitCalendlyRefresh } from "@/lib/calendlyEvents";
 
@@ -384,6 +385,11 @@ export function useChatbot(
     async (text: string, uiLocale: string) => {
       const trimmed = text.trim();
       if (!trimmed || !token || loading) return;
+
+      if (trimmed.length > CHAT_MESSAGE_MAX_LENGTH) {
+        setError(chatT("chat.messageTooLong", { max: CHAT_MESSAGE_MAX_LENGTH }));
+        return;
+      }
 
       const userMessage: ChatMessage = {
         id: newMessageId(),

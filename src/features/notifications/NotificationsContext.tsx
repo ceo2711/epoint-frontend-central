@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import { connectNotificationStream } from "@/features/notifications/notificationStream";
 import { api } from "@/lib/api";
 import type { Notification, Paginated } from "@/types/api";
@@ -31,7 +32,13 @@ const POLL_MS = 60_000;
 const STREAM_RECONNECT_MS = 3_000;
 const RECENT_LIMIT = 20;
 
-export function NotificationsProvider({ children }: { children: ReactNode }) {
+export function NotificationsProvider({
+  children,
+  enabled = true,
+}: {
+  children: ReactNode;
+  enabled?: boolean;
+}) {
   const { token, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [recent, setRecent] = useState<Notification[]>([]);
@@ -40,7 +47,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const refreshRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
 
   const refresh = useCallback(async (options?: { silent?: boolean }) => {
-    if (!token || !user) {
+    if (!enabled || !token || !user) {
       setUnreadCount(0);
       setRecent([]);
       hasLoadedRef.current = false;
@@ -70,10 +77,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     }
-  }, [token, user]);
+  }, [enabled, token, user]);
 
   const applyNotification = useCallback((notification: Notification) => {
     if (notification.read_at) return;
+    if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED") {
+      const envelopeId = notification.payload?.envelope_id;
+      dispatchDocusignRefresh(
+        typeof envelopeId === "number" ? { envelopeId } : undefined,
+      );
+    }
     setRecent((prev) => {
       if (prev.some((item) => item.id === notification.id)) {
         return prev;
@@ -111,11 +124,17 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   applyNotificationRef.current = applyNotification;
 
   useEffect(() => {
+    if (!enabled) {
+      setUnreadCount(0);
+      setRecent([]);
+      hasLoadedRef.current = false;
+      return;
+    }
     void refreshRef.current();
-  }, [token, user]);
+  }, [enabled, token, user]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!enabled || !token) return;
 
     const interval = setInterval(() => {
       void refreshRef.current({ silent: true });
@@ -130,10 +149,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [token]);
+  }, [enabled, token]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!enabled || !token) return;
 
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     const abortController = new AbortController();
@@ -158,7 +177,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       abortController.abort();
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [token]);
+  }, [enabled, token]);
 
   const value = useMemo(
     () => ({ unreadCount, recent, loading, refresh, markRead, markAllRead }),

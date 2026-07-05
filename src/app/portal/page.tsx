@@ -1,25 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { Header } from "@/components/layout/Header";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { api } from "@/lib/api";
-import type { Client } from "@/types/api";
 
 export default function PortalHomePage() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const { t } = useTranslation();
-  const [client, setClient] = useState<Client | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    api.get<Client>("/portal/me", token).then(setClient).catch(() => {});
-  }, [token]);
+  const { data: client } = usePortalMe(token);
 
   return (
     <>

@@ -1,36 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-import type { ClientStats } from "@/features/dashboard/types";
-import { api } from "@/lib/api";
+import { fetchClientStats } from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
 
 export function useDashboardStats(token: string | null, enabled: boolean) {
-  const [stats, setStats] = useState<ClientStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.clients.stats,
+    queryFn: () => fetchClientStats(token!),
+    enabled: !!token && enabled,
+  });
 
-  const load = useCallback(async () => {
-    if (!token || !enabled) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(false);
-    try {
-      const data = await api.get<ClientStats>("/clients/stats", token);
-      setStats(data);
-    } catch {
-      setError(true);
-      setStats(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, enabled]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { stats, loading, error, reload: load };
+  return {
+    stats: data ?? null,
+    loading: isLoading,
+    error: isError,
+    reload: refetch,
+  };
 }

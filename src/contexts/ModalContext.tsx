@@ -87,7 +87,7 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 const variantIcon: Record<Variant, string> = {
   success: "text-emerald-600 bg-emerald-50",
   error: "text-red-600 bg-red-50",
-  info: "text-blue-600 bg-blue-50",
+  info: "text-brand bg-brand-muted",
   warning: "text-amber-600 bg-amber-50",
 };
 

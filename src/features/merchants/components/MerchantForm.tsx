@@ -14,17 +14,23 @@ interface MerchantFormProps {
   onSubmit: (e: FormEvent) => void;
   submitting: boolean;
   isEdit?: boolean;
+  embedded?: boolean;
+  formId?: string;
 }
 
-export function MerchantForm({ form, onChange, onSubmit, submitting, isEdit }: MerchantFormProps) {
+export function MerchantForm({
+  form,
+  onChange,
+  onSubmit,
+  submitting,
+  isEdit,
+  embedded,
+  formId = "merchant-form",
+}: MerchantFormProps) {
   const { t } = useTranslation();
 
-  return (
-    <Card className="mb-6 p-4 sm:p-6">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-        {isEdit ? t("merchants.edit") : t("merchants.new")}
-      </h3>
-      <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+  const formContent = (
+      <form id={formId} onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label={t("merchants.code")}
           required
@@ -48,12 +54,26 @@ export function MerchantForm({ form, onChange, onSubmit, submitting, isEdit }: M
             placeholder={t("merchants.descriptionPlaceholder")}
           />
         </div>
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? t("common.loading") : t("common.save")}
-          </Button>
-        </div>
+        {!embedded ? (
+          <div className="sm:col-span-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? t("common.loading") : t("common.save")}
+            </Button>
+          </div>
+        ) : null}
       </form>
+  );
+
+  if (embedded) {
+    return formContent;
+  }
+
+  return (
+    <Card className="mb-6 p-4 sm:p-6">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+        {isEdit ? t("merchants.edit") : t("merchants.new")}
+      </h3>
+      {formContent}
     </Card>
   );
 }

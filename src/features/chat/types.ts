@@ -4,6 +4,8 @@ export interface ChatMessage {
   content: string;
 }
 
+export const CHAT_MESSAGE_MAX_LENGTH = 6000;
+
 export interface PendingChatAction {
   action:
     | "register_client"

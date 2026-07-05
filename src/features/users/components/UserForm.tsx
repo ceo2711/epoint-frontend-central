@@ -20,6 +20,8 @@ interface UserFormProps {
   onSubmit: (e: FormEvent) => void;
   submitting: boolean;
   isEdit?: boolean;
+  embedded?: boolean;
+  formId?: string;
 }
 
 export function UserForm({
@@ -30,16 +32,14 @@ export function UserForm({
   onSubmit,
   submitting,
   isEdit,
+  embedded,
+  formId = "user-form",
 }: UserFormProps) {
   const { t } = useTranslation();
   const internalRoles = roles.filter((r) => r.code !== "CLIENT");
 
-  return (
-    <Card className="mb-6 p-4 sm:p-6">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-        {isEdit ? t("users.edit") : t("users.new")}
-      </h3>
-      <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+  const formContent = (
+      <form id={formId} onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <Input
           label={t("common.firstName")}
           required
@@ -64,7 +64,7 @@ export function UserForm({
           value={form.phone}
           onChange={(e) => onChange({ ...form, phone: e.target.value })}
         />
-        {!isEdit && (
+        {!isEdit ? (
           <PasswordInput
             label={t("users.password")}
             required
@@ -73,6 +73,16 @@ export function UserForm({
             onChange={(e) => onChange({ ...form, password: e.target.value })}
             showLabel={t("login.showPassword")}
             hideLabel={t("login.hidePassword")}
+          />
+        ) : (
+          <PasswordInput
+            label={t("users.password")}
+            minLength={8}
+            value={form.password}
+            onChange={(e) => onChange({ ...form, password: e.target.value })}
+            showLabel={t("login.showPassword")}
+            hideLabel={t("login.hidePassword")}
+            placeholder={t("users.passwordKeepCurrent")}
           />
         )}
         <Select
@@ -110,12 +120,26 @@ export function UserForm({
             <option value="false">{t("common.inactive")}</option>
           </Select>
         )}
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? t("common.loading") : t("common.save")}
-          </Button>
-        </div>
+        {!embedded ? (
+          <div className="sm:col-span-2">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? t("common.loading") : t("common.save")}
+            </Button>
+          </div>
+        ) : null}
       </form>
+  );
+
+  if (embedded) {
+    return formContent;
+  }
+
+  return (
+    <Card className="mb-6 p-4 sm:p-6">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+        {isEdit ? t("users.edit") : t("users.new")}
+      </h3>
+      {formContent}
     </Card>
   );
 }

@@ -13,6 +13,11 @@ export function getNotificationHref(
     return "/calendario";
   }
 
+  if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED" && !isClient) {
+    if (clientId) return `/clientes/${clientId}`;
+    return "/contratos";
+  }
+
   if (clientId) {
     if (isClient) {
       switch (notification.event_type) {

@@ -1,35 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Paginated, User } from "@/features/users/types";
 
-export function useUsers(token: string | null, canRead: boolean, loadErrorMessage: string, noPermissionMessage: string) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+export function useUsers(
+  token: string | null,
+  canRead: boolean,
+  loadErrorMessage: string,
+  noPermissionMessage: string,
+) {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.users.list,
+    queryFn: () => api.get<Paginated<User>>("/users", token!),
+    enabled: !!token && canRead,
+  });
 
-  const loadUsers = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const data = await api.get<Paginated<User>>("/users", token);
-      setUsers(data.items);
-    } catch {
-      setError(loadErrorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, loadErrorMessage]);
-
-  useEffect(() => {
-    if (canRead) loadUsers();
-    else {
-      setLoading(false);
-      setError(noPermissionMessage);
-    }
-  }, [canRead, loadUsers, noPermissionMessage]);
-
-  return { users, loading, error, reload: loadUsers };
+  return {
+    users: data?.items ?? [],
+    loading: canRead ? isLoading : false,
+    error: canRead ? (isError ? loadErrorMessage : "") : noPermissionMessage,
+    reload: refetch,
+  };
 }

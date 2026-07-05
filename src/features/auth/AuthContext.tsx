@@ -24,6 +24,7 @@ import {
 import {
   clearToken,
   clearTwoFactorTempToken,
+  getToken,
   getTwoFactorTempToken,
   setTwoFactorTempToken,
 } from "@/features/auth/auth-storage";
@@ -46,7 +47,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : getToken(),
+  );
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
