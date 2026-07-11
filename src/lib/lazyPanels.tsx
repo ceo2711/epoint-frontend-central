@@ -69,3 +69,11 @@ export const LazyCalendarioPage = dynamic(
     })),
   { loading: panelLoader(), ssr: false },
 );
+
+export const LazyPagosPage = dynamic(
+  () =>
+    import("@/features/payments/components/PagosPage").then((module) => ({
+      default: module.PagosPage,
+    })),
+  { loading: panelLoader(), ssr: false },
+);

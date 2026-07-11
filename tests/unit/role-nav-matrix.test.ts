@@ -34,7 +34,7 @@ const ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
     "boards:read",
     "boards:manage",
   ],
-  SALES_REP: ["clients:read", "clients:create", "clients:update"],
+  SALES_REP: ["clients:read", "clients:create", "clients:update", "payments:read", "payments:create"],
   ONBOARDING_MANAGER: [
     "clients:read",
     "clients:update",

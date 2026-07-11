@@ -47,6 +47,14 @@ describe("getNotificationHref", () => {
     expect(href).toBe("/calendario");
   });
 
+  it("routes staff payment events to pagos", () => {
+    const href = getNotificationHref(
+      makeNotification({ event_type: "PAYMENT_LINK_COMPLETED", payload: { payment_link_id: 3 } }),
+      "SALES_REP",
+    );
+    expect(href).toBe("/pagos");
+  });
+
   it("returns null for staff when no client_id", () => {
     const href = getNotificationHref(
       makeNotification({ payload: {} }),

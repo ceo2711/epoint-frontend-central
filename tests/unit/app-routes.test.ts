@@ -9,6 +9,8 @@ describe("app-routes", () => {
     expect(isKnownAppPath("/dashboard")).toBe(true);
     expect(isKnownAppPath("/clientes/42")).toBe(true);
     expect(isKnownAppPath("/calendario")).toBe(true);
+    expect(isKnownAppPath("/pagos")).toBe(true);
+    expect(isKnownAppPath("/pagar/abc123")).toBe(true);
     expect(isKnownAppPath("/portal/tablero")).toBe(true);
     expect(isKnownAppPath("/recuperar-contrasena/confirmar")).toBe(true);
   });

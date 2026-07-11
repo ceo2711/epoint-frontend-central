@@ -1,0 +1,123 @@
+"use client";
+
+import { VscCopy, VscLinkExternal } from "react-icons/vsc";
+
+import { Button } from "@/components/ui/Button";
+import { useTranslation } from "@/contexts/LanguageContext";
+import type { PaymentLink } from "@/features/payments/types";
+
+interface PaymentLinkListProps {
+  links: PaymentLink[];
+  onCancel?: (linkId: number) => void;
+  onRegisterClient?: (link: PaymentLink) => void;
+  cancellingId?: number | null;
+}
+
+function statusBadgeClass(status: PaymentLink["status"]) {
+  switch (status) {
+    case "paid":
+      return "badge-green";
+    case "pending":
+      return "badge-amber";
+    default:
+      return "badge-slate";
+  }
+}
+
+export function PaymentLinkList({
+  links,
+  onCancel,
+  onRegisterClient,
+  cancellingId,
+}: PaymentLinkListProps) {
+  const { t } = useTranslation();
+
+  if (links.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">{t("payments.list.empty")}</p>
+    );
+  }
+
+  async function copyLink(url: string) {
+    await navigator.clipboard.writeText(url);
+  }
+
+  return (
+    <div className="space-y-3">
+      {links.map((link) => (
+        <article key={link.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium text-[var(--color-text-primary)]">
+                {link.customer_first_name} {link.customer_last_name}
+              </p>
+              <p className="text-sm text-[var(--color-text-muted)]">{link.customer_email}</p>
+              <p className="mt-1 text-sm">
+                {link.currency} {Number(link.amount).toFixed(2)} · {link.provider === "stripe" ? "Stripe" : "Authorize.net"}
+              </p>
+              {link.created_by_name ? (
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                  {t("payments.list.createdBy")}: {link.created_by_name}
+                </p>
+              ) : null}
+            </div>
+            <span className={`badge ${statusBadgeClass(link.status)}`}>
+              {t(`payments.status.${link.status}`)}
+            </span>
+          </div>
+
+          {link.description ? (
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{link.description}</p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => copyLink(link.payment_url)}
+            >
+              <VscCopy className="mr-1 inline" />
+              {t("payments.list.copyLink")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(link.payment_url, "_blank", "noopener,noreferrer")}
+            >
+              <VscLinkExternal className="mr-1 inline" />
+              {t("payments.list.openLink")}
+            </Button>
+            {link.status === "pending" && onCancel ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={cancellingId === link.id}
+                onClick={() => onCancel(link.id)}
+              >
+                {t("payments.list.cancel")}
+              </Button>
+            ) : null}
+            {link.status === "paid" && !link.client_registered_at && onRegisterClient ? (
+              <Button type="button" size="sm" onClick={() => onRegisterClient(link)}>
+                {t("payments.list.registerClient")}
+              </Button>
+            ) : null}
+            {link.client_id ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => window.location.assign(`/clientes/${link.client_id}`)}
+              >
+                {t("payments.list.viewClient")}
+              </Button>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}

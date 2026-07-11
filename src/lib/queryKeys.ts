@@ -49,4 +49,10 @@ export const queryKeys = {
     clientEnvelopes: (clientId: number) => ["docusign", "envelopes", "client", clientId] as const,
     templateDetail: (templateId: string) => ["docusign", "templates", templateId] as const,
   },
+  payments: {
+    all: ["payments"] as const,
+    config: ["payments", "config"] as const,
+    links: ["payments", "links"] as const,
+    linksBySalesRep: (salesRepId: number) => ["payments", "links", "salesRep", salesRepId] as const,
+  },
 } as const;

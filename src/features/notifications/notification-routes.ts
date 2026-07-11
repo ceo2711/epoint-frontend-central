@@ -18,6 +18,10 @@ export function getNotificationHref(
     return "/contratos";
   }
 
+  if (notification.event_type === "PAYMENT_LINK_COMPLETED" && !isClient) {
+    return "/pagos";
+  }
+
   if (clientId) {
     if (isClient) {
       switch (notification.event_type) {

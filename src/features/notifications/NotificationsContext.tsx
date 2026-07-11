@@ -14,6 +14,10 @@ import {
 import { useAuth } from "@/features/auth/AuthContext";
 import { dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import { connectNotificationStream } from "@/features/notifications/notificationStream";
+import {
+  playNotificationSound,
+  setupNotificationSoundUnlock,
+} from "@/features/notifications/notificationSound";
 import { api } from "@/lib/api";
 import type { Notification, Paginated } from "@/types/api";
 
@@ -32,6 +36,24 @@ const POLL_MS = 60_000;
 const STREAM_RECONNECT_MS = 3_000;
 const RECENT_LIMIT = 20;
 
+function isDuplicateNotification(prev: Notification[], notification: Notification): boolean {
+  if (prev.some((item) => item.id === notification.id)) return true;
+  if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED") {
+    const envelopeId = notification.payload?.envelope_id;
+    if (
+      typeof envelopeId === "number" &&
+      prev.some(
+        (item) =>
+          item.event_type === "DOCUSIGN_ENVELOPE_COMPLETED" &&
+          item.payload?.envelope_id === envelopeId,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function NotificationsProvider({
   children,
   enabled = true,
@@ -44,57 +66,91 @@ export function NotificationsProvider({
   const [recent, setRecent] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const hasLoadedRef = useRef(false);
+  const knownNotificationIdsRef = useRef<Set<number>>(new Set());
+  const recentRef = useRef<Notification[]>([]);
   const refreshRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
 
-  const refresh = useCallback(async (options?: { silent?: boolean }) => {
-    if (!enabled || !token || !user) {
-      setUnreadCount(0);
-      setRecent([]);
-      hasLoadedRef.current = false;
+  recentRef.current = recent;
+
+  const announceNewNotifications = useCallback((items: Notification[]) => {
+    if (!hasLoadedRef.current) {
+      knownNotificationIdsRef.current = new Set(items.map((item) => item.id));
       return;
     }
 
-    const silent = options?.silent ?? hasLoadedRef.current;
-    if (!silent) {
-      setLoading(true);
+    const fresh = items.filter((item) => !knownNotificationIdsRef.current.has(item.id));
+    knownNotificationIdsRef.current = new Set(items.map((item) => item.id));
+    if (fresh.length > 0) {
+      void playNotificationSound();
     }
+  }, []);
 
-    try {
-      const unread = await api.get<Paginated<Notification>>(
-        "/notifications?unread_only=true&page_size=20",
-        token,
-      );
-      setUnreadCount(unread.total);
-      setRecent(unread.items);
-      hasLoadedRef.current = true;
-    } catch {
-      if (!silent) {
+  const refresh = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!enabled || !token || !user) {
         setUnreadCount(0);
         setRecent([]);
+        hasLoadedRef.current = false;
+        knownNotificationIdsRef.current = new Set();
+        return;
       }
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  }, [enabled, token, user]);
 
-  const applyNotification = useCallback((notification: Notification) => {
-    if (notification.read_at) return;
-    if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED") {
-      const envelopeId = notification.payload?.envelope_id;
-      dispatchDocusignRefresh(
-        typeof envelopeId === "number" ? { envelopeId } : undefined,
-      );
-    }
-    setRecent((prev) => {
-      if (prev.some((item) => item.id === notification.id)) {
-        return prev;
+      const silent = options?.silent ?? hasLoadedRef.current;
+      if (!silent) {
+        setLoading(true);
       }
-      return [notification, ...prev].slice(0, RECENT_LIMIT);
-    });
-    void refreshRef.current({ silent: true });
-  }, []);
+
+      try {
+        const unread = await api.get<Paginated<Notification>>(
+          "/notifications?unread_only=true&page_size=20",
+          token,
+        );
+        announceNewNotifications(unread.items);
+        setUnreadCount(unread.total);
+        setRecent(unread.items);
+        hasLoadedRef.current = true;
+      } catch {
+        if (!silent) {
+          setUnreadCount(0);
+          setRecent([]);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [announceNewNotifications, enabled, token, user],
+  );
+
+  const applyNotification = useCallback(
+    (notification: Notification) => {
+      if (notification.read_at) return;
+      if (notification.event_type === "DOCUSIGN_ENVELOPE_COMPLETED") {
+        const envelopeId = notification.payload?.envelope_id;
+        dispatchDocusignRefresh(
+          typeof envelopeId === "number" ? { envelopeId } : undefined,
+        );
+      }
+
+      const prev = recentRef.current;
+      const isNew = !isDuplicateNotification(prev, notification);
+      if (!isNew) {
+        void refreshRef.current({ silent: true });
+        return;
+      }
+
+      knownNotificationIdsRef.current.add(notification.id);
+      setRecent((current) => {
+        if (isDuplicateNotification(current, notification)) return current;
+        return [notification, ...current].slice(0, RECENT_LIMIT);
+      });
+      setUnreadCount((count) => count + 1);
+      void playNotificationSound();
+      void refreshRef.current({ silent: true });
+    },
+    [],
+  );
 
   const markRead = useCallback(
     async (ids: number[], options?: { optimistic?: boolean }) => {
@@ -103,6 +159,7 @@ export function NotificationsProvider({
 
       if (optimistic) {
         setRecent((prev) => prev.filter((n) => !ids.includes(n.id)));
+        ids.forEach((id) => knownNotificationIdsRef.current.delete(id));
       }
       setUnreadCount((prev) => Math.max(0, prev - ids.length));
       await api.post("/notifications/mark-read", { notification_ids: ids }, token);
@@ -128,10 +185,16 @@ export function NotificationsProvider({
       setUnreadCount(0);
       setRecent([]);
       hasLoadedRef.current = false;
+      knownNotificationIdsRef.current = new Set();
       return;
     }
     void refreshRef.current();
   }, [enabled, token, user]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    return setupNotificationSoundUnlock();
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !token) return;
