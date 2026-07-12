@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { FormEvent, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -79,7 +81,7 @@ export function ClientCreateModal({
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
         variant: "error",
       });
     } finally {

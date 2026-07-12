@@ -32,6 +32,8 @@ export const en: Messages = {
     expandSidebar: "Expand sidebar",
     comment: "Comment",
     loginError: "Sign-in error",
+    networkError: "We couldn't connect to the service. Please try again in a moment.",
+    requestError: "We couldn't complete the request. Please try again.",
     error: "Something went wrong",
     edit: "Edit",
     saveChanges: "Save changes",
@@ -161,6 +163,10 @@ export const en: Messages = {
     subtitle: "Personal details and account security",
     profileTitle: "Personal details",
     profileSubtitle: "Your ePoint account information",
+    profileSave: "Save changes",
+    profileSaving: "Saving...",
+    profileSaved: "Personal details updated successfully.",
+    profileError: "Could not update your personal details",
     passwordTitle: "Password",
     passwordSubtitle: "Update your portal sign-in password",
     twoFactor: {
@@ -495,6 +501,9 @@ export const en: Messages = {
       "No reminders were sent: the client may have nothing pending, lack an active portal user, or delivery failed (check Resend/Twilio).",
     remindersRunError: "Could not send reminders.",
     empty: "No clients registered",
+    searchByName: "Search by name",
+    searchByNamePlaceholder: "Name, last name or email...",
+    allMerchants: "All merchants",
   },
   clientDetail: {
     title: "Client details",
@@ -581,6 +590,10 @@ export const en: Messages = {
     deactivateTitle: "Deactivate user",
     deactivateConfirm: "Confirm deactivation of {name}?",
   },
+  merchant: {
+    activeWorkspace: "Active merchant",
+    switching: "Switching merchant...",
+  },
   merchants: {
     title: "Merchants",
     headerContext: "this is the merchants section",
@@ -596,6 +609,13 @@ export const en: Messages = {
     deactivate: "Deactivate",
     deactivateTitle: "Deactivate merchant",
     deactivateConfirm: "Confirm deactivation of {name}?",
+    reactivate: "Reactivate",
+    reactivateTitle: "Reactivate merchant",
+    reactivateConfirm: "Confirm reactivation of {name}?",
+    delete: "Delete",
+    deleteTitle: "Delete merchant",
+    deleteConfirm:
+      "Permanently delete {name}? This cannot be undone. Only allowed when no clients are linked.",
     empty: "No merchants registered",
   },
   areas: {

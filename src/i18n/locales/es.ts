@@ -30,6 +30,8 @@ export const es = {
     expandSidebar: "Expandir menú",
     comment: "Comentar",
     loginError: "Error al iniciar sesión",
+    networkError: "No pudimos conectar con el servicio. Intentá de nuevo en unos momentos.",
+    requestError: "No pudimos completar la solicitud. Intentá de nuevo.",
     error: "Ocurrió un error",
     edit: "Editar",
     saveChanges: "Guardar cambios",
@@ -159,6 +161,10 @@ export const es = {
     subtitle: "Datos personales y seguridad de tu acceso",
     profileTitle: "Datos personales",
     profileSubtitle: "Información de tu cuenta en ePoint",
+    profileSave: "Guardar cambios",
+    profileSaving: "Guardando...",
+    profileSaved: "Datos personales actualizados correctamente.",
+    profileError: "No se pudieron actualizar tus datos personales",
     passwordTitle: "Contraseña",
     passwordSubtitle: "Actualizá tu contraseña de acceso al portal",
     twoFactor: {
@@ -494,6 +500,9 @@ export const es = {
       "Ningún recordatorio salió: el cliente puede no tener pendientes, no tener usuario de portal activo, o el envío falló (revisá Resend/Twilio).",
     remindersRunError: "No se pudieron enviar los recordatorios.",
     empty: "No hay clientes registrados",
+    searchByName: "Buscar por nombre",
+    searchByNamePlaceholder: "Nombre, apellido o email...",
+    allMerchants: "Todos los comercios",
   },
   clientDetail: {
     title: "Detalle del cliente",
@@ -580,6 +589,10 @@ export const es = {
     deactivateTitle: "Desactivar usuario",
     deactivateConfirm: "¿Confirmás la desactivación de {name}?",
   },
+  merchant: {
+    activeWorkspace: "Comercio activo",
+    switching: "Cambiando comercio...",
+  },
   merchants: {
     title: "Comercios",
     headerContext: "esta es la sección de comercios",
@@ -595,6 +608,13 @@ export const es = {
     deactivate: "Desactivar",
     deactivateTitle: "Desactivar comercio",
     deactivateConfirm: "¿Confirmás la desactivación de {name}?",
+    reactivate: "Reactivar",
+    reactivateTitle: "Reactivar comercio",
+    reactivateConfirm: "¿Confirmás la reactivación de {name}?",
+    delete: "Eliminar",
+    deleteTitle: "Eliminar comercio",
+    deleteConfirm:
+      "¿Eliminar permanentemente {name}? Esta acción no se puede deshacer. Solo es posible si no hay clientes asociados.",
     empty: "No hay comercios registrados",
   },
   areas: {

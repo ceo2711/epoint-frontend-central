@@ -1,22 +1,34 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
+import { FormEvent, useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 
 import { Header } from "@/components/layout/Header";
 import { Card, PageContent } from "@/components/ui/Card";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
-import type { TotpSetupResponse } from "@/types/api";
+import type { TotpSetupResponse, User } from "@/types/api";
+
+function profileFromUser(user: User) {
+  return {
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+  };
+}
 
 export function AccountSettingsPage() {
   const { user, token, refreshUser } = useAuth();
   const { t } = useTranslation();
   const isClient = user?.role.code === "CLIENT";
+  const isStaff = !!user && !isClient;
 
+  const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
   const [setupData, setSetupData] = useState<TotpSetupResponse | null>(null);
   const [confirmCode, setConfirmCode] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
@@ -27,8 +39,39 @@ export function AccountSettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm(profileFromUser(user));
+    }
+  }, [user]);
 
   if (!user || !token) return null;
+
+  async function handleUpdateProfile(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    setProfileBusy(true);
+    try {
+      await api.patch(
+        "/auth/me",
+        {
+          first_name: profileForm.first_name.trim(),
+          last_name: profileForm.last_name.trim(),
+          email: profileForm.email.trim(),
+        },
+        token,
+      );
+      await refreshUser();
+      setMessage(t("account.profileSaved"));
+    } catch (err) {
+      setError(getUserFacingErrorMessage(err, t("account.profileError")));
+    } finally {
+      setProfileBusy(false);
+    }
+  }
 
   async function handleSetup2fa() {
     setError("");
@@ -38,7 +81,7 @@ export function AccountSettingsPage() {
       const data = await api.post<TotpSetupResponse>("/auth/2fa/setup", {}, token);
       setSetupData(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("account.twoFactor.error"));
+      setError(getUserFacingErrorMessage(err, t("account.twoFactor.error")));
     } finally {
       setBusy(false);
     }
@@ -60,7 +103,7 @@ export function AccountSettingsPage() {
       setConfirmCode("");
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("account.twoFactor.error"));
+      setError(getUserFacingErrorMessage(err, t("account.twoFactor.error")));
     } finally {
       setBusy(false);
     }
@@ -82,7 +125,7 @@ export function AccountSettingsPage() {
       setDisableCode("");
       await refreshUser();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("account.twoFactor.error"));
+      setError(getUserFacingErrorMessage(err, t("account.twoFactor.error")));
     } finally {
       setBusy(false);
     }
@@ -114,7 +157,7 @@ export function AccountSettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("changePassword.error"));
+      setError(getUserFacingErrorMessage(err, t("changePassword.error")));
     } finally {
       setBusy(false);
     }
@@ -130,32 +173,70 @@ export function AccountSettingsPage() {
         <Card className="p-6">
           <h2 className="text-lg font-semibold text-slate-900">{t("account.profileTitle")}</h2>
           <p className="mt-1 text-sm text-slate-500">{t("account.profileSubtitle")}</p>
-          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {t("common.firstName")}
-              </dt>
-              <dd className="mt-1 text-sm font-medium text-slate-900">{user.first_name}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {t("common.lastName")}
-              </dt>
-              <dd className="mt-1 text-sm font-medium text-slate-900">{user.last_name}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {t("common.email")}
-              </dt>
-              <dd className="mt-1 text-sm font-medium text-slate-900">{user.email}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                {t("common.role")}
-              </dt>
-              <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
-            </div>
-          </dl>
+
+          {isStaff ? (
+            <form onSubmit={handleUpdateProfile} className="mt-6 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="profile-first-name"
+                  label={t("common.firstName")}
+                  required
+                  value={profileForm.first_name}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, first_name: e.target.value }))}
+                />
+                <Input
+                  id="profile-last-name"
+                  label={t("common.lastName")}
+                  required
+                  value={profileForm.last_name}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, last_name: e.target.value }))}
+                />
+              </div>
+              <Input
+                id="profile-email"
+                type="email"
+                label={t("common.email")}
+                required
+                autoComplete="email"
+                value={profileForm.email}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+              <div>
+                <p className="input-label">{t("common.role")}</p>
+                <p className="text-sm font-medium text-slate-900">{user.role.name}</p>
+              </div>
+              <Button type="submit" disabled={profileBusy}>
+                {profileBusy ? t("account.profileSaving") : t("account.profileSave")}
+              </Button>
+            </form>
+          ) : (
+            <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {t("common.firstName")}
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{user.first_name}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {t("common.lastName")}
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{user.last_name}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {t("common.email")}
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{user.email}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {t("common.role")}
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
+              </div>
+            </dl>
+          )}
         </Card>
 
         <Card className="p-6">

@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/api";
+import { logClientError } from "@/lib/user-facing-error";
 import type { Notification } from "@/types/api";
 
 type StreamMessage =
@@ -43,7 +44,10 @@ export function connectNotificationStream(
       });
 
       if (!response.ok || !response.body) {
-        throw new Error(`Notification stream failed (${response.status})`);
+        logClientError("notifications:stream", new Error(`HTTP ${response.status}`), {
+          baseUrl: API_URL,
+        });
+        throw new Error("Notification stream failed");
       }
 
       const reader = response.body.getReader();
@@ -76,6 +80,7 @@ export function connectNotificationStream(
       }
     } catch (error) {
       if (signal.aborted) return;
+      logClientError("notifications:stream", error, { baseUrl: API_URL });
       handlers.onError?.(error);
     }
   })();

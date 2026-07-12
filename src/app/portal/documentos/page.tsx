@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useState } from "react";
 
 import { DocumentRequirementsPanel } from "@/features/documents/components/DocumentRequirementsPanel";
@@ -84,7 +86,7 @@ export default function PortalDocumentosPage() {
       setIsError(false);
       reload({ silent: true });
     } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : t("portalDocs.uploadError"));
+      setMessage(getUserFacingErrorMessage(err, t("portalDocs.uploadError")));
       setIsError(true);
     } finally {
       setUploading(null);

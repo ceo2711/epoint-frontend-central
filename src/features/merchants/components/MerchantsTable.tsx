@@ -1,7 +1,15 @@
 "use client";
 
+import {
+  HiOutlineArrowPath,
+  HiOutlineNoSymbol,
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
+} from "react-icons/hi2";
+
 import { ActiveBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Merchant } from "@/features/merchants/types";
 
@@ -11,6 +19,8 @@ interface MerchantsTableProps {
   canDelete: boolean;
   onEdit: (merchant: Merchant) => void;
   onDeactivate: (merchant: Merchant) => void;
+  onReactivate: (merchant: Merchant) => void;
+  onDelete: (merchant: Merchant) => void;
 }
 
 export function MerchantsTable({
@@ -19,8 +29,48 @@ export function MerchantsTable({
   canDelete,
   onEdit,
   onDeactivate,
+  onReactivate,
+  onDelete,
 }: MerchantsTableProps) {
   const { t } = useTranslation();
+
+  function renderActions(merchant: Merchant) {
+    return (
+      <TableActions>
+        {canUpdate ? (
+          <IconActionButton
+            label={t("common.edit")}
+            icon={<HiOutlinePencilSquare />}
+            onClick={() => onEdit(merchant)}
+          />
+        ) : null}
+        {canDelete && merchant.is_active ? (
+          <IconActionButton
+            label={t("merchants.deactivate")}
+            icon={<HiOutlineNoSymbol />}
+            variant="danger"
+            onClick={() => onDeactivate(merchant)}
+          />
+        ) : null}
+        {canUpdate && !merchant.is_active ? (
+          <IconActionButton
+            label={t("merchants.reactivate")}
+            icon={<HiOutlineArrowPath />}
+            variant="primary"
+            onClick={() => onReactivate(merchant)}
+          />
+        ) : null}
+        {canDelete && !merchant.is_active ? (
+          <IconActionButton
+            label={t("merchants.delete")}
+            icon={<HiOutlineTrash />}
+            variant="danger"
+            onClick={() => onDelete(merchant)}
+          />
+        ) : null}
+      </TableActions>
+    );
+  }
 
   return (
     <>
@@ -34,16 +84,7 @@ export function MerchantsTable({
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <ActiveBadge active={merchant.is_active} />
-              {canUpdate && merchant.is_active && (
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(merchant)}>
-                  {t("common.edit")}
-                </button>
-              )}
-              {canDelete && merchant.is_active && (
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(merchant)}>
-                  {t("merchants.deactivate")}
-                </button>
-              )}
+              {renderActions(merchant)}
             </div>
           </Card>
         ))}
@@ -70,20 +111,7 @@ export function MerchantsTable({
                 <td className="text-slate-500">{merchant.code}</td>
                 <td className="text-slate-500">{merchant.description ?? t("common.dash")}</td>
                 <td><ActiveBadge active={merchant.is_active} /></td>
-                <td>
-                  <div className="flex flex-wrap gap-2">
-                    {canUpdate && merchant.is_active && (
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(merchant)}>
-                        {t("common.edit")}
-                      </button>
-                    )}
-                    {canDelete && merchant.is_active && (
-                      <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(merchant)}>
-                        {t("merchants.deactivate")}
-                      </button>
-                    )}
-                  </div>
-                </td>
+                <td>{renderActions(merchant)}</td>
               </tr>
             ))}
           </tbody>

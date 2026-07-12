@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useState } from "react";
 
 import { DocumentRequirementsPanel } from "@/features/documents/components/DocumentRequirementsPanel";
@@ -66,7 +68,7 @@ export function StaffClientDocumentsPanel({
       setMessage(t("clientDetail.uploadSuccess"));
       onUploaded();
     } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : t("clientDetail.uploadError"));
+      setMessage(getUserFacingErrorMessage(err, t("clientDetail.uploadError")));
       setIsError(true);
     } finally {
       setUploading(null);

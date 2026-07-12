@@ -1,26 +1,33 @@
 import { notifyUnauthorized } from "@/features/auth/auth-unauthorized";
 import { refreshAccessToken } from "@/features/auth/auth-session";
+import { ApiError } from "@/lib/api-error";
+import { getApiBaseUrl } from "@/lib/api-config";
+import { logClientError, NETWORK_ERROR_MESSAGE } from "@/lib/user-facing-error";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_URL = getApiBaseUrl();
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
-export function isUnauthorizedError(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 401;
-}
+export { ApiError, isUnauthorizedError } from "@/lib/api-error";
 
 type RequestOptions = RequestInit & {
   token?: string | null;
   skipAuthRefresh?: boolean;
 };
+
+let activeMerchantIdProvider: () => number | null = () => null;
+
+export function setActiveMerchantIdProvider(provider: () => number | null) {
+  activeMerchantIdProvider = provider;
+}
+
+function merchantHeaders(): Record<string, string> {
+  const merchantId = activeMerchantIdProvider();
+  return merchantId ? { "X-Merchant-Id": String(merchantId) } : {};
+}
+
+function throwNetworkError(method: string, path: string, cause: unknown): never {
+  logClientError("api:network", cause, { method, path, baseUrl: API_URL });
+  throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+}
 
 async function request<T>(
   path: string,
@@ -28,6 +35,7 @@ async function request<T>(
   isRetry = false,
 ): Promise<T> {
   const { token, skipAuthRefresh, headers, ...rest } = options;
+  const method = rest.method ?? "GET";
 
   let response: Response;
   try {
@@ -36,14 +44,12 @@ async function request<T>(
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...merchantHeaders(),
         ...headers,
       },
     });
-  } catch {
-    throw new ApiError(
-      0,
-      `No se pudo conectar con el servidor. Verificá que el backend esté corriendo (${API_URL}).`,
-    );
+  } catch (cause) {
+    throwNetworkError(method, path, cause);
   }
 
   if (!response.ok) {
@@ -68,6 +74,7 @@ async function request<T>(
     if (response.status === 401) {
       notifyUnauthorized();
     }
+    logClientError("api:http", message, { method, path, status: response.status });
     throw new ApiError(response.status, message);
   }
 
@@ -97,14 +104,12 @@ async function requestBlob(
       method: "GET",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...merchantHeaders(),
         ...headers,
       },
     });
-  } catch {
-    throw new ApiError(
-      0,
-      `No se pudo conectar con el servidor. Verificá que el backend esté corriendo (${API_URL}).`,
-    );
+  } catch (cause) {
+    throwNetworkError("GET", path, cause);
   }
 
   if (!response.ok) {
@@ -129,6 +134,7 @@ async function requestBlob(
     if (response.status === 401) {
       notifyUnauthorized();
     }
+    logClientError("api:http", message, { method: "GET", path, status: response.status });
     throw new ApiError(response.status, message);
   }
 
@@ -150,14 +156,12 @@ async function uploadRequest<T>(
       method: "POST",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...merchantHeaders(),
       },
       body: formData,
     });
-  } catch {
-    throw new ApiError(
-      0,
-      `No se pudo conectar con el servidor. Verificá que el backend esté corriendo (${API_URL}).`,
-    );
+  } catch (cause) {
+    throwNetworkError("POST", path, cause);
   }
 
   if (!response.ok) {
@@ -182,6 +186,7 @@ async function uploadRequest<T>(
     if (response.status === 401) {
       notifyUnauthorized();
     }
+    logClientError("api:http", message, { method: "POST", path, status: response.status });
     throw new ApiError(response.status, message);
   }
 
@@ -204,8 +209,12 @@ export const api = {
   patch: <T>(path: string, body: unknown, token?: string | null) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body), token }),
 
+  put: <T>(path: string, body: unknown, token?: string | null) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body), token }),
+
   delete: <T>(path: string, token?: string | null) =>
     request<T>(path, { method: "DELETE", token }),
 };
 
 export { API_URL };
+export { getUserFacingErrorMessage, NETWORK_ERROR_MESSAGE } from "@/lib/user-facing-error";

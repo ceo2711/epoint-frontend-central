@@ -25,6 +25,9 @@ export interface User {
   created_at: string;
   permissions?: string[];
   client_id?: number | null;
+  merchants?: MerchantBrief[];
+  active_merchant_id?: number | null;
+  active_merchant?: MerchantBrief | null;
 }
 
 export interface Area {

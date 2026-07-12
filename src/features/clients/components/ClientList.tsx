@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import {
+  HiOutlineArrowUturnLeft,
+  HiOutlineCheckCircle,
+  HiOutlineEye,
+  HiOutlineXCircle,
+} from "react-icons/hi2";
 
 import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
 
@@ -12,6 +19,7 @@ interface ClientListProps {
   clients: Client[];
   canApprove: boolean;
   canUpdate: boolean;
+  showMerchantColumn?: boolean;
   page: number;
   pages: number;
   total: number;
@@ -26,6 +34,7 @@ export function ClientList({
   clients,
   canApprove,
   canUpdate,
+  showMerchantColumn = false,
   page,
   pages,
   total,
@@ -36,6 +45,41 @@ export function ClientList({
   onResubmit,
 }: ClientListProps) {
   const { t } = useTranslation();
+
+  function renderActions(c: Client, name: string) {
+    return (
+      <TableActions>
+        <IconActionButton
+          href={`/clientes/${c.id}`}
+          label={t("common.view")}
+          icon={<HiOutlineEye />}
+        />
+        {c.status === "PENDIENTE_DE_REVISION" && canApprove ? (
+          <>
+            <IconActionButton
+              label={t("clients.approve")}
+              icon={<HiOutlineCheckCircle />}
+              variant="primary"
+              onClick={() => void onApprove(c.id, name)}
+            />
+            <IconActionButton
+              label={t("clients.reject")}
+              icon={<HiOutlineXCircle />}
+              variant="danger"
+              onClick={() => void onReject(c.id, name)}
+            />
+          </>
+        ) : null}
+        {c.status === "RECHAZADO" && canUpdate ? (
+          <IconActionButton
+            label={t("clients.resubmit")}
+            icon={<HiOutlineArrowUturnLeft />}
+            onClick={() => void onResubmit(c.id, name)}
+          />
+        ) : null}
+      </TableActions>
+    );
+  }
 
   return (
     <>
@@ -50,29 +94,13 @@ export function ClientList({
                     {name}
                   </Link>
                   <p className="mt-1 break-all text-sm text-slate-500">{c.email}</p>
+                  {showMerchantColumn && c.merchant?.name ? (
+                    <p className="mt-1 text-sm text-slate-500">{c.merchant.name}</p>
+                  ) : null}
                 </div>
                 <StatusBadge status={c.status} />
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link href={`/clientes/${c.id}`} className="btn btn-secondary btn-sm">
-                  {t("common.view")}
-                </Link>
-                {c.status === "PENDIENTE_DE_REVISION" && canApprove && (
-                  <>
-                    <button type="button" onClick={() => onApprove(c.id, name)} className="btn btn-primary btn-sm">
-                      {t("clients.approve")}
-                    </button>
-                    <button type="button" onClick={() => onReject(c.id, name)} className="btn btn-danger btn-sm">
-                      {t("clients.reject")}
-                    </button>
-                  </>
-                )}
-                {c.status === "RECHAZADO" && canUpdate && (
-                  <button type="button" onClick={() => onResubmit(c.id, name)} className="btn btn-secondary btn-sm">
-                    {t("clients.resubmit")}
-                  </button>
-                )}
-              </div>
+              <div className="mt-3">{renderActions(c, name)}</div>
             </Card>
           );
         })}
@@ -87,6 +115,7 @@ export function ClientList({
             <tr>
               <th>{t("common.client")}</th>
               <th>{t("common.email")}</th>
+              {showMerchantColumn ? <th>{t("clients.merchant")}</th> : null}
               <th>{t("common.status")}</th>
               <th>{t("common.actions")}</th>
             </tr>
@@ -102,35 +131,17 @@ export function ClientList({
                     </Link>
                   </td>
                   <td className="text-slate-500">{c.email}</td>
+                  {showMerchantColumn ? (
+                    <td className="text-slate-500">{c.merchant?.name ?? t("common.dash")}</td>
+                  ) : null}
                   <td><StatusBadge status={c.status} /></td>
-                  <td>
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/clientes/${c.id}`} className="btn btn-secondary btn-sm">
-                        {t("common.view")}
-                      </Link>
-                      {c.status === "PENDIENTE_DE_REVISION" && canApprove && (
-                        <>
-                          <button type="button" onClick={() => onApprove(c.id, name)} className="btn btn-primary btn-sm">
-                            {t("clients.approve")}
-                          </button>
-                          <button type="button" onClick={() => onReject(c.id, name)} className="btn btn-danger btn-sm">
-                            {t("clients.reject")}
-                          </button>
-                        </>
-                      )}
-                      {c.status === "RECHAZADO" && canUpdate && (
-                        <button type="button" onClick={() => onResubmit(c.id, name)} className="btn btn-secondary btn-sm">
-                          {t("clients.resubmit")}
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  <td>{renderActions(c, name)}</td>
                 </tr>
               );
             })}
             {clients.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-12 text-center text-slate-400">
+                <td colSpan={showMerchantColumn ? 5 : 4} className="py-12 text-center text-slate-400">
                   {t("clients.empty")}
                 </td>
               </tr>

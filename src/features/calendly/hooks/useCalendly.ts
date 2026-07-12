@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import {
   fetchCalendlyConnection,
   fetchCalendlyEventTypes,
@@ -245,12 +246,10 @@ export function useCalendly(
     enabled &&
     (connectionQuery.isLoading || (connected && (eventsQuery.isLoading || eventTypesQuery.isLoading)));
 
-  const error =
-    connectionQuery.error instanceof Error
-      ? connectionQuery.error.message
-      : eventsQuery.error instanceof Error
-        ? eventsQuery.error.message
-        : "";
+  const queryError = connectionQuery.error ?? eventsQuery.error;
+  const error = queryError
+    ? getUserFacingErrorMessage(queryError, "Error al cargar Calendly")
+    : "";
 
   return {
     connection: connectionQuery.data ?? null,

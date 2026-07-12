@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -167,7 +169,7 @@ export default function ClienteDetailPage() {
     } catch (err) {
       if (!isUnauthorizedError(err)) {
         setClient(null);
-        setLoadError(err instanceof ApiError ? err.message : "Error al cargar el cliente.");
+        setLoadError(getUserFacingErrorMessage(err, "Error al cargar el cliente."));
       }
     } finally {
       loadInFlight.current = false;
@@ -243,7 +245,7 @@ export default function ClienteDetailPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
         variant: "error",
       });
     }
@@ -260,7 +262,7 @@ export default function ClienteDetailPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("clientDetail.signedContractDownloadError"),
+        message: getUserFacingErrorMessage(err, t("clientDetail.signedContractDownloadError")),
         variant: "error",
       });
     } finally {
@@ -299,7 +301,7 @@ export default function ClienteDetailPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
         variant: "error",
       });
     } finally {

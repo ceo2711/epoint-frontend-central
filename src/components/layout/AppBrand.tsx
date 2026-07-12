@@ -24,9 +24,9 @@ export function AppBrand({ showSubtitle = false, dark = false, logoPriority }: A
         <p className={`truncate text-sm font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>
           ePoint Central
         </p>
-        {showSubtitle && (
+        {showSubtitle && isClient && (
           <p className={`truncate text-xs ${dark ? "text-cream-700" : "text-slate-500"}`}>
-            {isClient ? t("nav.clientPortal") : t("nav.management")}
+            {t("nav.clientPortal")}
           </p>
         )}
       </div>

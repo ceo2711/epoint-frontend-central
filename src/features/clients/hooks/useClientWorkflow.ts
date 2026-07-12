@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Client } from "@/types/api";
 
@@ -43,7 +44,7 @@ export function useClientWorkflow(token: string | null) {
       } catch (err) {
         await modal.alert({
           title: t("clients.approve"),
-          message: err instanceof ApiError ? err.message : t("clients.advisorsLoadError"),
+          message: getUserFacingErrorMessage(err, t("clients.advisorsLoadError")),
           variant: "error",
         });
         return false;
@@ -86,7 +87,7 @@ export function useClientWorkflow(token: string | null) {
           } catch (err) {
             return {
               title: t("clients.approve"),
-              message: err instanceof Error ? err.message : t("common.error"),
+              message: getUserFacingErrorMessage(err, t("common.error")),
               variant: "error" as const,
             };
           }
@@ -119,7 +120,7 @@ export function useClientWorkflow(token: string | null) {
           } catch (err) {
             return {
               title: t("clients.reject"),
-              message: err instanceof Error ? err.message : t("common.error"),
+              message: getUserFacingErrorMessage(err, t("common.error")),
               variant: "error" as const,
             };
           }
@@ -149,7 +150,7 @@ export function useClientWorkflow(token: string | null) {
           } catch (err) {
             return {
               title: t("clients.resubmit"),
-              message: err instanceof Error ? err.message : t("common.error"),
+              message: getUserFacingErrorMessage(err, t("common.error")),
               variant: "error" as const,
             };
           }
@@ -180,7 +181,7 @@ export function useClientWorkflow(token: string | null) {
           } catch (err) {
             return {
               title: t("clients.delete"),
-              message: err instanceof Error ? err.message : t("common.error"),
+              message: getUserFacingErrorMessage(err, t("common.error")),
               variant: "error" as const,
             };
           }

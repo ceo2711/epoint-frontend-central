@@ -1,4 +1,5 @@
 "use client";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import {
   createContext,
@@ -185,7 +186,7 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
       } catch (err) {
         setResult({
           title: t("common.error"),
-          message: err instanceof Error ? err.message : t("common.error"),
+          message: getUserFacingErrorMessage(err, t("common.error")),
           variant: "error",
         });
         setPhase("result");

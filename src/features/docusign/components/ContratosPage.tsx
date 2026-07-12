@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VscArrowLeft } from "react-icons/vsc";
@@ -92,7 +94,7 @@ export function ContratosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.sendError"),
+        message: getUserFacingErrorMessage(err, t("docusign.sendError")),
         variant: "error",
       });
     }
@@ -108,7 +110,7 @@ export function ContratosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.downloadError"),
+        message: getUserFacingErrorMessage(err, t("docusign.downloadError")),
         variant: "error",
       });
     }
@@ -124,7 +126,7 @@ export function ContratosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.downloadSentError"),
+        message: getUserFacingErrorMessage(err, t("docusign.downloadSentError")),
         variant: "error",
       });
     }
@@ -137,7 +139,7 @@ export function ContratosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.syncError"),
+        message: getUserFacingErrorMessage(err, t("docusign.syncError")),
         variant: "error",
       });
     } finally {
@@ -158,7 +160,7 @@ export function ContratosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.registerClientError"),
+        message: getUserFacingErrorMessage(err, t("docusign.registerClientError")),
         variant: "error",
       });
       throw err;

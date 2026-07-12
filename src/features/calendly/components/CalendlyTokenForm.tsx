@@ -1,4 +1,5 @@
 "use client";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { FormEvent, useState } from "react";
 
@@ -35,7 +36,7 @@ export function CalendlyTokenForm({
       await onSubmit(accessToken.trim(), schedulingUrl.trim() || undefined);
       setAccessToken("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("calendly.connectError"));
+      setError(getUserFacingErrorMessage(err, t("calendly.connectError")));
     } finally {
       setSubmitting(false);
     }

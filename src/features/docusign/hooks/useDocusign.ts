@@ -9,6 +9,7 @@ import {
   fetchDocusignTemplates,
 } from "@/lib/queryFetchers";
 import { ApiError, api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { DOCUSIGN_REFRESH_EVENT, dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import type {
   DocusignConnection,
@@ -265,12 +266,9 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
 
   const loadingEnvelopes = envelopesEnabled && envelopesQuery.isLoading;
 
-  const error =
-    connectionQuery.error instanceof ApiError
-      ? connectionQuery.error.message
-      : connectionQuery.error
-        ? "Error al cargar DocuSign"
-        : null;
+  const error = connectionQuery.error
+    ? getUserFacingErrorMessage(connectionQuery.error, "Error al cargar DocuSign")
+    : null;
 
   return {
     connection: connectionQuery.data ?? null,

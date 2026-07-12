@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VscArrowLeft } from "react-icons/vsc";
@@ -160,7 +162,7 @@ export function CalendarioPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof Error ? err.message : t("calendly.deleteEventError"),
+        message: getUserFacingErrorMessage(err, t("calendly.deleteEventError")),
         variant: "error",
       });
     }
@@ -183,7 +185,7 @@ export function CalendarioPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("docusign.sendError"),
+        message: getUserFacingErrorMessage(err, t("docusign.sendError")),
         variant: "error",
       });
       throw err;

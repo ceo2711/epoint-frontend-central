@@ -26,6 +26,7 @@ export function WelcomeEmail({
     >
       <Heading style={headingStyle}>¡Bienvenido/a a ePoint!</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
+      <Text style={paragraphStyle}>{"{{MERCHANT_LINE}}"}</Text>
       <Text style={paragraphStyle}>
         Tu solicitud fue aprobada. Ya podés ingresar al portal del cliente para completar tus datos
         personales y subir la documentación requerida.

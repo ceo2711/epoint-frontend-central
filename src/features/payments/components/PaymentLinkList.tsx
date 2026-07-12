@@ -1,8 +1,14 @@
 "use client";
 
-import { VscCopy, VscLinkExternal } from "react-icons/vsc";
+import {
+  HiOutlineArrowTopRightOnSquare,
+  HiOutlineClipboard,
+  HiOutlineEye,
+  HiOutlineUserPlus,
+  HiOutlineXMark,
+} from "react-icons/hi2";
 
-import { Button } from "@/components/ui/Button";
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentLink } from "@/features/payments/types";
 
@@ -70,51 +76,44 @@ export function PaymentLinkList({
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{link.description}</p>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => copyLink(link.payment_url)}
-            >
-              <VscCopy className="mr-1 inline" />
-              {t("payments.list.copyLink")}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => window.open(link.payment_url, "_blank", "noopener,noreferrer")}
-            >
-              <VscLinkExternal className="mr-1 inline" />
-              {t("payments.list.openLink")}
-            </Button>
-            {link.status === "pending" && onCancel ? (
-              <Button
-                type="button"
+          <div className="mt-3">
+            <TableActions>
+              <IconActionButton
+                label={t("payments.list.copyLink")}
+                icon={<HiOutlineClipboard />}
+                onClick={() => void copyLink(link.payment_url)}
+              />
+              <IconActionButton
+                label={t("payments.list.openLink")}
+                icon={<HiOutlineArrowTopRightOnSquare />}
                 variant="ghost"
-                size="sm"
-                disabled={cancellingId === link.id}
-                onClick={() => onCancel(link.id)}
-              >
-                {t("payments.list.cancel")}
-              </Button>
-            ) : null}
-            {link.status === "paid" && !link.client_registered_at && onRegisterClient ? (
-              <Button type="button" size="sm" onClick={() => onRegisterClient(link)}>
-                {t("payments.list.registerClient")}
-              </Button>
-            ) : null}
-            {link.client_id ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => window.location.assign(`/clientes/${link.client_id}`)}
-              >
-                {t("payments.list.viewClient")}
-              </Button>
-            ) : null}
+                onClick={() => window.open(link.payment_url, "_blank", "noopener,noreferrer")}
+              />
+              {link.status === "pending" && onCancel ? (
+                <IconActionButton
+                  label={t("payments.list.cancel")}
+                  icon={<HiOutlineXMark />}
+                  variant="danger"
+                  disabled={cancellingId === link.id}
+                  onClick={() => onCancel(link.id)}
+                />
+              ) : null}
+              {link.status === "paid" && !link.client_registered_at && onRegisterClient ? (
+                <IconActionButton
+                  label={t("payments.list.registerClient")}
+                  icon={<HiOutlineUserPlus />}
+                  variant="primary"
+                  onClick={() => onRegisterClient(link)}
+                />
+              ) : null}
+              {link.client_id ? (
+                <IconActionButton
+                  href={`/clientes/${link.client_id}`}
+                  label={t("payments.list.viewClient")}
+                  icon={<HiOutlineEye />}
+                />
+              ) : null}
+            </TableActions>
           </div>
         </article>
       ))}

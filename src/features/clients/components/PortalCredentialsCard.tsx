@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Client, ClientPortalPassword } from "@/types/api";
 
@@ -66,7 +67,7 @@ export function PortalCredentialsCard({
       });
       onPasswordUpdated(res.temp_password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common.error"));
+      setError(getUserFacingErrorMessage(err, t("common.error")));
     } finally {
       setResetting(false);
     }

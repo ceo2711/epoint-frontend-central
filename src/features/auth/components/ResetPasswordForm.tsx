@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -42,7 +44,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       });
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("resetPassword.error"));
+      setError(getUserFacingErrorMessage(err, t("resetPassword.error")));
     } finally {
       setSubmitting(false);
     }

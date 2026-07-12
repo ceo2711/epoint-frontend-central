@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { HiOutlineUserPlus } from "react-icons/hi2";
 
 import { Header } from "@/components/layout/Header";
-import { Button } from "@/components/ui/Button";
+import { IconActionButton } from "@/components/ui/IconActionButton";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useMerchant } from "@/contexts/MerchantContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientCreateModal } from "@/features/clients/components/ClientCreateModal";
+import {
+  ClientListFilters,
+  type ClientMerchantFilter,
+} from "@/features/clients/components/ClientListFilters";
 import { ClientList } from "@/features/clients/components/ClientList";
 import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
@@ -17,6 +23,7 @@ import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions"
 
 export default function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
+  const { merchants: workspaceMerchants, activeMerchantId } = useMerchant();
   const { t } = useTranslation();
   const roleCode = user?.role.code;
   const clientsSubtitle =
@@ -27,10 +34,37 @@ export default function ClientesPage() {
         : t("clients.subtitle");
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>(
+    activeMerchantId ?? "all",
+  );
+
+  const showMerchantFilter = workspaceMerchants.length > 1;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, merchantFilter]);
+
+  useEffect(() => {
+    if (activeMerchantId != null) {
+      setMerchantFilter(activeMerchantId);
+    }
+  }, [activeMerchantId]);
+
   const { clients, loading, load, total, pages, pageSize } = useClients(token, authLoading, {
     onboardingOnly: roleCode === "ONBOARDING_MANAGER",
     page,
     pageSize: CLIENTS_PAGE_SIZE,
+    search: debouncedSearch,
+    merchantFilter: showMerchantFilter ? merchantFilter : activeMerchantId ?? undefined,
   });
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
     token,
@@ -66,17 +100,31 @@ export default function ClientesPage() {
     <>
       <Header title={t("clients.headerContext")} subtitle={clientsSubtitle} />
       <PageContent>
-        <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
-          {canRunReminders && <OnboardingRemindersButton token={token} />}
-          {hasPermission("clients:create") ? (
-            <Button size="sm" onClick={() => setCreateModalOpen(true)}>
-              {t("clients.register")}
-            </Button>
-          ) : null}
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <ClientListFilters
+            search={searchInput}
+            merchantFilter={merchantFilter}
+            merchants={workspaceMerchants}
+            showMerchantFilter={showMerchantFilter}
+            onSearchChange={setSearchInput}
+            onMerchantFilterChange={setMerchantFilter}
+          />
+
+          <div className="flex shrink-0 items-center gap-1.5 self-end">
+            {canRunReminders ? <OnboardingRemindersButton token={token} /> : null}
+            {hasPermission("clients:create") ? (
+              <IconActionButton
+                label={t("clients.register")}
+                icon={<HiOutlineUserPlus />}
+                variant="primary"
+                onClick={() => setCreateModalOpen(true)}
+              />
+            ) : null}
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
+          <div className="flex justify-center py-12">
             <LoadingSpinner label={t("clients.loading")} />
           </div>
         ) : (
@@ -84,6 +132,7 @@ export default function ClientesPage() {
             clients={clients}
             canApprove={hasPermission("clients:approve")}
             canUpdate={hasPermission("clients:update")}
+            showMerchantColumn={merchantFilter === "all"}
             page={page}
             pages={pages}
             total={total}

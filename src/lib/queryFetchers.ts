@@ -32,12 +32,25 @@ export function fetchClientStats(token: string) {
 
 export function fetchClientsList(
   token: string,
-  options?: { onboardingOnly?: boolean; page?: number; pageSize?: number },
+  options?: {
+    onboardingOnly?: boolean;
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    merchantFilter?: "all" | number;
+  },
 ) {
   const params = new URLSearchParams();
   if (options?.onboardingOnly) params.set("onboarding_only", "true");
   if (options?.page) params.set("page", String(options.page));
   if (options?.pageSize) params.set("page_size", String(options.pageSize));
+  const search = options?.search?.trim();
+  if (search) params.set("search", search);
+  if (options?.merchantFilter === "all") {
+    params.set("all_merchants", "true");
+  } else if (typeof options?.merchantFilter === "number") {
+    params.set("merchant_id", String(options.merchantFilter));
+  }
   const query = params.toString();
   return api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
 }

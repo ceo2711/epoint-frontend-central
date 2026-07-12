@@ -1,8 +1,24 @@
 export const queryKeys = {
   clients: {
     all: ["clients"] as const,
-    list: (onboardingOnly?: boolean, page?: number, pageSize?: number) =>
-      ["clients", "list", { onboardingOnly: !!onboardingOnly, page: page ?? 1, pageSize: pageSize ?? 10 }] as const,
+    list: (
+      onboardingOnly?: boolean,
+      page?: number,
+      pageSize?: number,
+      search?: string,
+      merchantFilter?: "all" | number,
+    ) =>
+      [
+        "clients",
+        "list",
+        {
+          onboardingOnly: !!onboardingOnly,
+          page: page ?? 1,
+          pageSize: pageSize ?? 10,
+          search: search?.trim() || "",
+          merchantFilter: merchantFilter ?? "active",
+        },
+      ] as const,
     detail: (id: number) => ["clients", "detail", id] as const,
     stats: ["clients", "stats"] as const,
     availability: (email: string, phone: string, excludeClientId?: number) =>
