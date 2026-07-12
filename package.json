@@ -9,6 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "emails:build": "tsx scripts/build-email-templates.ts",
+    "emails:dev": "email dev --dir emails",
     "heroku-postbuild": "npm run build"
   },
   "engines": {
@@ -36,6 +38,8 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
@@ -47,7 +51,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jsdom": "^25.0.1",
+    "react-email": "^6.7.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "vitest": "^2.1.8"
   }
