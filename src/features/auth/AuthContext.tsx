@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import {
@@ -46,6 +47,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [token, setTokenState] = useState<string | null>(() =>
     typeof window === "undefined" ? null : getToken(),
@@ -79,13 +81,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      queryClient.clear();
       clearToken();
       setUser(null);
       setTokenState(null);
       router.replace("/login");
     });
     return () => setUnauthorizedHandler(null);
-  }, [router]);
+  }, [router, queryClient]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -106,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Respuesta de login inválida");
       }
 
+      queryClient.clear();
       persistLoginSession(response.access_token, response.refresh_token);
       setTokenState(response.access_token);
       setUser(response.user);
@@ -116,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return { requiresTwoFactor: false };
     },
-    [router],
+    [router, queryClient],
   );
 
   const cancelTwoFactorLogin = useCallback(() => {
@@ -141,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       clearTwoFactorTempToken();
+      queryClient.clear();
       persistLoginSession(response.access_token, response.refresh_token);
       setTokenState(response.access_token);
       setUser(response.user);
@@ -151,17 +156,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push(getDefaultAppPath(response.user.role.code));
       }
     },
-    [router],
+    [router, queryClient],
   );
 
   const logout = useCallback(() => {
     void revokeSession();
+    queryClient.clear();
     clearToken();
     clearTwoFactorTempToken();
     setUser(null);
     setTokenState(null);
     router.push("/login");
-  }, [router]);
+  }, [router, queryClient]);
 
   const hasPermission = useCallback(
     (permission: string) => {

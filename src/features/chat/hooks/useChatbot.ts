@@ -302,7 +302,10 @@ export function useChatbot(
         Boolean(response.clients_updated);
 
       if (shouldRefreshClients) {
-        emitClientsRefresh();
+        emitClientsRefresh({
+          clientId: response.client_id ?? undefined,
+          showAllMerchants: Boolean(response.clients_updated),
+        });
       }
 
       if (response.calendly_updated) {

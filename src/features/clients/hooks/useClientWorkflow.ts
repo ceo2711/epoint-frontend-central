@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { emitClientsRefresh } from "@/lib/clientEvents";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Client } from "@/types/api";
@@ -173,6 +174,7 @@ export function useClientWorkflow(token: string | null) {
         onConfirmAsync: async () => {
           try {
             await api.post(`/clients/${clientId}/delete`, {}, token);
+            emitClientsRefresh({ clientId, showAllMerchants: true });
             return {
               title: t("clients.delete"),
               message: t("clients.deleteSuccess", { name: clientName ?? "" }),
@@ -191,5 +193,53 @@ export function useClientWorkflow(token: string | null) {
     [token, modal, t],
   );
 
-  return { advisors, loadAdvisors, approveClient, rejectClient, resubmitClient, deleteClient };
+  const bulkDeleteClients = useCallback(
+    async (clientIds: number[]) => {
+      if (!token || clientIds.length === 0) return false;
+
+      return modal.confirm({
+        title: t("clients.bulkDeleteTitle"),
+        message: t("clients.bulkDeleteConfirm", { count: clientIds.length }),
+        confirmLabel: t("clients.bulkDelete"),
+        variant: "danger",
+        loadingMessage: t("clients.bulkDeleting"),
+        onConfirmAsync: async () => {
+          try {
+            const result = await api.post<{ deleted_ids: number[]; failures: Array<{ client_id: number; reason: string }> }>(
+              "/clients/bulk-delete",
+              { client_ids: clientIds },
+              token,
+            );
+            emitClientsRefresh({ showAllMerchants: true });
+
+            if (result.failures.length === 0) {
+              return {
+                title: t("clients.bulkDeleteTitle"),
+                message: t("clients.bulkDeleteSuccess", { count: result.deleted_ids.length }),
+                variant: "success" as const,
+              };
+            }
+
+            return {
+              title: t("clients.bulkDeleteTitle"),
+              message: t("clients.bulkDeletePartial", {
+                deleted: result.deleted_ids.length,
+                failed: result.failures.length,
+              }),
+              variant: result.deleted_ids.length > 0 ? ("warning" as const) : ("error" as const),
+            };
+          } catch (err) {
+            return {
+              title: t("clients.bulkDeleteTitle"),
+              message: getUserFacingErrorMessage(err, t("common.error")),
+              variant: "error" as const,
+            };
+          }
+        },
+      });
+    },
+    [token, modal, t],
+  );
+
+  return { advisors, loadAdvisors, approveClient, rejectClient, resubmitClient, deleteClient, bulkDeleteClients };
 }

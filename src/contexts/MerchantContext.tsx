@@ -88,6 +88,7 @@ export function MerchantProvider({ children }: { children: React.ReactNode }) {
       if (merchantId === activeMerchantId) return;
 
       setSwitching(true);
+      const startedAt = Date.now();
       try {
         await api.put("/auth/me/active-merchant", { merchant_id: merchantId }, token);
         window.localStorage.setItem(STORAGE_KEY, String(merchantId));
@@ -95,6 +96,13 @@ export function MerchantProvider({ children }: { children: React.ReactNode }) {
         setActiveMerchantIdProvider(() => merchantId);
         await refreshUser();
         await queryClient.invalidateQueries();
+        await queryClient.refetchQueries({ type: "active" });
+
+        const minVisibleMs = 350;
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minVisibleMs) {
+          await new Promise((resolve) => window.setTimeout(resolve, minVisibleMs - elapsed));
+        }
       } finally {
         setSwitching(false);
       }

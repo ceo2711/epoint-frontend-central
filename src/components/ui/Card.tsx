@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 
+export { PageContent } from "@/components/ui/PageContent";
+
 export function Card({
   children,
   className = "",
@@ -10,14 +12,6 @@ export function Card({
   hover?: boolean;
 }) {
   return <div className={`${hover ? "card" : "card-flat"} ${className}`}>{children}</div>;
-}
-
-export function PageContent({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`min-w-0 w-full max-w-full overflow-x-hidden px-4 py-4 pb-20 sm:p-6 sm:pb-20 lg:p-8 lg:pb-24 ${className}`}>
-      {children}
-    </div>
-  );
 }
 
 export function EmptyState({ title, description }: { title: string; description?: string }) {

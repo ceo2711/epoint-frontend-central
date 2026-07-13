@@ -355,12 +355,13 @@ body {
 .merchant-switch-overlay {
   position: absolute;
   inset: 0;
-  z-index: 35;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(248, 244, 237, 0.78);
-  backdrop-filter: blur(3px);
+  background: rgba(248, 244, 237, 0.82);
+  backdrop-filter: blur(4px);
+  pointer-events: all;
 }
 
 .merchant-switch-overlay p {

@@ -10,7 +10,6 @@ const internalNav = [
   { href: "/clientes", permission: "clients:read" },
   { href: "/usuarios", permission: "users:read" },
   { href: "/comercios", permission: "merchants:create" },
-  { href: "/areas", permission: "areas:read" },
   { href: "/roles", permission: "roles:read" },
 ] as const;
 
@@ -73,7 +72,6 @@ describe("role navigation matrix", () => {
       "/clientes",
       "/usuarios",
       "/comercios",
-      "/areas",
       "/roles",
     ]);
   });

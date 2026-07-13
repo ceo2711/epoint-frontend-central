@@ -16,6 +16,7 @@ export function MerchantSwitchOverlay() {
       role="status"
       aria-live="polite"
       aria-busy="true"
+      aria-label={t("merchant.switching")}
     >
       <LoadingSpinner label={t("merchant.switching")} />
     </div>

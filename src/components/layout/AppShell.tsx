@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Sidebar } from "@/components/layout/Sidebar";
-import { MerchantSwitchOverlay } from "@/components/layout/MerchantSwitchOverlay";
 import { AppDataPrefetcher } from "@/components/providers/AppDataPrefetcher";
 import { LazyFloatingChatWidget } from "@/lib/lazyPanels";
 import { NotificationsProvider } from "@/features/notifications/NotificationsContext";
@@ -40,7 +39,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Sidebar />
         <main className="relative flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
           {children}
-          <MerchantSwitchOverlay />
         </main>
       </div>
       {mounted && showStaffNotifications

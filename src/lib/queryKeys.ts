@@ -1,4 +1,8 @@
 export const queryKeys = {
+  dashboard: {
+    metrics: (merchantId?: number | null, roleCode?: string | null) =>
+      ["dashboard", "metrics", { merchantId: merchantId ?? null, roleCode: roleCode ?? null }] as const,
+  },
   clients: {
     all: ["clients"] as const,
     list: (

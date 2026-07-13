@@ -45,6 +45,8 @@ export function useClients(
   useEffect(() => {
     const handleRefresh = () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+      void queryClient.refetchQueries({ queryKey: queryKeys.clients.all, type: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard", "metrics"] });
     };
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);

@@ -63,6 +63,7 @@ export function ClientCreateModal({
     if (!token || hasConflict || !formComplete) return;
     setSubmitting(true);
     try {
+      const merchantId = Number(form.merchant_id);
       await api.post(
         "/clients",
         {
@@ -71,11 +72,11 @@ export function ClientCreateModal({
           email: form.email,
           phone: form.phone,
           source: form.source,
-          merchant_id: Number(form.merchant_id),
+          merchant_id: merchantId,
         },
         token,
       );
-      emitClientsRefresh();
+      emitClientsRefresh({ merchantId, showAllMerchants: true });
       onSuccess();
       onClose();
     } catch (err) {

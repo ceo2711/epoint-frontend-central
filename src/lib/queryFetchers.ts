@@ -10,7 +10,7 @@ import {
   readEventTypesCache,
   writeEventTypesCache,
 } from "@/features/calendly/utils/eventTypesCache";
-import type { ClientStats } from "@/features/dashboard/types";
+import type { ClientStats, DashboardMetrics } from "@/features/dashboard/types";
 import type {
   DocusignConnection,
   DocusignEnvelope,
@@ -28,6 +28,10 @@ export function calendlyUserQuery(userId?: number | null): string {
 
 export function fetchClientStats(token: string) {
   return api.get<ClientStats>("/clients/stats", token);
+}
+
+export function fetchDashboardMetrics(token: string) {
+  return api.get<DashboardMetrics>("/dashboard/metrics", token);
 }
 
 export function fetchClientsList(

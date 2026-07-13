@@ -9,6 +9,7 @@ import {
   fetchCalendlySalesReps,
   fetchClientBoard,
   fetchClientStats,
+  fetchDashboardMetrics,
   fetchClientsList,
   fetchDocusignConnection,
   fetchDocusignEnvelopes,
@@ -86,10 +87,10 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
 
   switch (href) {
     case "/dashboard":
-      if (hasPermission("clients:read")) {
+      if (hasPermission("clients:read") && user.active_merchant_id) {
         await queryClient.prefetchQuery({
-          queryKey: queryKeys.clients.stats,
-          queryFn: () => fetchClientStats(token),
+          queryKey: queryKeys.dashboard.metrics(user.active_merchant_id, roleCode),
+          queryFn: () => fetchDashboardMetrics(token),
           staleTime: PREFETCH_STALE_MS,
         });
       }
@@ -164,15 +165,6 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
       await queryClient.prefetchQuery({
         queryKey: queryKeys.merchants.list(true),
         queryFn: () => fetchMerchants(token, true),
-        staleTime: PREFETCH_STALE_MS,
-      });
-      return;
-
-    case "/areas":
-      if (!hasPermission("areas:read")) return;
-      await queryClient.prefetchQuery({
-        queryKey: queryKeys.areas.list,
-        queryFn: () => fetchAreas(token),
         staleTime: PREFETCH_STALE_MS,
       });
       return;
