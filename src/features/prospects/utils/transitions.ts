@@ -4,7 +4,7 @@ export const ALLOWED_TRANSITIONS: Record<ProspectStatus, ProspectStatus[]> = {
   LEAD_CALIFICADO: ["PENDIENTE_CONTACTAR", "LEAD_CONTACTADO", "LEAD_CERRADO"],
   LEAD_NO_CALIFICADO: ["LEAD_CERRADO"],
   PENDIENTE_CONTACTAR: ["LEAD_CONTACTADO", "LEAD_CERRADO"],
-  LEAD_CONTACTADO: ["CONTRATO_ENVIADO", "LEAD_CERRADO"],
+  LEAD_CONTACTADO: ["PENDIENTE_CONTACTAR", "CONTRATO_ENVIADO", "LEAD_CERRADO"],
   CONTRATO_ENVIADO: ["PAGO_COMPLETADO", "LEAD_CERRADO"],
   PAGO_COMPLETADO: [],
   LEAD_CERRADO: [],
@@ -12,4 +12,16 @@ export const ALLOWED_TRANSITIONS: Record<ProspectStatus, ProspectStatus[]> = {
 
 export function getAllowedNextStatuses(status: ProspectStatus): ProspectStatus[] {
   return ALLOWED_TRANSITIONS[status] ?? [];
+}
+
+/** Estados que el usuario puede elegir manualmente en el formulario. */
+export function getManualStatusOptions(
+  roleCode: string | undefined,
+  status: ProspectStatus,
+): ProspectStatus[] {
+  const allowed = getAllowedNextStatuses(status);
+  if (roleCode === "SALES_REP") {
+    return allowed.filter((item) => item === "LEAD_CERRADO");
+  }
+  return allowed;
 }

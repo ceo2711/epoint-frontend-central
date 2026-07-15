@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { getToken } from "@/features/auth/auth-storage";
 import { dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
 import { connectNotificationStream } from "@/features/notifications/notificationStream";
 import {
@@ -222,7 +223,7 @@ export function NotificationsProvider({
 
     const startStream = () => {
       connectNotificationStream(
-        token,
+        () => getToken() ?? token,
         {
           onNotification: (notification) => applyNotificationRef.current(notification),
           onError: () => {

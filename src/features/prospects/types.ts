@@ -95,6 +95,7 @@ export interface ProspectDetail extends Prospect {
   history: ProspectHistoryEntry[];
   calendly_event: ProspectCalendlyBrief | null;
   docusign_envelope: ProspectEnvelopeBrief | null;
+  docusign_envelopes: ProspectEnvelopeBrief[];
   payment_link: ProspectPaymentBrief | null;
 }
 

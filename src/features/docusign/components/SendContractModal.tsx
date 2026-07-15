@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
 import type { Client } from "@/features/clients/types";
+import type { ProspectSearchResponse } from "@/features/prospects/components/ProspectSearchSelect";
+import type { Prospect } from "@/features/prospects/types";
 import type {
   DocusignSendPayload,
   DocusignTemplate,
@@ -18,10 +20,12 @@ interface SendContractModalProps {
   signerEmail: string;
   clientId?: number;
   prospectId?: number;
+  prospect?: Pick<Prospect, "id" | "full_name" | "email" | "status">;
   templates: DocusignTemplate[];
   defaultTemplateId?: string | null;
   defaultRoleName?: string | null;
   onSearchClients: (query: string) => Promise<Client[]>;
+  onSearchProspects?: (query: string) => Promise<ProspectSearchResponse>;
   onLoadTemplateDetail?: (templateId: string) => Promise<DocusignTemplateDetail | null>;
   onSubmit: (payload: DocusignSendPayload) => Promise<void>;
   onClose: () => void;
@@ -32,10 +36,12 @@ export function SendContractModal({
   signerEmail,
   clientId,
   prospectId,
+  prospect,
   templates,
   defaultTemplateId,
   defaultRoleName,
   onSearchClients,
+  onSearchProspects,
   onLoadTemplateDetail,
   onSubmit,
   onClose,
@@ -82,8 +88,9 @@ export function SendContractModal({
         templates={templates}
         defaultTemplateId={defaultTemplateId}
         defaultRoleName={defaultRoleName}
-        initialSigner={{ name: signerName, email: signerEmail, clientId, prospectId }}
+        initialSigner={{ name: signerName, email: signerEmail, clientId, prospectId, prospect }}
         onSearchClients={onSearchClients}
+        onSearchProspects={onSearchProspects}
         onLoadTemplateDetail={onLoadTemplateDetail}
         onSubmit={handleSubmit}
       />

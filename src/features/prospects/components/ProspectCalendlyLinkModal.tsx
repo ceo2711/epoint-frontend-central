@@ -12,6 +12,8 @@ import type { CalendlyEvent } from "@/features/calendly/types";
 interface ProspectCalendlyLinkModalProps {
   token: string | null;
   salesRepUserId: number;
+  excludeEventId?: number | null;
+  reschedule?: boolean;
   onClose: () => void;
   onLink: (calendlyEventId: number) => Promise<void>;
 }
@@ -26,15 +28,21 @@ function formatEventTime(value: string, locale: string) {
 export function ProspectCalendlyLinkModal({
   token,
   salesRepUserId,
+  excludeEventId,
+  reschedule = false,
   onClose,
   onLink,
 }: ProspectCalendlyLinkModalProps) {
   const { t, locale } = useTranslation();
-  const { events, loading } = useCalendly(token, salesRepUserId);
+  const { events, loading, connection, error } = useCalendly(token, salesRepUserId, {
+    loadSalesReps: false,
+  });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const activeEvents = events.filter((event) => event.status !== "canceled");
+  const activeEvents = events.filter(
+    (event) => event.status !== "canceled" && event.id !== excludeEventId,
+  );
 
   async function handleSubmit() {
     if (!selectedId) return;
@@ -48,11 +56,22 @@ export function ProspectCalendlyLinkModal({
   }
 
   return (
-    <Modal title={t("prospects.linkCalendlyTitle")} onClose={onClose} size="lg">
+    <Modal
+      title={reschedule ? t("prospects.scheduleAnotherMeetingTitle") : t("prospects.linkCalendlyTitle")}
+      onClose={onClose}
+      size="lg"
+    >
+      {reschedule ? (
+        <p className="mb-4 text-sm text-slate-500">{t("prospects.scheduleAnotherMeetingHint")}</p>
+      ) : null}
       {loading ? (
         <div className="flex justify-center py-8">
           <LoadingSpinner label={t("common.loading")} />
         </div>
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
+      ) : !connection?.connected ? (
+        <p className="text-sm text-slate-500">{t("prospects.linkCalendlyNotConnected")}</p>
       ) : activeEvents.length === 0 ? (
         <p className="text-sm text-slate-500">{t("prospects.linkCalendlyEmpty")}</p>
       ) : (
@@ -91,7 +110,11 @@ export function ProspectCalendlyLinkModal({
           {t("common.cancel")}
         </Button>
         <Button type="button" onClick={() => void handleSubmit()} disabled={!selectedId || submitting}>
-          {submitting ? t("common.loading") : t("prospects.linkCalendlyAction")}
+          {submitting
+            ? t("common.loading")
+            : reschedule
+              ? t("prospects.scheduleAnotherMeetingAction")
+              : t("prospects.linkCalendlyAction")}
         </Button>
       </div>
     </Modal>

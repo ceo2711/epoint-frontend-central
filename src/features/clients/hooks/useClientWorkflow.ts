@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
 import { emitClientsRefresh } from "@/lib/clientEvents";
+import { invalidateClientsQueries } from "@/lib/invalidateClients";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Client } from "@/types/api";
@@ -20,6 +22,7 @@ export interface AdvisorOption {
 export function useClientWorkflow(token: string | null) {
   const { t } = useTranslation();
   const modal = useModal();
+  const queryClient = useQueryClient();
   const [advisors, setAdvisors] = useState<AdvisorOption[]>([]);
 
   const loadAdvisors = useCallback(async (): Promise<AdvisorOption[]> => {
@@ -174,7 +177,8 @@ export function useClientWorkflow(token: string | null) {
         onConfirmAsync: async () => {
           try {
             await api.post(`/clients/${clientId}/delete`, {}, token);
-            emitClientsRefresh({ clientId, showAllMerchants: true });
+            await invalidateClientsQueries(queryClient, { clientId });
+            emitClientsRefresh({ clientId, showAllMerchants: true, deleted: true });
             return {
               title: t("clients.delete"),
               message: t("clients.deleteSuccess", { name: clientName ?? "" }),
@@ -190,7 +194,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, modal, t],
+    [token, modal, t, queryClient],
   );
 
   const bulkDeleteClients = useCallback(
@@ -210,6 +214,7 @@ export function useClientWorkflow(token: string | null) {
               { client_ids: clientIds },
               token,
             );
+            await invalidateClientsQueries(queryClient, { clientIds: result.deleted_ids });
             emitClientsRefresh({ showAllMerchants: true });
 
             if (result.failures.length === 0) {
@@ -238,7 +243,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, modal, t],
+    [token, modal, t, queryClient],
   );
 
   return { advisors, loadAdvisors, approveClient, rejectClient, resubmitClient, deleteClient, bulkDeleteClients };

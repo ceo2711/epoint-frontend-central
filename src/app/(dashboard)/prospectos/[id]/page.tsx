@@ -3,7 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
@@ -19,15 +19,13 @@ import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
 import { usePayments } from "@/features/payments/hooks/usePayments";
 import { ProspectCalendlyLinkModal } from "@/features/prospects/components/ProspectCalendlyLinkModal";
-import {
-  ProspectExistingEnvelopeModal,
-  ProspectExistingPaymentModal,
-} from "@/features/prospects/components/ProspectExistingResourceModals";
+import { ProspectContractsModal } from "@/features/prospects/components/ProspectContractsModal";
+import { ProspectExistingPaymentModal } from "@/features/prospects/components/ProspectExistingResourceModals";
 import { ProspectHistoryTimeline } from "@/features/prospects/components/ProspectHistoryTimeline";
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
 import { ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
-import { getAllowedNextStatuses } from "@/features/prospects/utils/transitions";
+import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
 import type { ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
 
@@ -46,7 +44,7 @@ export default function ProspectoDetailPage() {
   const id = typeof rawId === "string" ? Number(rawId) : NaN;
   const idValid = Number.isFinite(id) && id > 0;
 
-  const { token, hasPermission } = useAuth();
+  const { token, hasPermission, user } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
   const { prospect, loading, reload } = useProspectDetail(token, idValid ? id : 0);
@@ -58,24 +56,41 @@ export default function ProspectoDetailPage() {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [calendlyOpen, setCalendlyOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
+  const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [envelopePickerOpen, setEnvelopePickerOpen] = useState(false);
   const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
 
   const canUpdate = hasPermission("prospects:update");
   const isConverted = !!prospect?.converted_client_id;
   const allowedStatuses = prospect ? getAllowedNextStatuses(prospect.status) : [];
+  const manualStatuses = prospect
+    ? getManualStatusOptions(user?.role.code, prospect.status)
+    : [];
 
   const {
     connection,
     templates,
-    envelopes,
     sendEnvelope,
     searchClients,
     loadTemplateDetail,
+    downloadSignedDocument,
+    downloadSentDocument,
   } = useDocusign(token);
 
   const { config, links, createLink, isCreating } = usePayments(token);
+
+  useEffect(() => {
+    if (!prospect?.id) return;
+
+    const terminal = new Set(["completed", "declined", "voided"]);
+    const hasPending = prospect.docusign_envelopes.some(
+      (envelope) => !terminal.has(envelope.status.toLowerCase()),
+    );
+    if (!hasPending) return;
+
+    const timer = window.setInterval(() => void reload(), 90_000);
+    return () => window.clearInterval(timer);
+  }, [prospect?.id, prospect?.docusign_envelopes, reload]);
 
   async function handleStatusUpdate(e: FormEvent) {
     e.preventDefault();
@@ -120,6 +135,36 @@ export default function ProspectoDetailPage() {
     }
   }
 
+  async function handleMarkContacted() {
+    if (!token || !prospect || !canUpdate) return;
+    const confirmed = await modal.confirm({
+      title: t("prospects.markContactedTitle"),
+      message: t("prospects.markContactedConfirm", { name: prospect.full_name }),
+      confirmLabel: t("prospects.markContacted"),
+      cancelLabel: t("common.cancel"),
+    });
+    if (!confirmed) return;
+    try {
+      await api.post(
+        `/prospects/${prospect.id}/mark-contacted`,
+        { note: t("prospects.markContactedNote") },
+        token,
+      );
+      await reload();
+      await modal.alert({
+        title: t("prospects.markContactedTitle"),
+        message: t("prospects.markContactedSuccess"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("prospects.statusUpdateError")),
+        variant: "error",
+      });
+    }
+  }
+
   async function handleLinkCalendly(calendlyEventId: number) {
     if (!token || !prospect) return;
     await api.post(`/prospects/${prospect.id}/link-calendly`, { calendly_event_id: calendlyEventId }, token);
@@ -132,8 +177,9 @@ export default function ProspectoDetailPage() {
   }
 
   async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
+    if (!prospect) return;
     try {
-      const result = await sendEnvelope(payload);
+      const result = await sendEnvelope({ ...payload, prospect_id: prospect.id });
       setContractOpen(false);
       await reload();
       await modal.alert({
@@ -150,15 +196,18 @@ export default function ProspectoDetailPage() {
     }
   }
 
-  async function handleLinkEnvelope(envelopeId: number) {
-    if (!token || !prospect) return;
-    await api.post(`/prospects/${prospect.id}/link-envelope`, { envelope_id: envelopeId }, token);
-    await reload();
-    await modal.alert({
-      title: t("prospects.linkContractSuccessTitle"),
-      message: t("prospects.linkContractSuccessMessage"),
-      variant: "success",
-    });
+  async function handleSendContractClick() {
+    if (!prospect) return;
+    if (prospect.docusign_envelopes.length > 0) {
+      const confirmed = await modal.confirm({
+        title: t("prospects.sendAnotherContractTitle"),
+        message: t("prospects.sendAnotherContractConfirm", { name: prospect.full_name }),
+        confirmLabel: t("prospects.sendAnotherContract"),
+        cancelLabel: t("common.cancel"),
+      });
+      if (!confirmed) return;
+    }
+    setContractOpen(true);
   }
 
   async function handleLinkPayment(paymentLinkId: number) {
@@ -170,6 +219,38 @@ export default function ProspectoDetailPage() {
       message: t("prospects.linkPaymentSuccessMessage"),
       variant: "success",
     });
+  }
+
+  async function handleViewSigned(envelopeId: number) {
+    try {
+      const blob = await downloadSignedDocument(envelopeId);
+      if (!blob) return;
+      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("docusign.downloadError")),
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleViewSent(envelopeId: number) {
+    try {
+      const blob = await downloadSentDocument(envelopeId);
+      if (!blob) return;
+      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("docusign.downloadSentError")),
+        variant: "error",
+      });
+    }
   }
 
   async function handleCreatePayment(payload: Parameters<typeof createLink>[0]) {
@@ -239,6 +320,11 @@ export default function ProspectoDetailPage() {
     canUpdate && !isConverted && connection?.connected;
 
   const showPaymentAction = canUpdate && !isConverted;
+  const canMarkContacted =
+    canUpdate &&
+    !isConverted &&
+    (prospect.status === "PENDIENTE_CONTACTAR" || prospect.status === "LEAD_CALIFICADO") &&
+    allowedStatuses.includes("LEAD_CONTACTADO");
 
   return (
     <>
@@ -293,22 +379,31 @@ export default function ProspectoDetailPage() {
           <ProspectLinkedResources
             locale={locale}
             calendly={prospect.calendly_event}
-            envelope={prospect.docusign_envelope}
+            envelopes={prospect.docusign_envelopes}
             payment={prospect.payment_link}
             canManage={canUpdate}
+            canMarkContacted={canMarkContacted}
+            onMarkContacted={() => void handleMarkContacted()}
             onLinkCalendly={() => setCalendlyOpen(true)}
-            onSendContract={showContractAction ? () => setContractOpen(true) : undefined}
-            onLinkEnvelope={() => setEnvelopePickerOpen(true)}
+            onSendContract={showContractAction ? () => void handleSendContractClick() : undefined}
+            onViewContracts={
+              prospect.docusign_envelopes.length > 0 ? () => setContractsListOpen(true) : undefined
+            }
             onCreatePayment={showPaymentAction ? () => setPaymentOpen(true) : undefined}
             onLinkPayment={() => setPaymentPickerOpen(true)}
           />
         ) : null}
 
-        {canUpdate && !isConverted && allowedStatuses.length > 0 ? (
+        {canUpdate && !isConverted && manualStatuses.length > 0 ? (
           <Card className="p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {t("prospects.updateStatus")}
+              {user?.role.code === "SALES_REP"
+                ? t("prospects.closeProspect")
+                : t("prospects.updateStatus")}
             </h2>
+            {user?.role.code === "SALES_REP" ? (
+              <p className="mb-3 text-sm text-slate-500">{t("prospects.salesRepStatusHint")}</p>
+            ) : null}
             <form onSubmit={(e) => void handleStatusUpdate(e)} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-slate-700">
@@ -320,7 +415,7 @@ export default function ProspectoDetailPage() {
                     required
                   >
                     <option value="">{t("prospects.selectStatus")}</option>
-                    {allowedStatuses.map((status) => (
+                    {manualStatuses.map((status) => (
                       <option key={status} value={status}>
                         {t(`prospects.status.${status}` as never)}
                       </option>
@@ -378,6 +473,8 @@ export default function ProspectoDetailPage() {
         <ProspectCalendlyLinkModal
           token={token}
           salesRepUserId={prospect.assigned_to_user_id}
+          excludeEventId={prospect.calendly_event?.id}
+          reschedule={!!prospect.calendly_event}
           onClose={() => setCalendlyOpen(false)}
           onLink={handleLinkCalendly}
         />
@@ -398,6 +495,12 @@ export default function ProspectoDetailPage() {
               name: prospect.full_name,
               email: prospect.email,
               prospectId: prospect.id,
+              prospect: {
+                id: prospect.id,
+                full_name: prospect.full_name,
+                email: prospect.email,
+                status: prospect.status,
+              },
             }}
             onSearchClients={searchClients}
             onLoadTemplateDetail={loadTemplateDetail}
@@ -428,12 +531,13 @@ export default function ProspectoDetailPage() {
         </Modal>
       ) : null}
 
-      {envelopePickerOpen ? (
-        <ProspectExistingEnvelopeModal
-          envelopes={envelopes}
-          prospectEmail={prospect.email}
-          onClose={() => setEnvelopePickerOpen(false)}
-          onLink={handleLinkEnvelope}
+      {contractsListOpen ? (
+        <ProspectContractsModal
+          envelopes={prospect.docusign_envelopes}
+          locale={locale}
+          onClose={() => setContractsListOpen(false)}
+          onViewSigned={(id) => void handleViewSigned(id)}
+          onViewSent={(id) => void handleViewSent(id)}
         />
       ) : null}
 

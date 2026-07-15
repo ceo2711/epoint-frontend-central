@@ -7,6 +7,8 @@ export interface ClientsRefreshDetail {
   merchantId?: number;
   showAllMerchants?: boolean;
   scope?: ClientsRefreshScope;
+  /** El cliente fue eliminado; la vista de detalle no debe recargarlo. */
+  deleted?: boolean;
 }
 
 export function emitClientsRefresh(detail?: ClientsRefreshDetail): void {
@@ -29,6 +31,7 @@ export function shouldRefreshClient(
   clientId: number | null | undefined,
 ): boolean {
   if (!clientId) return false;
+  if (detail?.deleted && detail.clientId === clientId) return false;
   if (!detail?.clientId) return true;
   return detail.clientId === clientId;
 }

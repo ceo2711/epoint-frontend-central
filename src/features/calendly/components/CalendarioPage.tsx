@@ -76,6 +76,7 @@ export function CalendarioPage() {
     connect,
     disconnect,
     sync,
+    refresh,
     createEvent,
     updateEvent,
     cancelEvent,
@@ -185,7 +186,7 @@ export function CalendarioPage() {
         { calendly_event_id: linkProspectEvent.id },
         token,
       );
-      await sync();
+      await refresh();
       setLinkProspectEvent(null);
       setSelectedEvent(null);
       await modal.alert({

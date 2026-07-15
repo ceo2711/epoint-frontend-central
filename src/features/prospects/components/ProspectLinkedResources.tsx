@@ -14,14 +14,16 @@ import type {
 interface ProspectLinkedResourcesProps {
   locale: string;
   calendly: ProspectCalendlyBrief | null;
-  envelope: ProspectEnvelopeBrief | null;
+  envelopes: ProspectEnvelopeBrief[];
   payment: ProspectPaymentBrief | null;
   canManage: boolean;
+  canMarkContacted?: boolean;
+  onMarkContacted?: () => void;
   onLinkCalendly?: () => void;
-  onLinkEnvelope?: () => void;
   onLinkPayment?: () => void;
   onSendContract?: () => void;
   onCreatePayment?: () => void;
+  onViewContracts?: () => void;
 }
 
 function formatDateTime(value: string, locale: string) {
@@ -34,23 +36,37 @@ function formatDateTime(value: string, locale: string) {
 function envelopeStatusKey(status: string) {
   const normalized = status.toLowerCase();
   if (normalized === "completed") return "docusign.statusCompleted";
-  if (normalized === "sent" || normalized === "delivered") return "docusign.statusSent";
+  if (normalized === "declined") return "docusign.statusDeclined";
+  if (normalized === "voided") return "docusign.statusVoided";
+  if (normalized === "delivered") return "docusign.statusDelivered";
+  if (normalized === "sent") return "docusign.statusSent";
   return "docusign.statusUnknown";
+}
+
+function envelopeStatusClass(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "completed") return "bg-emerald-100 text-emerald-800";
+  if (normalized === "declined" || normalized === "voided") return "bg-red-100 text-red-800";
+  if (normalized === "sent" || normalized === "delivered") return "bg-blue-100 text-blue-800";
+  return "bg-amber-100 text-amber-800";
 }
 
 export function ProspectLinkedResources({
   locale,
   calendly,
-  envelope,
+  envelopes,
   payment,
   canManage,
+  canMarkContacted = false,
+  onMarkContacted,
   onLinkCalendly,
-  onLinkEnvelope,
   onLinkPayment,
   onSendContract,
   onCreatePayment,
+  onViewContracts,
 }: ProspectLinkedResourcesProps) {
   const { t } = useTranslation();
+  const latestEnvelope = envelopes[0] ?? null;
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -80,10 +96,19 @@ export function ProspectLinkedResources({
         ) : (
           <p className="mt-3 text-sm text-slate-500">{t("prospects.linked.meetingEmpty")}</p>
         )}
-        {canManage && onLinkCalendly ? (
-          <Button size="sm" variant="secondary" className="mt-4" onClick={onLinkCalendly}>
-            {calendly ? t("prospects.linkCalendlyAgain") : t("prospects.linkCalendlyAction")}
-          </Button>
+        {canManage ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {canMarkContacted && onMarkContacted ? (
+              <Button size="sm" onClick={onMarkContacted}>
+                {t("prospects.markContacted")}
+              </Button>
+            ) : null}
+            {onLinkCalendly ? (
+              <Button size="sm" variant="secondary" onClick={onLinkCalendly}>
+                {calendly ? t("prospects.scheduleAnotherMeeting") : t("prospects.linkCalendlyAction")}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </Card>
 
@@ -91,20 +116,30 @@ export function ProspectLinkedResources({
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">
           {t("prospects.linked.contract")}
         </h3>
-        {envelope ? (
+        {latestEnvelope ? (
           <div className="mt-3 space-y-2 text-sm">
-            <p className="font-semibold text-slate-900">{envelope.subject}</p>
-            <p className="text-slate-600">
-              {t(envelopeStatusKey(envelope.status) as never)}
-              {envelope.completed_at
-                ? ` · ${formatDateTime(envelope.completed_at, locale)}`
-                : ` · ${t("prospects.linked.sentAt", { date: formatDateTime(envelope.sent_at, locale) })}`}
-            </p>
-            <p className="text-slate-500">{envelope.signer_email}</p>
-            {envelope.status.toLowerCase() === "completed" ? (
-              <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">
-                {t("prospects.linked.contractSigned")}
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="font-semibold text-slate-900">{latestEnvelope.subject}</p>
+              <span
+                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${envelopeStatusClass(latestEnvelope.status)}`}
+              >
+                {t(envelopeStatusKey(latestEnvelope.status) as never)}
               </span>
+            </div>
+            <p className="text-slate-600">
+              {latestEnvelope.completed_at
+                ? t("prospects.linked.signedAt", {
+                    date: formatDateTime(latestEnvelope.completed_at, locale),
+                  })
+                : t("prospects.linked.sentAt", {
+                    date: formatDateTime(latestEnvelope.sent_at, locale),
+                  })}
+            </p>
+            <p className="text-slate-500">{latestEnvelope.signer_email}</p>
+            {envelopes.length > 1 ? (
+              <p className="text-xs text-slate-500">
+                {t("prospects.linked.moreContracts", { count: envelopes.length - 1 })}
+              </p>
             ) : null}
           </div>
         ) : (
@@ -112,14 +147,14 @@ export function ProspectLinkedResources({
         )}
         {canManage ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            {onSendContract ? (
-              <Button size="sm" onClick={onSendContract}>
-                {t("prospects.sendContract")}
+            {envelopes.length > 0 && onViewContracts ? (
+              <Button size="sm" variant="secondary" onClick={onViewContracts}>
+                {t("prospects.viewSentContracts")}
               </Button>
             ) : null}
-            {onLinkEnvelope ? (
-              <Button size="sm" variant="secondary" onClick={onLinkEnvelope}>
-                {t("prospects.linkExistingContract")}
+            {onSendContract ? (
+              <Button size="sm" onClick={onSendContract}>
+                {envelopes.length > 0 ? t("prospects.sendAnotherContract") : t("prospects.sendContract")}
               </Button>
             ) : null}
           </div>

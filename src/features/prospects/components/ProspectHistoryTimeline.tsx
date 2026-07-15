@@ -16,6 +16,11 @@ function formatDate(value: string, locale: string) {
   });
 }
 
+function displayHistoryNote(note: string | null) {
+  if (!note) return null;
+  return note.replace(/\s*\(envelope_id=\d+\)$/, "");
+}
+
 export function ProspectHistoryTimeline({ history, locale }: ProspectHistoryTimelineProps) {
   const { t } = useTranslation();
 
@@ -41,7 +46,9 @@ export function ProspectHistoryTimeline({ history, locale }: ProspectHistoryTime
               <ProspectStatusBadge status={entry.to_status as ProspectStatus} />
             </div>
           ) : null}
-          {entry.note ? <p className="mt-2 text-sm text-slate-700">{entry.note}</p> : null}
+          {entry.note ? (
+            <p className="mt-2 text-sm text-slate-700">{displayHistoryNote(entry.note)}</p>
+          ) : null}
           {entry.changed_by_name ? (
             <p className="mt-1 text-xs text-slate-500">
               {t("prospects.history.by", { name: entry.changed_by_name })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -20,23 +20,15 @@ import type {
   DocusignTemplate,
   DocusignTemplateDetail,
 } from "@/features/docusign/types";
-import { hasPendingEnvelopes } from "@/features/docusign/utils";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Client, Paginated } from "@/features/clients/types";
 
-const POLL_MS = 15_000;
-const MIN_SYNC_GAP_MS = 5_000;
-
-export interface UseDocusignOptions {
-  /** Vista admin: solo lectura por vendedor, sin formulario de envío. */
-  adminView?: boolean;
-  /** Filtra contratos por vendedor (requerido en vista admin). */
-  salesRepId?: number | null;
-}
+const MIN_SYNC_GAP_MS = 30 * 60_000;
 
 export function useDocusign(token: string | null, options?: UseDocusignOptions) {
   const adminView = options?.adminView ?? false;
   const salesRepId = options?.salesRepId ?? null;
+  const autoSync = options?.autoSync ?? false;
   const queryClient = useQueryClient();
   const syncInFlightRef = useRef(false);
   const lastSyncAtRef = useRef(0);
@@ -71,7 +63,6 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
   });
 
   const envelopes = envelopesQuery.data ?? [];
-  const shouldPoll = useMemo(() => hasPendingEnvelopes(envelopes), [envelopes]);
 
   const syncPendingEnvelopes = useCallback(async (options?: { force?: boolean }) => {
     if (!token || !connected || !envelopesEnabled) return [];
@@ -93,10 +84,13 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
         `/docusign/envelopes/sync-pending${qs}`,
         {},
         token,
+        { silentHttpErrors: true },
       );
       lastSyncAtRef.current = Date.now();
       queryClient.setQueryData(envelopesQueryKey, data);
       return data;
+    } catch {
+      return queryClient.getQueryData<DocusignEnvelope[]>(envelopesQueryKey) ?? [];
     } finally {
       syncInFlightRef.current = false;
     }
@@ -106,30 +100,9 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
   syncPendingRef.current = syncPendingEnvelopes;
 
   useEffect(() => {
-    if (!envelopesEnabled) return;
-    lastSyncAtRef.current = 0;
+    if (!autoSync || !envelopesEnabled) return;
     void syncPendingRef.current().catch(() => undefined);
-  }, [envelopesEnabled, token, connected, salesRepId]);
-
-  useEffect(() => {
-    if (!envelopesEnabled || !shouldPoll) return;
-
-    const interval = window.setInterval(() => {
-      void syncPendingEnvelopes().catch(() => undefined);
-    }, POLL_MS);
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        void syncPendingEnvelopes({ force: true }).catch(() => undefined);
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [envelopesEnabled, shouldPoll, syncPendingEnvelopes]);
+  }, [autoSync, envelopesEnabled, token, connected, salesRepId]);
 
   useEffect(() => {
     if (!envelopesEnabled) return;
@@ -175,7 +148,12 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
 
   const syncEnvelopeMutation = useMutation({
     mutationFn: (envelopeId: number) =>
-      api.post<DocusignEnvelope>(`/docusign/envelopes/${envelopeId}/sync`, {}, token!),
+      api.post<DocusignEnvelope>(
+        `/docusign/envelopes/${envelopeId}/sync`,
+        {},
+        token!,
+        { silentHttpErrors: true },
+      ),
     onSuccess: (updated) => {
       queryClient.setQueryData<DocusignEnvelope[]>(envelopesQueryKey, (prev) =>
         prev ? prev.map((item) => (item.id === updated.id ? updated : item)) : [updated],

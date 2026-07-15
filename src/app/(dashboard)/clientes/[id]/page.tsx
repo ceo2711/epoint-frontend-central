@@ -108,6 +108,7 @@ export default function ClienteDetailPage() {
   const [downloadingContract, setDownloadingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
   const loadInFlight = useRef(false);
+  const deletedRef = useRef(false);
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
     token,
     editing && (hasPermission("clients:create") || hasPermission("clients:update")),
@@ -144,7 +145,7 @@ export default function ClienteDetailPage() {
     : undefined;
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
-    if (authLoading || loadInFlight.current) return;
+    if (deletedRef.current || authLoading || loadInFlight.current) return;
     if (!token || !idValid) {
       setLoading(false);
       if (!idValid) setLoadError("No se pudo cargar el cliente.");
@@ -196,6 +197,12 @@ export default function ClienteDetailPage() {
 
     const handleRefresh = (event: Event) => {
       const detail = (event as CustomEvent<ClientsRefreshDetail>).detail;
+      if (detail?.deleted && detail.clientId === id) {
+        deletedRef.current = true;
+        router.push("/clientes");
+        return;
+      }
+      if (deletedRef.current) return;
       if (!shouldRefreshClient(detail, id)) return;
       if (detail?.scope === "board") return;
       if (detail?.scope === "documents") {
@@ -207,7 +214,7 @@ export default function ClienteDetailPage() {
 
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
-  }, [id, idValid, load, refreshDocuments]);
+  }, [id, idValid, load, refreshDocuments, router]);
 
   useEffect(() => {
     if (!client?.id) return;
@@ -331,8 +338,13 @@ export default function ClienteDetailPage() {
 
   async function handleDelete() {
     if (!client) return;
+    deletedRef.current = true;
     const ok = await deleteClient(client.id, clientName);
-    if (ok) router.push("/clientes");
+    if (ok) {
+      router.push("/clientes");
+    } else {
+      deletedRef.current = false;
+    }
   }
 
   if (loading) {

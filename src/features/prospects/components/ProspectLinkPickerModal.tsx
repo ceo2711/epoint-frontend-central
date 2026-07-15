@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -11,6 +11,9 @@ import { ProspectStatusBadge } from "@/features/prospects/components/ProspectSta
 import type { Prospect } from "@/features/prospects/types";
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
+
+const MIN_SEARCH_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 350;
 
 interface ProspectLinkPickerModalProps {
   token: string | null;
@@ -30,26 +33,47 @@ export function ProspectLinkPickerModal({
   const { t } = useTranslation();
   const [search, setSearch] = useState(emailHint ?? "");
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  async function handleSearch() {
-    if (!token || !search.trim()) return;
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: "1", page_size: "20", search: search.trim() });
-      const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
-      setProspects(data.items);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const searchRequestRef = useRef(0);
 
   useEffect(() => {
-    if (emailHint) void handleSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailHint, token]);
+    const query = search.trim();
+    if (!token || query.length < MIN_SEARCH_LENGTH) {
+      setHasSearched(false);
+      setProspects([]);
+      setSelectedId(null);
+      setLoading(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const requestId = ++searchRequestRef.current;
+      setLoading(true);
+      setSelectedId(null);
+
+      const params = new URLSearchParams({ page: "1", page_size: "20", search: query });
+      void api
+        .get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token)
+        .then((data) => {
+          if (requestId !== searchRequestRef.current) return;
+          setProspects(data.items);
+          setHasSearched(true);
+        })
+        .catch(() => {
+          if (requestId !== searchRequestRef.current) return;
+          setProspects([]);
+          setHasSearched(true);
+        })
+        .finally(() => {
+          if (requestId === searchRequestRef.current) setLoading(false);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [search, token]);
 
   async function handleSubmit() {
     if (!selectedId) return;
@@ -65,25 +89,20 @@ export function ProspectLinkPickerModal({
   return (
     <Modal title={title} onClose={onClose} size="lg">
       <div className="space-y-4">
-        <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("prospects.searchPlaceholder")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleSearch();
-            }}
-          />
-          <Button type="button" variant="secondary" onClick={() => void handleSearch()} disabled={loading}>
-            {t("common.search")}
-          </Button>
-        </div>
+        <input
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t("prospects.searchPlaceholder")}
+          autoFocus
+        />
 
         {loading ? (
           <div className="flex justify-center py-6">
             <LoadingSpinner label={t("common.loading")} />
           </div>
+        ) : !hasSearched ? (
+          <p className="text-sm text-slate-500">{t("prospects.linkPickerPrompt")}</p>
         ) : prospects.length === 0 ? (
           <p className="text-sm text-slate-500">{t("prospects.linkPickerEmpty")}</p>
         ) : (

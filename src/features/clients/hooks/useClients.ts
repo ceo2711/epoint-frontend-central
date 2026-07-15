@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ClientMerchantFilter } from "@/features/clients/components/ClientListFilters";
 import { isUnauthorizedError } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
+import { invalidateClientsQueries } from "@/lib/invalidateClients";
 import { fetchClientsList } from "@/lib/queryFetchers";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -44,9 +45,7 @@ export function useClients(
 
   useEffect(() => {
     const handleRefresh = () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
-      void queryClient.refetchQueries({ queryKey: queryKeys.clients.all, type: "active" });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard", "metrics"] });
+      void invalidateClientsQueries(queryClient);
     };
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);

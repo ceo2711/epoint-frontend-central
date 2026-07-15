@@ -1,17 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HiOutlineTrash, HiOutlineUserPlus } from "react-icons/hi2";
+import { HiOutlineTrash } from "react-icons/hi2";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { IconActionButton } from "@/components/ui/IconActionButton";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useMerchant } from "@/contexts/MerchantContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { ClientCreateModal } from "@/features/clients/components/ClientCreateModal";
 import {
   ClientListFilters,
   type ClientMerchantFilter,
@@ -20,7 +18,6 @@ import { ClientList } from "@/features/clients/components/ClientList";
 import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { CLIENTS_PAGE_SIZE, useClients } from "@/features/clients/hooks/useClients";
-import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { onClientsRefresh } from "@/lib/clientEvents";
 
 export default function ClientesPage() {
@@ -35,7 +32,6 @@ export default function ClientesPage() {
         ? t("clients.subtitleOnboarding")
         : t("clients.subtitle");
   const [page, setPage] = useState(1);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
@@ -76,10 +72,6 @@ export default function ClientesPage() {
     search: debouncedSearch,
     merchantFilter: showMerchantFilter ? merchantFilter : activeMerchantId ?? undefined,
   });
-  const { merchants, loading: merchantsLoading } = useMerchantOptions(
-    token,
-    hasPermission("clients:create") || hasPermission("clients:update"),
-  );
   const { approveClient, rejectClient, resubmitClient, bulkDeleteClients } = useClientWorkflow(token);
 
   const visibleClientIds = useMemo(() => clients.map((client) => client.id), [clients]);
@@ -121,10 +113,6 @@ export default function ClientesPage() {
     }
   }
 
-  function handleCreateSuccess() {
-    setPage(1);
-  }
-
   function handlePageChange(nextPage: number) {
     setPage(nextPage);
     document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
@@ -147,17 +135,11 @@ export default function ClientesPage() {
             onMerchantFilterChange={setMerchantFilter}
           />
 
-          <div className="flex shrink-0 items-center gap-1.5 self-end">
-            {canRunReminders ? <OnboardingRemindersButton token={token} /> : null}
-            {hasPermission("clients:create") ? (
-              <IconActionButton
-                label={t("clients.register")}
-                icon={<HiOutlineUserPlus />}
-                variant="primary"
-                onClick={() => setCreateModalOpen(true)}
-              />
-            ) : null}
-          </div>
+          {canRunReminders ? (
+            <div className="flex shrink-0 items-center gap-1.5 self-end">
+              <OnboardingRemindersButton token={token} />
+            </div>
+          ) : null}
         </div>
 
         {canBulkDelete && selectedIds.length > 0 ? (
@@ -197,16 +179,6 @@ export default function ClientesPage() {
           />
         )}
       </PageContent>
-
-      {createModalOpen ? (
-        <ClientCreateModal
-          token={token}
-          merchants={merchants}
-          merchantsLoading={merchantsLoading}
-          onClose={() => setCreateModalOpen(false)}
-          onSuccess={handleCreateSuccess}
-        />
-      ) : null}
     </>
   );
 }

@@ -83,19 +83,44 @@ export function CalendlyEventModal({
         {canLinkProspect ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {t("prospects.title")}
+              {t("common.client")}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {event.prospect_id ? (
-                <Link href={`/prospectos/${event.prospect_id}`} className="btn btn-secondary btn-sm">
-                  {t("prospects.viewLinkedProspect")}
-                </Link>
-              ) : onLinkProspect ? (
+            {event.linked_prospect || event.prospect_id ? (
+              <div className="mt-2 space-y-1">
+                <p className="font-medium text-slate-900">
+                  {event.linked_prospect?.full_name ?? event.invitee_name ?? t("common.dash")}
+                </p>
+                <p className="text-slate-600">
+                  {event.linked_prospect?.email ?? event.invitee_email ?? t("common.dash")}
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {event.linked_prospect?.converted_client_id ? (
+                    <Link
+                      href={`/clientes/${event.linked_prospect.converted_client_id}`}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      {t("calendly.viewLinkedClient")}
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={`/prospectos/${event.linked_prospect?.id ?? event.prospect_id}`}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    {event.linked_prospect?.converted_client_id
+                      ? t("prospects.viewLinkedProspect")
+                      : t("calendly.viewLinkedProspect")}
+                  </Link>
+                </div>
+              </div>
+            ) : onLinkProspect ? (
+              <div className="mt-2">
                 <Button type="button" variant="secondary" size="sm" onClick={onLinkProspect}>
                   {t("prospects.linkToProspect")}
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">{t("calendly.noLinkedClient")}</p>
+            )}
           </div>
         ) : null}
 

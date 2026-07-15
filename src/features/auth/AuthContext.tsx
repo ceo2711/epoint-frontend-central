@@ -23,6 +23,7 @@ import {
   revokeSession,
 } from "@/features/auth/auth-session";
 import {
+  ACCESS_TOKEN_REFRESHED_EVENT,
   clearToken,
   clearTwoFactorTempToken,
   getToken,
@@ -89,6 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => setUnauthorizedHandler(null);
   }, [router, queryClient]);
+
+  useEffect(() => {
+    const handleTokenRefresh = (event: Event) => {
+      const nextToken = (event as CustomEvent<{ token: string }>).detail?.token;
+      if (nextToken) setTokenState(nextToken);
+    };
+    window.addEventListener(ACCESS_TOKEN_REFRESHED_EVENT, handleTokenRefresh);
+    return () => window.removeEventListener(ACCESS_TOKEN_REFRESHED_EVENT, handleTokenRefresh);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {

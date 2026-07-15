@@ -11,6 +11,8 @@ export { ApiError, isUnauthorizedError } from "@/lib/api-error";
 type RequestOptions = RequestInit & {
   token?: string | null;
   skipAuthRefresh?: boolean;
+  /** No registrar en consola errores HTTP esperados (p. ej. sync en background). */
+  silentHttpErrors?: boolean;
 };
 
 let activeMerchantIdProvider: () => number | null = () => null;
@@ -34,7 +36,7 @@ async function request<T>(
   options: RequestOptions = {},
   isRetry = false,
 ): Promise<T> {
-  const { token, skipAuthRefresh, headers, ...rest } = options;
+  const { token, skipAuthRefresh, silentHttpErrors, headers, ...rest } = options;
   const method = rest.method ?? "GET";
 
   let response: Response;
@@ -74,7 +76,9 @@ async function request<T>(
     if (response.status === 401) {
       notifyUnauthorized();
     }
-    logClientError("api:http", message, { method, path, status: response.status });
+    if (!silentHttpErrors) {
+      logClientError("api:http", message, { method, path, status: response.status });
+    }
     throw new ApiError(response.status, message);
   }
 
@@ -200,8 +204,12 @@ export const api = {
   getBlob: (path: string, token?: string | null) =>
     requestBlob(path, { token }),
 
-  post: <T>(path: string, body: unknown, token?: string | null) =>
-    request<T>(path, { method: "POST", body: JSON.stringify(body), token }),
+  post: <T>(
+    path: string,
+    body: unknown,
+    token?: string | null,
+    options?: Pick<RequestOptions, "silentHttpErrors" | "skipAuthRefresh">,
+  ) => request<T>(path, { method: "POST", body: JSON.stringify(body), token, ...options }),
 
   upload: <T>(path: string, formData: FormData, token?: string | null) =>
     uploadRequest<T>(path, formData, token),

@@ -21,6 +21,7 @@ import { SendContractForm } from "@/features/docusign/components/SendContractFor
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { DocusignEnvelope, DocusignRegisterClientPayload } from "@/features/docusign/types";
+import { PROSPECT_SEARCH_LIMIT } from "@/features/prospects/components/ProspectSearchSelect";
 import type { Prospect } from "@/features/prospects/types";
 import type { Paginated } from "@/types/api";
 import { ApiError, api } from "@/lib/api";
@@ -88,11 +89,15 @@ export function ContratosPage() {
 
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
 
-  async function searchProspects(query: string): Promise<Prospect[]> {
-    if (!token || !canLinkProspect) return [];
-    const params = new URLSearchParams({ search: query, page: "1", page_size: "10" });
+  async function searchProspects(query: string) {
+    if (!token || !canLinkProspect) return { items: [], total: 0 };
+    const params = new URLSearchParams({
+      search: query,
+      page: "1",
+      page_size: String(PROSPECT_SEARCH_LIMIT),
+    });
     const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
-    return data.items;
+    return { items: data.items, total: data.total };
   }
 
   async function handleSend(payload: Parameters<typeof sendEnvelope>[0]) {

@@ -27,11 +27,14 @@ import { EVENTS_AUTO_SYNC_MS } from "@/features/calendly/utils/eventTypesCache";
 export function useCalendly(
   token: string | null,
   selectedUserId: number | null,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; loadSalesReps?: boolean },
 ) {
   const enabled = options?.enabled ?? true;
+  const loadSalesRepsEnabled = options?.loadSalesReps ?? false;
   const queryClient = useQueryClient();
   const connectionRef = useRef<CalendlyConnection | null>(null);
+  const syncPromiseRef = useRef<Promise<void> | null>(null);
+  const lastSyncAttemptRef = useRef(0);
   const userQuery = calendlyUserQuery(selectedUserId);
 
   const connectionQuery = useQuery({
@@ -58,32 +61,63 @@ export function useCalendly(
   const salesRepsQuery = useQuery({
     queryKey: queryKeys.calendly.salesReps,
     queryFn: () => fetchCalendlySalesReps(token!),
-    enabled: !!token,
+    enabled: !!token && loadSalesRepsEnabled,
     staleTime: 60_000,
   });
 
-  const syncAndRefreshEvents = useCallback(async () => {
-    if (!token || !connectionRef.current?.connected) return;
-    try {
-      await api.post(`/calendly/sync${userQuery}`, {}, token);
-    } catch {
-      // Si falla la sync, igual refrescamos eventos locales.
-    }
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.connection(selectedUserId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.calendly.events(selectedUserId) }),
-    ]);
-  }, [token, userQuery, queryClient, selectedUserId]);
+  const syncAndRefreshEvents = useCallback(
+    async (options?: { silent?: boolean; force?: boolean }) => {
+      if (!token || !connectionRef.current?.connected) return;
+
+      if (syncPromiseRef.current) {
+        await syncPromiseRef.current;
+        return;
+      }
+
+      const silent = options?.silent ?? true;
+      const force = options?.force ?? false;
+      const now = Date.now();
+      const minIntervalMs = 60_000;
+
+      syncPromiseRef.current = (async () => {
+        const shouldCallRemoteSync = force || now - lastSyncAttemptRef.current >= minIntervalMs;
+
+        if (shouldCallRemoteSync) {
+          lastSyncAttemptRef.current = now;
+          try {
+            await api.post(`/calendly/sync${userQuery}`, {}, token, { silentHttpErrors: silent });
+          } catch {
+            // Si falla la sync, igual refrescamos eventos locales.
+          }
+        }
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.calendly.connection(selectedUserId) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.calendly.events(selectedUserId) }),
+        ]);
+      })();
+
+      try {
+        await syncPromiseRef.current;
+      } finally {
+        syncPromiseRef.current = null;
+      }
+    },
+    [token, userQuery, queryClient, selectedUserId],
+  );
 
   useEffect(() => {
     if (!token || !connected || !enabled) return;
 
-    void syncAndRefreshEvents();
+    void syncAndRefreshEvents({ silent: true });
 
-    const intervalId = window.setInterval(() => void syncAndRefreshEvents(), EVENTS_AUTO_SYNC_MS);
+    const intervalId = window.setInterval(
+      () => void syncAndRefreshEvents({ silent: true }),
+      EVENTS_AUTO_SYNC_MS,
+    );
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        void syncAndRefreshEvents();
+        void syncAndRefreshEvents({ silent: true });
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -187,7 +221,7 @@ export function useCalendly(
   }
 
   async function sync() {
-    await syncAndRefreshEvents();
+    await syncAndRefreshEvents({ silent: false, force: true });
   }
 
   const createEventMutation = useMutation({
@@ -201,7 +235,7 @@ export function useCalendly(
         token!,
       ),
     onSuccess: () => {
-      void syncAndRefreshEvents();
+      void syncAndRefreshEvents({ silent: true, force: true });
     },
   });
 
@@ -216,7 +250,7 @@ export function useCalendly(
         token!,
       ),
     onSuccess: () => {
-      void syncAndRefreshEvents();
+      void syncAndRefreshEvents({ silent: true, force: true });
     },
   });
 

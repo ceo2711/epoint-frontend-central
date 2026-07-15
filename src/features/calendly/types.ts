@@ -16,6 +16,13 @@ export interface CalendlySalesRep {
   last_synced_at: string | null;
 }
 
+export interface CalendlyLinkedProspect {
+  id: number;
+  full_name: string;
+  email: string;
+  converted_client_id?: number | null;
+}
+
 export interface CalendlyEvent {
   id: number;
   name: string;
@@ -30,6 +37,7 @@ export interface CalendlyEvent {
   location: string | null;
   meeting_url: string | null;
   prospect_id?: number | null;
+  linked_prospect?: CalendlyLinkedProspect | null;
 }
 
 export interface CalendlyCustomQuestion {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
+import { ProspectSearchSelect, type ProspectSearchResponse } from "@/features/prospects/components/ProspectSearchSelect";
 import type { Prospect } from "@/features/prospects/types";
 import type {
   DocusignSendPayload,
@@ -13,18 +14,27 @@ import type {
   DocusignTemplateDetail,
 } from "@/features/docusign/types";
 
+const EMAIL_LOOKUP_DEBOUNCE_MS = 400;
+const MIN_EMAIL_LOOKUP_LENGTH = 5;
+
 interface SendContractFormProps {
   templates: DocusignTemplate[];
   defaultTemplateId?: string | null;
   defaultRoleName?: string | null;
   onSearchClients: (query: string) => Promise<Client[]>;
-  onSearchProspects?: (query: string) => Promise<Prospect[]>;
+  onSearchProspects?: (query: string) => Promise<ProspectSearchResponse>;
   onLoadTemplateDetail?: (templateId: string) => Promise<DocusignTemplateDetail | null>;
   onSubmit: (payload: DocusignSendPayload) => Promise<void>;
   /** Sin card ni título; para usar dentro de un modal. */
   embedded?: boolean;
   /** Datos precargados (p. ej. invitado de Calendly o prospecto). */
-  initialSigner?: { name: string; email: string; clientId?: number; prospectId?: number };
+  initialSigner?: {
+    name: string;
+    email: string;
+    clientId?: number;
+    prospectId?: number;
+    prospect?: Pick<Prospect, "id" | "full_name" | "email" | "status">;
+  };
   hideClientSearch?: boolean;
   hideProspectSearch?: boolean;
 }
@@ -52,11 +62,10 @@ export function SendContractForm({
   const [clientSearch, setClientSearch] = useState("");
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(initialSigner?.clientId);
-  const [prospectSearch, setProspectSearch] = useState("");
-  const [prospectOptions, setProspectOptions] = useState<Prospect[]>([]);
-  const [selectedProspectId, setSelectedProspectId] = useState<number | undefined>(
-    initialSigner?.prospectId,
+  const [linkedProspect, setLinkedProspect] = useState<Prospect | null>(
+    initialSigner?.prospect ? (initialSigner.prospect as Prospect) : null,
   );
+  const skipEmailLinkRef = useRef(!!initialSigner?.prospectId);
   const [submitting, setSubmitting] = useState(false);
   const [templateDetail, setTemplateDetail] = useState<DocusignTemplateDetail | null>(null);
 
@@ -80,9 +89,47 @@ export function SendContractForm({
   }, [initialSigner?.email, initialSigner?.clientId, onSearchClients]);
 
   useEffect(() => {
-    if (!initialSigner?.prospectId) return;
-    setSelectedProspectId(initialSigner.prospectId);
-  }, [initialSigner?.prospectId]);
+    if (!initialSigner?.prospect) return;
+    setLinkedProspect(initialSigner.prospect as Prospect);
+    skipEmailLinkRef.current = true;
+  }, [initialSigner?.prospect]);
+
+  useEffect(() => {
+    if (!onSearchProspects || hideProspectSearch) return;
+
+    const email = signerEmail.trim();
+    if (!email.includes("@") || email.length < MIN_EMAIL_LOOKUP_LENGTH) {
+      return;
+    }
+    if (skipEmailLinkRef.current) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void onSearchProspects(email).then(({ items }) => {
+        if (cancelled) return;
+        const match = items.find((p) => p.email.toLowerCase() === email.toLowerCase());
+        if (match) {
+          setLinkedProspect(match);
+          setSelectedClientId(undefined);
+          setSignerName(match.full_name);
+          setClientSearch("");
+          setClientOptions([]);
+          return;
+        }
+        setLinkedProspect((current) => {
+          if (current && current.email.toLowerCase() !== email.toLowerCase()) {
+            return null;
+          }
+          return current;
+        });
+      });
+    }, EMAIL_LOOKUP_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signerEmail, onSearchProspects, hideProspectSearch]);
 
   useEffect(() => {
     if (!templateDetail?.roles.length) return;
@@ -105,18 +152,6 @@ export function SendContractForm({
   }, [clientSearch, onSearchClients]);
 
   useEffect(() => {
-    const query = prospectSearch.trim();
-    if (!onSearchProspects || query.length < 2) {
-      setProspectOptions([]);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void onSearchProspects(query).then(setProspectOptions);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [prospectSearch, onSearchProspects]);
-
-  useEffect(() => {
     if (!templateId || !onLoadTemplateDetail) {
       setTemplateDetail(null);
       return;
@@ -133,24 +168,34 @@ export function SendContractForm({
 
   function selectClient(client: Client) {
     setSelectedClientId(client.id);
-    setSelectedProspectId(undefined);
+    setLinkedProspect(null);
+    skipEmailLinkRef.current = false;
     setSignerName(`${client.first_name} ${client.last_name}`.trim());
     setSignerEmail(client.email);
     setClientSearch(`${client.first_name} ${client.last_name}`);
     setClientOptions([]);
-    setProspectSearch("");
-    setProspectOptions([]);
   }
 
-  function selectProspect(prospect: Prospect) {
-    setSelectedProspectId(prospect.id);
+  function handleProspectChange(prospect: Prospect | null) {
+    if (!prospect) {
+      skipEmailLinkRef.current = true;
+      setLinkedProspect(null);
+      return;
+    }
+    skipEmailLinkRef.current = false;
+    setLinkedProspect(prospect);
     setSelectedClientId(undefined);
     setSignerName(prospect.full_name);
     setSignerEmail(prospect.email);
-    setProspectSearch(prospect.full_name);
-    setProspectOptions([]);
     setClientSearch("");
     setClientOptions([]);
+  }
+
+  function handleSignerEmailChange(email: string) {
+    if (skipEmailLinkRef.current && email.trim() !== signerEmail.trim()) {
+      skipEmailLinkRef.current = false;
+    }
+    setSignerEmail(email);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -166,15 +211,15 @@ export function SendContractForm({
         template_role_name: roleName.trim() || undefined,
         subject: subject.trim(),
         client_id: selectedClientId,
-        prospect_id: selectedProspectId,
+        prospect_id: linkedProspect?.id,
       });
       if (!embedded) {
         setSignerName("");
         setSignerEmail("");
         setClientSearch("");
         setSelectedClientId(undefined);
-        setProspectSearch("");
-        setSelectedProspectId(undefined);
+        setLinkedProspect(null);
+        skipEmailLinkRef.current = false;
       }
     } finally {
       submittingRef.current = false;
@@ -224,36 +269,6 @@ export function SendContractForm({
         </>
       ) : null}
 
-      {!hideProspectSearch && onSearchProspects ? (
-        <>
-          <Input
-            label={t("docusign.searchProspect")}
-            value={prospectSearch}
-            onChange={(e) => setProspectSearch(e.target.value)}
-            placeholder={t("docusign.searchProspectPlaceholder")}
-          />
-          {selectedProspectId ? (
-            <p className="text-xs text-emerald-700">{t("docusign.prospectLinkedHint")}</p>
-          ) : null}
-          {prospectOptions.length > 0 ? (
-            <ul className="rounded-lg border border-slate-200 bg-white shadow-sm">
-              {prospectOptions.map((prospect) => (
-                <li key={prospect.id}>
-                  <button
-                    type="button"
-                    className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50"
-                    onClick={() => selectProspect(prospect)}
-                  >
-                    <span className="font-medium text-slate-900">{prospect.full_name}</span>
-                    <span className="text-slate-500">{prospect.email}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </>
-      ) : null}
-
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
           label={t("docusign.signerName")}
@@ -265,10 +280,22 @@ export function SendContractForm({
           label={t("docusign.signerEmail")}
           type="email"
           value={signerEmail}
-          onChange={(e) => setSignerEmail(e.target.value)}
+          onChange={(e) => handleSignerEmailChange(e.target.value)}
           required
         />
       </div>
+
+      {!hideProspectSearch && (onSearchProspects || linkedProspect) ? (
+        <ProspectSearchSelect
+          label={t("docusign.searchProspect")}
+          searchPlaceholder={t("docusign.searchProspectPlaceholder")}
+          prospect={linkedProspect}
+          externalSearch={signerEmail}
+          onSearch={onSearchProspects ?? (async () => ({ items: [], total: 0 }))}
+          onChange={handleProspectChange}
+          disabled={!onSearchProspects}
+        />
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium text-slate-700">
