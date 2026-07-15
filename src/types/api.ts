@@ -138,6 +138,7 @@ export interface Client {
   addresses?: Address[];
   vehicles?: Vehicle[];
   documents?: DocumentBrief[];
+  source_prospect?: import("@/features/prospects/types").ProspectPipelineSummary | null;
 }
 
 export interface ClientPortalPassword {

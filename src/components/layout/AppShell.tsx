@@ -17,10 +17,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const showStaffNotifications = user?.role.code !== "CLIENT";
   const [mounted, setMounted] = useState(false);
+  const [showChatWidget, setShowChatWidget] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!showStaffNotifications) {
+      setShowChatWidget(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowChatWidget(true), 5_000);
+    return () => window.clearTimeout(timer);
+  }, [showStaffNotifications]);
 
   return (
     <NotificationsProvider enabled={showStaffNotifications}>
@@ -41,7 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-      {mounted && showStaffNotifications
+      {mounted && showStaffNotifications && showChatWidget
         ? createPortal(<LazyFloatingChatWidget />, document.body)
         : null}
     </NotificationsProvider>

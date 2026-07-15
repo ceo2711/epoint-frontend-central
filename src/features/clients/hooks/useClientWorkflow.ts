@@ -82,6 +82,8 @@ export function useClientWorkflow(token: string | null) {
               email: res.client.email,
               tempPassword: res.temp_password,
             });
+            await invalidateClientsQueries(queryClient, { clientId });
+            emitClientsRefresh({ clientId });
             return {
               title: t("clients.approvedTitle"),
               message: t("clients.approvedMessage", { name: clientName ?? "" }),
@@ -98,7 +100,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, advisors, loadAdvisors, modal, t],
+    [token, advisors, loadAdvisors, modal, t, queryClient],
   );
 
   const rejectClient = useCallback(
@@ -116,6 +118,8 @@ export function useClientWorkflow(token: string | null) {
         onConfirm: async (reason) => {
           try {
             await api.post(`/clients/${clientId}/reject`, { reason }, token);
+            await invalidateClientsQueries(queryClient, { clientId });
+            emitClientsRefresh({ clientId });
             return {
               title: t("clients.rejectedTitle"),
               message: t("clients.rejectedMessage", { name: clientName ?? "" }),
@@ -131,7 +135,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, modal, t],
+    [token, modal, t, queryClient],
   );
 
   const resubmitClient = useCallback(
@@ -146,6 +150,8 @@ export function useClientWorkflow(token: string | null) {
         onConfirmAsync: async () => {
           try {
             await api.post(`/clients/${clientId}/resubmit`, {}, token);
+            await invalidateClientsQueries(queryClient, { clientId });
+            emitClientsRefresh({ clientId });
             return {
               title: t("clients.resubmit"),
               message: t("clients.resubmitSuccess"),
@@ -161,7 +167,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, modal, t],
+    [token, modal, t, queryClient],
   );
 
   const deleteClient = useCallback(

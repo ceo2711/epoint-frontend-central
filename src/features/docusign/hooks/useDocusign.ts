@@ -10,7 +10,7 @@ import {
 } from "@/lib/queryFetchers";
 import { ApiError, api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
-import { DOCUSIGN_REFRESH_EVENT, dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
+import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import type {
   DocusignConnection,
   DocusignEnvelope,
@@ -25,10 +25,24 @@ import type { Client, Paginated } from "@/features/clients/types";
 
 const MIN_SYNC_GAP_MS = 30 * 60_000;
 
+export interface UseDocusignOptions {
+  adminView?: boolean;
+  salesRepId?: number | null;
+  autoSync?: boolean;
+  /** Cargar lista de envelopes (desactivar si solo se envían contratos). */
+  loadEnvelopes?: boolean;
+  /** Escuchar envíos y disparar sync-pending. */
+  listenRefresh?: boolean;
+}
+
+const QUERY_STALE_MS = 5 * 60_000;
+
 export function useDocusign(token: string | null, options?: UseDocusignOptions) {
   const adminView = options?.adminView ?? false;
   const salesRepId = options?.salesRepId ?? null;
   const autoSync = options?.autoSync ?? false;
+  const loadEnvelopes = options?.loadEnvelopes ?? true;
+  const listenRefresh = options?.listenRefresh ?? false;
   const queryClient = useQueryClient();
   const syncInFlightRef = useRef(false);
   const lastSyncAtRef = useRef(0);
@@ -42,6 +56,7 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
     queryKey: queryKeys.docusign.connection,
     queryFn: () => fetchDocusignConnection(token!),
     enabled: !!token,
+    staleTime: QUERY_STALE_MS,
   });
 
   const connected = connectionQuery.data?.connected ?? false;
@@ -50,16 +65,18 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
     queryKey: queryKeys.docusign.templates,
     queryFn: () => fetchDocusignTemplates(token!),
     enabled: !!token && connected && !adminView,
+    staleTime: QUERY_STALE_MS,
   });
 
   const envelopesEnabled =
-    !!token && connected && (!adminView || salesRepId != null);
+    loadEnvelopes && !!token && connected && (!adminView || salesRepId != null);
 
   const envelopesQuery = useQuery({
     queryKey: envelopesQueryKey,
     queryFn: () =>
       fetchDocusignEnvelopes(token!, adminView ? salesRepId : undefined),
     enabled: envelopesEnabled,
+    staleTime: QUERY_STALE_MS,
   });
 
   const envelopes = envelopesQuery.data ?? [];
@@ -105,15 +122,15 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
   }, [autoSync, envelopesEnabled, token, connected, salesRepId]);
 
   useEffect(() => {
-    if (!envelopesEnabled) return;
+    if (!listenRefresh || !envelopesEnabled) return;
 
     const onRefresh = () => {
-      void syncPendingEnvelopes({ force: true }).catch(() => undefined);
+      void syncPendingRef.current({ force: true }).catch(() => undefined);
     };
 
     window.addEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
     return () => window.removeEventListener(DOCUSIGN_REFRESH_EVENT, onRefresh);
-  }, [envelopesEnabled, syncPendingEnvelopes]);
+  }, [listenRefresh, envelopesEnabled]);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -142,7 +159,6 @@ export function useDocusign(token: string | null, options?: UseDocusignOptions) 
       queryClient.setQueryData<DocusignEnvelope[]>(envelopesQueryKey, (prev) =>
         prev ? [result.envelope, ...prev] : [result.envelope],
       );
-      dispatchDocusignRefresh({ envelopeId: result.envelope.id });
     },
   });
 

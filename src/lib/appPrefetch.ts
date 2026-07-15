@@ -222,7 +222,25 @@ export async function prefetchAppData(
   token: string,
   user: User,
   hasPermission: (permission: string) => boolean,
+  options?: { skipHref?: string },
 ) {
-  const hrefs = getAccessibleHrefs(user, hasPermission);
-  await Promise.allSettled(hrefs.map((href) => prefetchRouteData({ queryClient, token, user, hasPermission }, href)));
+  const hrefs = getAccessibleHrefs(user, hasPermission).filter((href) => href !== options?.skipHref);
+  for (const href of hrefs) {
+    await prefetchRouteData({ queryClient, token, user, hasPermission }, href).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
+
+export async function prefetchCurrentRouteData(
+  queryClient: QueryClient,
+  token: string,
+  user: User,
+  hasPermission: (permission: string) => boolean,
+  pathname: string,
+) {
+  const href = getAccessibleHrefs(user, hasPermission).find(
+    (item) => pathname === item || pathname.startsWith(`${item}/`),
+  );
+  if (!href) return;
+  await prefetchRouteData({ queryClient, token, user, hasPermission }, href);
 }

@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
-const STALE_TIME_MS = 30_000;
+const STALE_TIME_MS = 5 * 60_000;
 const GC_TIME_MS = 5 * 60_000;
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: STALE_TIME_MS,
             gcTime: GC_TIME_MS,
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false,
             retry: 1,
           },
         },

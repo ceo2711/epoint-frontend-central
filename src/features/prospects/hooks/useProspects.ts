@@ -72,26 +72,36 @@ export function useProspects(
   return { prospects, loading, error, load, total, pages, pageSize };
 }
 
+export interface ProspectDetailReloadOptions {
+  /** Actualiza datos sin mostrar el spinner de página completa. */
+  silent?: boolean;
+}
+
+function normalizeProspectDetail(data: ProspectDetail): ProspectDetail {
+  return {
+    ...data,
+    calendly_event: data.calendly_event ?? null,
+    docusign_envelope: data.docusign_envelope ?? null,
+    docusign_envelopes:
+      data.docusign_envelopes ??
+      (data.docusign_envelope ? [data.docusign_envelope] : []),
+    payment_link: data.payment_link ?? null,
+  };
+}
+
 export function useProspectDetail(token: string | null, prospectId: number) {
   const [prospect, setProspect] = useState<ProspectDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: ProspectDetailReloadOptions) => {
     if (!token || !prospectId) return;
-    setLoading(true);
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
     try {
       const data = await api.get<ProspectDetail>(`/prospects/${prospectId}`, token);
-      setProspect({
-        ...data,
-        calendly_event: data.calendly_event ?? null,
-        docusign_envelope: data.docusign_envelope ?? null,
-        docusign_envelopes:
-          data.docusign_envelopes ??
-          (data.docusign_envelope ? [data.docusign_envelope] : []),
-        payment_link: data.payment_link ?? null,
-      });
+      setProspect(normalizeProspectDetail(data));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token, prospectId]);
 

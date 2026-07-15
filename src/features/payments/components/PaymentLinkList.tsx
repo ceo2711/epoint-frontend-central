@@ -12,6 +12,7 @@ import {
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentLink } from "@/features/payments/types";
+import { getProviderLabel } from "@/features/payments/utils/providers";
 
 interface PaymentLinkListProps {
   links: PaymentLink[];
@@ -62,7 +63,7 @@ export function PaymentLinkList({
               </p>
               <p className="text-sm text-[var(--color-text-muted)]">{link.customer_email}</p>
               <p className="mt-1 text-sm">
-                {link.currency} {Number(link.amount).toFixed(2)} · {link.provider === "stripe" ? "Stripe" : "Authorize.net"}
+                {link.currency} {Number(link.amount).toFixed(2)} · {getProviderLabel(link.provider)}
               </p>
               {link.created_by_name ? (
                 <p className="mt-1 text-xs text-[var(--color-text-muted)]">

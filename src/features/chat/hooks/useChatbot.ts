@@ -3,12 +3,14 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { translate } from "@/i18n";
 import { ApiError, api } from "@/lib/api";
 import { emitClientsRefresh } from "@/lib/clientEvents";
+import { invalidateClientsQueries } from "@/lib/invalidateClients";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Board, Paginated, Client } from "@/types/api";
 import type { ChatMessage, ChatbotApiResponse, ChatCalendlyOptions, ChatCalendlySelection, PendingChatAction } from "@/features/chat/types";
@@ -65,6 +67,7 @@ export function useChatbot(
 ) {
   const { userId = null, clientIdHint = null, canUploadDocuments = false, canUploadToBoard = false } = options;
   const modal = useModal();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -294,6 +297,13 @@ export function useChatbot(
           currentPendingAction.action,
         );
 
+      const approvals =
+        response.client_approvals?.length
+          ? response.client_approvals
+          : response.client_approval
+            ? [response.client_approval]
+            : [];
+
       const shouldRefreshClients =
         registeredViaChat ||
         clientListMutatedViaChat ||
@@ -302,8 +312,20 @@ export function useChatbot(
         Boolean(response.clients_updated);
 
       if (shouldRefreshClients) {
+        const affectedIds = approvals.map((approval) => approval.client_id);
+        if (response.client_id && !affectedIds.includes(response.client_id)) {
+          affectedIds.push(response.client_id);
+        }
+        void invalidateClientsQueries(
+          queryClient,
+          affectedIds.length === 1
+            ? { clientId: affectedIds[0] }
+            : affectedIds.length > 1
+              ? { clientIds: affectedIds }
+              : undefined,
+        );
         emitClientsRefresh({
-          clientId: response.client_id ?? undefined,
+          clientId: response.client_id ?? affectedIds[0],
           showAllMerchants: Boolean(response.clients_updated),
         });
       }
@@ -311,13 +333,6 @@ export function useChatbot(
       if (response.calendly_updated) {
         emitCalendlyRefresh();
       }
-
-      const approvals =
-        response.client_approvals?.length
-          ? response.client_approvals
-          : response.client_approval
-            ? [response.client_approval]
-            : [];
 
       for (const approval of approvals) {
         savePortalCredentials(approval.client_id, {
@@ -344,7 +359,7 @@ export function useChatbot(
 
       appendAssistant(response.reply);
     },
-    [appendAssistant, modal, t],
+    [appendAssistant, modal, queryClient, t],
   );
 
   const sendCalendlySelection = useCallback(

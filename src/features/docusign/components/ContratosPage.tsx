@@ -62,6 +62,7 @@ export function ContratosPage() {
   } = useDocusign(token, {
     adminView: isAdmin,
     salesRepId: isAdmin ? selectedRepId : undefined,
+    listenRefresh: true,
   });
 
   useEffect(() => {

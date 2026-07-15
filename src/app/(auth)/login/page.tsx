@@ -32,7 +32,7 @@ export default function LoginPage() {
     setStep("credentials");
   }
 
-  if (isLoading || user) {
+  if (isLoading) {
     return (
       <div className="login-bg relative flex min-h-screen items-center justify-center">
         <NightSkyBackground />

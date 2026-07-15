@@ -124,9 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTokenState(response.access_token);
       setUser(response.user);
       if (response.must_change_password) {
-        router.push("/cambiar-contrasena");
+        router.replace("/cambiar-contrasena");
       } else {
-        router.push(getDefaultAppPath(response.user.role.code));
+        router.replace(getDefaultAppPath(response.user.role.code));
       }
       return { requiresTwoFactor: false };
     },
@@ -161,9 +161,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(response.user);
 
       if (response.must_change_password) {
-        router.push("/cambiar-contrasena");
+        router.replace("/cambiar-contrasena");
       } else {
-        router.push(getDefaultAppPath(response.user.role.code));
+        router.replace(getDefaultAppPath(response.user.role.code));
       }
     },
     [router, queryClient],

@@ -359,11 +359,14 @@ export const en: Messages = {
   },
   payments: {
     title: "Payments",
-    subtitle: "Generate payment links for your clients with Stripe or Authorize.net",
+    subtitle: "Generate personalized links with Authorize.net or PayPal for prospects and clients",
     stubModeHint:
-      "Preparation mode: the link works in the app. Stripe and Authorize.net will be connected tomorrow with real credentials.",
+      "Preparation mode: without active credentials, the link opens the internal page and allows simulating payment.",
     createSuccessTitle: "Link created",
     createSuccessMessage: "The link was copied to your clipboard. Share it with the client to collect payment.",
+    createSuccessEmailTitle: "Link sent by email",
+    createSuccessEmailMessage:
+      "We sent the payment link to {email}. It was also copied to your clipboard in case you need to share it manually.",
     createError: "Could not create the payment link",
     cancelError: "Could not cancel the link",
     adminRepsTitle: "Sales reps",
@@ -371,7 +374,7 @@ export const en: Messages = {
     backToAll: "View all payments",
     form: {
       title: "New payment link",
-      subtitle: "Enter client details and amount. A shareable link will be generated.",
+      subtitle: "Enter client details and amount. If it matches a prospect, you can link them before sending.",
       firstName: "Client first name",
       lastName: "Client last name",
       email: "Client email",
@@ -379,8 +382,18 @@ export const en: Messages = {
       amount: "Amount (USD)",
       provider: "Payment provider",
       description: "Description (optional)",
+      searchProspect: "Link to prospect (optional)",
+      searchProspectPlaceholder: "Search by full name or email…",
+      prospectLinkedHint: "The payment link will be linked to this prospect.",
+      changeProspect: "Change prospect",
+      clearProspect: "Remove",
+      sendEmail: "Email payment link to client",
+      sendEmailHint:
+        "The client will receive a branded ePoint email with a button to complete payment.",
       generate: "Generate payment link",
+      generateAndSend: "Generate and send by email",
       generating: "Generating...",
+      generatingAndSending: "Generating and sending...",
     },
     list: {
       title: "Payment links",
@@ -399,22 +412,6 @@ export const en: Messages = {
       expired: "Expired",
       cancelled: "Cancelled",
     },
-    config: {
-      title: "Payment settings",
-      subtitle: "Stripe and Authorize.net status. Admins only.",
-      connected: "Configured",
-      pending: "Pending",
-      stubNote:
-        "Stripe and Authorize.net credentials are loaded from server environment variables. When ready, links will use real checkout.",
-      defaultProvider: "Default provider",
-      enabled: "Payments enabled",
-      envNote:
-        "Keys: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, AUTHORIZE_API_LOGIN_ID, AUTHORIZE_TRANSACTION_KEY",
-      save: "Save settings",
-      savedTitle: "Settings saved",
-      savedMessage: "Payment preferences were updated successfully.",
-      saveError: "Could not save settings",
-    },
     register: {
       title: "Register client",
       subtitle: "Payment from {name} ({email}) was received. Complete CRM registration.",
@@ -425,11 +422,12 @@ export const en: Messages = {
     public: {
       title: "ePoint payment",
       paid: "Payment received! Thank you. Your sales rep was notified.",
-      stubHint: "Test environment: payment is simulated until Stripe/Authorize.net are connected.",
+      stubHint: "Test environment: payment is simulated until Authorize.net or PayPal are connected.",
       payStub: "Simulate successful payment",
+      payWithProvider: "Pay with {provider}",
       processing: "Processing...",
       payError: "Could not process payment",
-      awaitingIntegration: "Provider checkout will be available soon.",
+      awaitingIntegration: "Provider checkout will be available once credentials are configured.",
       unavailable: "This link is no longer available.",
       error: "Payment link not found",
     },
@@ -510,6 +508,7 @@ export const en: Messages = {
     linked: {
       meeting: "Meeting",
       meetingEmpty: "No linked meeting.",
+      meetingPendingContact: "Mark as contacted once the meeting has taken place.",
       contract: "Contract",
       contractEmpty: "No linked contract.",
       contractSigned: "Signed",
@@ -518,6 +517,9 @@ export const en: Messages = {
       moreContracts: "+{count} more contract(s) in history",
       payment: "Payment",
       paymentEmpty: "No linked payment.",
+      stepCompleted: "Step completed",
+      allStepsComplete:
+        "All three steps are done. The prospect will automatically move to Clients for onboarding.",
     },
     columns: {
       name: "Name",
@@ -691,6 +693,9 @@ export const en: Messages = {
     loading: "Loading client...",
     notFound: "Could not load the client or you do not have access.",
     overview: "Client information",
+    salesPipelineTitle: "Sales pipeline",
+    salesPipelineSubtitle: "Meeting, contract, and payment recorded before conversion to client.",
+    viewSourceProspect: "View original prospect",
     personalData: "Personal data",
     contact: "Contact",
     timeline: "Timeline",

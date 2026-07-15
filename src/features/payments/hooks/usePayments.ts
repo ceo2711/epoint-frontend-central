@@ -37,17 +37,23 @@ export function usePayments(token: string | null) {
     queryKey: queryKeys.payments.config,
     queryFn: () => api.get<PaymentConfig>("/payments/config", token!),
     enabled: !!token,
+    staleTime: 5 * 60_000,
   });
 
   const linksQuery = useQuery({
     queryKey: queryKeys.payments.links,
     queryFn: () => api.get<PaymentLink[]>("/payments/links", token!),
     enabled: !!token,
+    staleTime: 5 * 60_000,
   });
 
   const createLinkMutation = useMutation({
     mutationFn: (payload: PaymentLinkCreatePayload) =>
-      api.post<{ link: PaymentLink; message: string }>("/payments/links", payload, token!),
+      api.post<import("@/features/payments/types").PaymentLinkCreateResult>(
+        "/payments/links",
+        payload,
+        token!,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
     },
@@ -93,6 +99,17 @@ export async function fetchPublicPayment(token: string): Promise<import("@/featu
 export async function completePublicPaymentStub(token: string): Promise<import("@/features/payments/types").PublicPaymentLink> {
   return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(
     `/payments/public/${token}/complete`,
+    { method: "POST" },
+  );
+}
+
+export async function confirmPublicPaymentReturn(
+  token: string,
+  orderId?: string | null,
+): Promise<import("@/features/payments/types").PublicPaymentLink> {
+  const query = orderId ? `?order_id=${encodeURIComponent(orderId)}` : "";
+  return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(
+    `/payments/public/${token}/confirm-return${query}`,
     { method: "POST" },
   );
 }

@@ -358,11 +358,14 @@ export const es = {
   },
   payments: {
     title: "Pagos",
-    subtitle: "Generá links de pago para tus clientes con Stripe o Authorize.net",
+    subtitle: "Generá links personalizados con Authorize.net o PayPal para tus prospectos y clientes",
     stubModeHint:
-      "Modo preparación: el link funciona en la app. Mañana se conectarán Stripe y Authorize.net con las credenciales reales.",
+      "Modo preparación: sin credenciales activas, el link abre la página interna y permite simular el pago.",
     createSuccessTitle: "Link generado",
     createSuccessMessage: "El link se copió al portapapeles. Compartilo con el cliente para que pague.",
+    createSuccessEmailTitle: "Link enviado por email",
+    createSuccessEmailMessage:
+      "Enviamos el link de pago a {email}. También se copió al portapapeles por si necesitás compartirlo manualmente.",
     createError: "No se pudo generar el link de pago",
     cancelError: "No se pudo cancelar el link",
     adminRepsTitle: "Vendedores",
@@ -370,7 +373,7 @@ export const es = {
     backToAll: "Ver todos los pagos",
     form: {
       title: "Nuevo link de pago",
-      subtitle: "Completá los datos del cliente y el monto. Se generará un link para compartir.",
+      subtitle: "Completá los datos del cliente y el monto. Si coincide con un prospecto, podés vincularlo antes de enviar.",
       firstName: "Nombre del cliente",
       lastName: "Apellido del cliente",
       email: "Email del cliente",
@@ -378,8 +381,18 @@ export const es = {
       amount: "Monto (USD)",
       provider: "Proveedor de pago",
       description: "Descripción (opcional)",
+      searchProspect: "Vincular con prospecto (opcional)",
+      searchProspectPlaceholder: "Buscar por nombre completo o email…",
+      prospectLinkedHint: "El link de pago quedará vinculado a este prospecto.",
+      changeProspect: "Cambiar prospecto",
+      clearProspect: "Quitar",
+      sendEmail: "Enviar link por email al cliente",
+      sendEmailHint:
+        "El cliente recibirá un correo brandeado de ePoint con el botón para completar el pago.",
       generate: "Generar link de pago",
+      generateAndSend: "Generar y enviar por email",
       generating: "Generando...",
+      generatingAndSending: "Generando y enviando...",
     },
     list: {
       title: "Links de pago",
@@ -398,22 +411,6 @@ export const es = {
       expired: "Expirado",
       cancelled: "Cancelado",
     },
-    config: {
-      title: "Configuración de pagos",
-      subtitle: "Estado de Stripe y Authorize.net. Solo visible para administradores.",
-      connected: "Configurado",
-      pending: "Pendiente",
-      stubNote:
-        "Las credenciales de Stripe y Authorize.net se cargan en variables de entorno del servidor. Cuando estén listas, los links usarán el checkout real.",
-      defaultProvider: "Proveedor por defecto",
-      enabled: "Pagos habilitados",
-      envNote:
-        "Claves: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, AUTHORIZE_API_LOGIN_ID, AUTHORIZE_TRANSACTION_KEY",
-      save: "Guardar configuración",
-      savedTitle: "Configuración guardada",
-      savedMessage: "Las preferencias de pagos se actualizaron correctamente.",
-      saveError: "No se pudo guardar la configuración",
-    },
     register: {
       title: "Registrar cliente",
       subtitle: "El pago de {name} ({email}) fue recibido. Completá el alta en el CRM.",
@@ -424,11 +421,12 @@ export const es = {
     public: {
       title: "Pago ePoint",
       paid: "¡Pago recibido! Gracias. Tu vendedor fue notificado.",
-      stubHint: "Entorno de prueba: el pago se simula hasta conectar Stripe/Authorize.net.",
+      stubHint: "Entorno de prueba: el pago se simula hasta conectar Authorize.net o PayPal.",
       payStub: "Simular pago exitoso",
+      payWithProvider: "Pagar con {provider}",
       processing: "Procesando...",
       payError: "No se pudo procesar el pago",
-      awaitingIntegration: "El checkout del proveedor estará disponible pronto.",
+      awaitingIntegration: "El checkout del proveedor estará disponible cuando se configuren las credenciales.",
       unavailable: "Este link ya no está disponible.",
       error: "Link de pago no encontrado",
     },
@@ -509,6 +507,7 @@ export const es = {
     linked: {
       meeting: "Reunión",
       meetingEmpty: "Sin reunión vinculada.",
+      meetingPendingContact: "Marcá como contactado cuando se concrete la reunión.",
       contract: "Contrato",
       contractEmpty: "Sin contrato vinculado.",
       contractSigned: "Firmado",
@@ -517,6 +516,9 @@ export const es = {
       moreContracts: "+{count} contrato(s) más en el historial",
       payment: "Pago",
       paymentEmpty: "Sin link de pago vinculado.",
+      stepCompleted: "Paso completado",
+      allStepsComplete:
+        "Los tres pasos están listos. El prospecto pasará automáticamente a Clientes para onboarding.",
     },
     columns: {
       name: "Nombre",
@@ -690,6 +692,9 @@ export const es = {
     loading: "Cargando cliente...",
     notFound: "No se pudo cargar el cliente o no tenés acceso.",
     overview: "Información del cliente",
+    salesPipelineTitle: "Pipeline de ventas",
+    salesPipelineSubtitle: "Reunión, contrato y pago registrados antes de la conversión a cliente.",
+    viewSourceProspect: "Ver prospecto original",
     personalData: "Datos personales",
     contact: "Contacto",
     timeline: "Historial",

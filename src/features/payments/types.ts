@@ -1,4 +1,4 @@
-export type PaymentProvider = "stripe" | "authorize";
+export type PaymentProvider = "authorize" | "paypal" | "stripe";
 export type PaymentLinkStatus = "pending" | "paid" | "expired" | "cancelled";
 
 export interface PaymentProviderStatus {
@@ -12,6 +12,7 @@ export interface PaymentConfig {
   default_provider: PaymentProvider;
   stub_mode: boolean;
   providers: PaymentProviderStatus[];
+  webhook_base_url?: string | null;
 }
 
 export interface PaymentLink {
@@ -47,6 +48,13 @@ export interface PaymentLinkCreatePayload {
   provider: PaymentProvider;
   description?: string;
   prospect_id?: number;
+  send_email?: boolean;
+}
+
+export interface PaymentLinkCreateResult {
+  link: PaymentLink;
+  message: string;
+  email_sent: boolean;
 }
 
 export interface PublicPaymentLink {
@@ -60,6 +68,8 @@ export interface PublicPaymentLink {
   description: string | null;
   stub_mode: boolean;
   can_pay: boolean;
+  checkout_url?: string | null;
+  provider_label?: string | null;
 }
 
 export interface PaymentRegisterClientPayload {
@@ -74,6 +84,7 @@ export const EMPTY_PAYMENT_FORM: PaymentLinkCreatePayload = {
   customer_phone: "",
   amount: 0,
   currency: "USD",
-  provider: "stripe",
+  provider: "authorize",
   description: "",
+  send_email: true,
 };

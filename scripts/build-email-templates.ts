@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { OnboardingReminderEmail } from "../emails/OnboardingReminderEmail";
 import { OnboardingReminderEmailEn } from "../emails/OnboardingReminderEmailEn";
 import { PasswordResetEmail } from "../emails/PasswordResetEmail";
+import { PaymentLinkEmail } from "../emails/PaymentLinkEmail";
 import { WelcomeEmail } from "../emails/WelcomeEmail";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -70,6 +71,19 @@ async function main() {
         firstName: "{{FIRST_NAME}}",
         resetUrl: "{{RESET_URL}}",
         expireMinutes: "{{EXPIRE_MINUTES}}",
+        logoUrl: PLACEHOLDER_LOGO,
+      }),
+    ),
+  });
+
+  templates.push({
+    name: "payment_link",
+    html: await render(
+      PaymentLinkEmail({
+        firstName: "{{FIRST_NAME}}",
+        amountFormatted: "{{AMOUNT_FORMATTED}}",
+        paymentUrl: "{{PAYMENT_URL}}",
+        providerLabel: "{{PROVIDER_LABEL}}",
         logoUrl: PLACEHOLDER_LOGO,
       }),
     ),

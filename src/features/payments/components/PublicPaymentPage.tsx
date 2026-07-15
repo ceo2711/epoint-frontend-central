@@ -9,9 +9,13 @@ import { AppLogo } from "@/components/layout/AppLogo";
 import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { completePublicPaymentStub, fetchPublicPayment } from "@/features/payments/hooks/usePayments";
+import {
+  completePublicPaymentStub,
+  confirmPublicPaymentReturn,
+  fetchPublicPayment,
+} from "@/features/payments/hooks/usePayments";
 import type { PublicPaymentLink } from "@/features/payments/types";
-import { ApiError } from "@/lib/api";
+import { getProviderLabel } from "@/features/payments/utils/providers";
 
 export function PublicPaymentPage() {
   const params = useParams<{ token: string }>();
@@ -25,21 +29,39 @@ export function PublicPaymentPage() {
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
-    fetchPublicPayment(token)
-      .then(setData)
-      .catch((err) => setError(getUserFacingErrorMessage(err, t("payments.public.error"))))
-      .finally(() => setLoading(false));
-  }, [token, t]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (searchParams.get("paid") === "1" && data?.status === "paid") {
-      return;
+    async function load() {
+      setLoading(true);
+      try {
+        const paidReturn = searchParams.get("paid") === "1";
+        const paypalOrderId = searchParams.get("token");
+        if (paidReturn) {
+          const confirmed = await confirmPublicPaymentReturn(token, paypalOrderId);
+          if (!cancelled) setData(confirmed);
+          return;
+        }
+        const publicData = await fetchPublicPayment(token);
+        if (!cancelled) setData(publicData);
+      } catch (err) {
+        if (!cancelled) setError(getUserFacingErrorMessage(err, t("payments.public.error")));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-  }, [searchParams, data]);
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, searchParams, t]);
 
   async function handlePay() {
     if (!token || !data?.can_pay) return;
+    if (data.checkout_url && !data.stub_mode) {
+      window.location.href = data.checkout_url;
+      return;
+    }
     setPaying(true);
     try {
       const updated = await completePublicPaymentStub(token);
@@ -50,6 +72,8 @@ export function PublicPaymentPage() {
       setPaying(false);
     }
   }
+
+  const providerLabel = data?.provider_label ?? (data ? getProviderLabel(data.provider) : "");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-10">
@@ -76,9 +100,7 @@ export function PublicPaymentPage() {
             {data.description ? (
               <p className="text-sm text-[var(--color-text-muted)]">{data.description}</p>
             ) : null}
-            <p className="text-xs text-[var(--color-text-muted)]">
-              {data.provider === "stripe" ? "Stripe" : "Authorize.net"}
-            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">{providerLabel}</p>
 
             {data.status === "paid" ? (
               <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -91,6 +113,12 @@ export function PublicPaymentPage() {
                   {paying ? t("payments.public.processing") : t("payments.public.payStub")}
                 </Button>
               </>
+            ) : data.can_pay && data.checkout_url ? (
+              <Button fullWidth onClick={handlePay} disabled={paying}>
+                {paying
+                  ? t("payments.public.processing")
+                  : t("payments.public.payWithProvider", { provider: providerLabel })}
+              </Button>
             ) : data.can_pay ? (
               <p className="text-sm text-[var(--color-text-muted)]">{t("payments.public.awaitingIntegration")}</p>
             ) : (

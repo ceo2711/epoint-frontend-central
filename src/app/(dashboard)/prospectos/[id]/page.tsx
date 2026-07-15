@@ -3,7 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
@@ -14,7 +14,8 @@ import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { SendContractForm } from "@/features/docusign/components/SendContractForm";
+import { SendContractModal } from "@/features/docusign/components/SendContractModal";
+import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
 import { usePayments } from "@/features/payments/hooks/usePayments";
@@ -26,8 +27,11 @@ import { ProspectLinkedResources } from "@/features/prospects/components/Prospec
 import { ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
+import { isReadyForClientConversion } from "@/features/prospects/utils/pipeline";
 import type { ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
+
+const PENDING_CONTRACT_SYNC_MS = 90_000;
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -75,22 +79,77 @@ export default function ProspectoDetailPage() {
     loadTemplateDetail,
     downloadSignedDocument,
     downloadSentDocument,
-  } = useDocusign(token);
+  } = useDocusign(token, { loadEnvelopes: false, listenRefresh: false });
 
   const { config, links, createLink, isCreating } = usePayments(token);
+
+  const hasPendingContracts = useMemo(() => {
+    if (!prospect?.docusign_envelopes.length) return false;
+    const terminal = new Set(["completed", "declined", "voided"]);
+    return prospect.docusign_envelopes.some(
+      (envelope) => !terminal.has(envelope.status.toLowerCase()),
+    );
+  }, [prospect?.docusign_envelopes]);
+
+  const pipelineComplete = useMemo(() => {
+    if (!prospect) return false;
+    return isReadyForClientConversion(
+      prospect.calendly_event,
+      prospect.status,
+      prospect.docusign_envelopes,
+      prospect.payment_link,
+    );
+  }, [prospect]);
 
   useEffect(() => {
     if (!prospect?.id) return;
 
-    const terminal = new Set(["completed", "declined", "voided"]);
-    const hasPending = prospect.docusign_envelopes.some(
-      (envelope) => !terminal.has(envelope.status.toLowerCase()),
-    );
-    if (!hasPending) return;
+    const onDocusignUpdate = () => {
+      void reload({ silent: true });
+    };
+    window.addEventListener(DOCUSIGN_REFRESH_EVENT, onDocusignUpdate);
+    return () => window.removeEventListener(DOCUSIGN_REFRESH_EVENT, onDocusignUpdate);
+  }, [prospect?.id, reload]);
 
-    const timer = window.setInterval(() => void reload(), 90_000);
-    return () => window.clearInterval(timer);
-  }, [prospect?.id, prospect?.docusign_envelopes, reload]);
+  useEffect(() => {
+    if (!token || !prospect?.id || !hasPendingContracts) return;
+
+    let cancelled = false;
+
+    const syncPendingAndReload = async () => {
+      try {
+        await api.post("/docusign/envelopes/sync-pending", {}, token, { silentHttpErrors: true });
+      } catch {
+        /* El webhook o el próximo ciclo actualizarán el estado. */
+      }
+      if (!cancelled) void reload({ silent: true });
+    };
+
+    void syncPendingAndReload();
+    const timer = window.setInterval(() => void syncPendingAndReload(), PENDING_CONTRACT_SYNC_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [token, prospect?.id, hasPendingContracts, reload]);
+
+  useEffect(() => {
+    if (!prospect?.id || prospect.converted_client_id || !pipelineComplete) return;
+
+    let cancelled = false;
+    const refreshUntilConverted = async () => {
+      if (!cancelled) await reload({ silent: true });
+    };
+
+    void refreshUntilConverted();
+    const timer = window.setInterval(() => void refreshUntilConverted(), 30_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [prospect?.id, prospect?.converted_client_id, pipelineComplete, reload]);
 
   async function handleStatusUpdate(e: FormEvent) {
     e.preventDefault();
@@ -104,7 +163,7 @@ export default function ProspectoDetailPage() {
       );
       setStatusTarget("");
       setStatusNote("");
-      await reload();
+      await reload({ silent: true });
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
@@ -123,7 +182,7 @@ export default function ProspectoDetailPage() {
     try {
       await api.post(`/prospects/${prospect.id}/notes`, { note: noteText.trim() }, token);
       setNoteText("");
-      await reload();
+      await reload({ silent: true });
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
@@ -150,7 +209,7 @@ export default function ProspectoDetailPage() {
         { note: t("prospects.markContactedNote") },
         token,
       );
-      await reload();
+      await reload({ silent: true });
       await modal.alert({
         title: t("prospects.markContactedTitle"),
         message: t("prospects.markContactedSuccess"),
@@ -168,7 +227,7 @@ export default function ProspectoDetailPage() {
   async function handleLinkCalendly(calendlyEventId: number) {
     if (!token || !prospect) return;
     await api.post(`/prospects/${prospect.id}/link-calendly`, { calendly_event_id: calendlyEventId }, token);
-    await reload();
+    await reload({ silent: true });
     await modal.alert({
       title: t("prospects.linkCalendlySuccessTitle"),
       message: t("prospects.linkCalendlySuccessMessage"),
@@ -181,7 +240,7 @@ export default function ProspectoDetailPage() {
     try {
       const result = await sendEnvelope({ ...payload, prospect_id: prospect.id });
       setContractOpen(false);
-      await reload();
+      await reload({ silent: true });
       await modal.alert({
         title: t("docusign.sendSuccessTitle"),
         message: result?.message ?? t("docusign.sendSuccessMessage"),
@@ -213,7 +272,7 @@ export default function ProspectoDetailPage() {
   async function handleLinkPayment(paymentLinkId: number) {
     if (!token || !prospect) return;
     await api.post(`/prospects/${prospect.id}/link-payment`, { payment_link_id: paymentLinkId }, token);
-    await reload();
+    await reload({ silent: true });
     await modal.alert({
       title: t("prospects.linkPaymentSuccessTitle"),
       message: t("prospects.linkPaymentSuccessMessage"),
@@ -257,11 +316,17 @@ export default function ProspectoDetailPage() {
     try {
       const result = await createLink(payload);
       setPaymentOpen(false);
-      await reload();
+      await reload({ silent: true });
       await navigator.clipboard.writeText(result.link.payment_url);
       await modal.alert({
-        title: t("payments.createSuccessTitle"),
-        message: t("payments.createSuccessMessage"),
+        title: result.email_sent
+          ? t("payments.createSuccessEmailTitle")
+          : t("payments.createSuccessTitle"),
+        message: result.message || (
+          result.email_sent
+            ? t("payments.createSuccessEmailMessage", { email: payload.customer_email })
+            : t("payments.createSuccessMessage")
+        ),
         variant: "success",
       });
     } catch (err) {
@@ -378,6 +443,7 @@ export default function ProspectoDetailPage() {
         {!isConverted ? (
           <ProspectLinkedResources
             locale={locale}
+            prospectStatus={prospect.status}
             calendly={prospect.calendly_event}
             envelopes={prospect.docusign_envelopes}
             payment={prospect.payment_link}
@@ -481,32 +547,24 @@ export default function ProspectoDetailPage() {
       ) : null}
 
       {contractOpen ? (
-        <Modal
-          title={t("prospects.sendContract")}
-          subtitle={prospect.full_name}
+        <SendContractModal
+          signerName={prospect.full_name}
+          signerEmail={prospect.email}
+          prospectId={prospect.id}
+          prospect={{
+            id: prospect.id,
+            full_name: prospect.full_name,
+            email: prospect.email,
+            status: prospect.status,
+          }}
+          templates={templates}
+          defaultTemplateId={connection?.default_template_id}
+          defaultRoleName={connection?.default_template_role_name}
+          onSearchClients={searchClients}
+          onLoadTemplateDetail={loadTemplateDetail}
+          onSubmit={handleSendContract}
           onClose={() => setContractOpen(false)}
-          size="lg"
-        >
-          <SendContractForm
-            embedded
-            hideClientSearch
-            templates={templates}
-            initialSigner={{
-              name: prospect.full_name,
-              email: prospect.email,
-              prospectId: prospect.id,
-              prospect: {
-                id: prospect.id,
-                full_name: prospect.full_name,
-                email: prospect.email,
-                status: prospect.status,
-              },
-            }}
-            onSearchClients={searchClients}
-            onLoadTemplateDetail={loadTemplateDetail}
-            onSubmit={handleSendContract}
-          />
-        </Modal>
+        />
       ) : null}
 
       {paymentOpen ? (
@@ -520,6 +578,7 @@ export default function ProspectoDetailPage() {
             config={config}
             submitting={isCreating}
             onSubmit={handleCreatePayment}
+            hideProspectSearch
             initialData={{
               customer_first_name: prospect.first_name,
               customer_last_name: prospect.last_name,

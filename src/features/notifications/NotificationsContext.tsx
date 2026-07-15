@@ -33,9 +33,13 @@ interface NotificationsContextValue {
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
-const POLL_MS = 60_000;
+/** Respaldo si el SSE se cae; no debe competir con el stream en tiempo real. */
+const POLL_MS = 10 * 60_000;
 const STREAM_RECONNECT_MS = 3_000;
 const RECENT_LIMIT = 20;
+/** No competir con la navegación post-login. */
+const INITIAL_FETCH_DEFER_MS = 800;
+const STREAM_START_DEFER_MS = 2_500;
 
 function isDuplicateNotification(prev: Notification[], notification: Notification): boolean {
   if (prev.some((item) => item.id === notification.id)) return true;
@@ -70,6 +74,7 @@ export function NotificationsProvider({
   const knownNotificationIdsRef = useRef<Set<number>>(new Set());
   const recentRef = useRef<Notification[]>([]);
   const refreshRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
+  const initialFetchTokenRef = useRef<string | null>(null);
 
   recentRef.current = recent;
 
@@ -187,10 +192,21 @@ export function NotificationsProvider({
       setRecent([]);
       hasLoadedRef.current = false;
       knownNotificationIdsRef.current = new Set();
+      initialFetchTokenRef.current = null;
       return;
     }
-    void refreshRef.current();
-  }, [enabled, token, user]);
+    if (!token) {
+      initialFetchTokenRef.current = null;
+      return;
+    }
+    const fetchKey = token.slice(-16);
+    if (initialFetchTokenRef.current === fetchKey) return;
+    initialFetchTokenRef.current = fetchKey;
+    const timer = window.setTimeout(() => {
+      void refreshRef.current({ silent: true });
+    }, INITIAL_FETCH_DEFER_MS);
+    return () => window.clearTimeout(timer);
+  }, [enabled, token]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -204,14 +220,8 @@ export function NotificationsProvider({
       void refreshRef.current({ silent: true });
     }, POLL_MS);
 
-    const onFocus = () => {
-      void refreshRef.current({ silent: true });
-    };
-    window.addEventListener("focus", onFocus);
-
     return () => {
       clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
     };
   }, [enabled, token]);
 
@@ -219,6 +229,7 @@ export function NotificationsProvider({
     if (!enabled || !token) return;
 
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let startTimer: ReturnType<typeof setTimeout> | null = null;
     const abortController = new AbortController();
 
     const startStream = () => {
@@ -235,10 +246,11 @@ export function NotificationsProvider({
       );
     };
 
-    startStream();
+    startTimer = setTimeout(startStream, STREAM_START_DEFER_MS);
 
     return () => {
       abortController.abort();
+      if (startTimer) clearTimeout(startTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }, [enabled, token]);

@@ -99,6 +99,15 @@ export interface ProspectDetail extends Prospect {
   payment_link: ProspectPaymentBrief | null;
 }
 
+export interface ProspectPipelineSummary {
+  prospect_id: number;
+  status: ProspectStatus;
+  history: ProspectHistoryEntry[];
+  calendly_event: ProspectCalendlyBrief | null;
+  docusign_envelopes: ProspectEnvelopeBrief[];
+  payment_link: ProspectPaymentBrief | null;
+}
+
 export interface ProspectFormData {
   first_name: string;
   last_name: string;

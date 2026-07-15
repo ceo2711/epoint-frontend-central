@@ -76,7 +76,7 @@ export function ClientContractsPanel({
     sendEnvelope,
     loadTemplateDetail,
     searchClients,
-  } = useDocusign(token);
+  } = useDocusign(token, { loadEnvelopes: false, listenRefresh: false });
 
   const canSendContract = !!connection?.connected && templates.length > 0;
 

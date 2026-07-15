@@ -30,6 +30,9 @@ interface ProspectSearchSelectProps {
   disabled?: boolean;
   /** Dispara búsqueda automática (p. ej. email del firmante). */
   externalSearch?: string;
+  linkedHint?: string;
+  changeLabel?: string;
+  clearLabel?: string;
 }
 
 export function ProspectSearchSelect({
@@ -40,6 +43,9 @@ export function ProspectSearchSelect({
   onChange,
   disabled = false,
   externalSearch,
+  linkedHint,
+  changeLabel,
+  clearLabel,
 }: ProspectSearchSelectProps) {
   const { t } = useTranslation();
   const searchRequestRef = useRef(0);
@@ -130,7 +136,9 @@ export function ProspectSearchSelect({
               <ProspectStatusBadge status={prospect.status} />
             </div>
             <p className="text-sm text-slate-600">{prospect.email}</p>
-            <p className="mt-1 text-xs text-emerald-700">{t("docusign.prospectLinkedHint")}</p>
+            <p className="mt-1 text-xs text-emerald-700">
+              {linkedHint ?? t("docusign.prospectLinkedHint")}
+            </p>
           </div>
           {!disabled ? (
             <div className="flex shrink-0 flex-col items-end gap-1">
@@ -139,14 +147,14 @@ export function ProspectSearchSelect({
                 className="text-xs font-medium text-brand hover:underline"
                 onClick={handleChangeProspect}
               >
-                {t("docusign.changeProspect")}
+                {changeLabel ?? t("docusign.changeProspect")}
               </button>
               <button
                 type="button"
                 className="text-xs font-medium text-slate-500 hover:text-slate-700"
                 onClick={handleClear}
               >
-                {t("docusign.clearProspect")}
+                {clearLabel ?? t("docusign.clearProspect")}
               </button>
             </div>
           ) : null}

@@ -90,7 +90,7 @@ export function CalendarioPage() {
     sendEnvelope,
     searchClients,
     loadTemplateDetail,
-  } = useDocusign(token);
+  } = useDocusign(token, { loadEnvelopes: false });
 
   const canSendContract = !!docusignConnection?.connected;
 

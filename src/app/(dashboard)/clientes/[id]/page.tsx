@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
+import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
 import {
@@ -436,6 +437,10 @@ export default function ClienteDetailPage() {
             </div>
           )}
         </Card>
+
+        {client.source_prospect ? (
+          <ClientSalesPipelineSection pipeline={client.source_prospect} locale={locale} />
+        ) : null}
 
         {showApprovedWorkspace && client.has_portal_access && (
           <PortalCredentialsCard

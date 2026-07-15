@@ -16,8 +16,11 @@ import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm"
 import { PaymentLinkList } from "@/features/payments/components/PaymentLinkList";
 import { RegisterClientFromPaymentModal } from "@/features/payments/components/RegisterClientFromPaymentModal";
 import { usePayments } from "@/features/payments/hooks/usePayments";
+import { PROSPECT_SEARCH_LIMIT } from "@/features/prospects/components/ProspectSearchSelect";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
+import type { Prospect } from "@/features/prospects/types";
 import type { PaymentLink, PaymentLinkCreatePayload } from "@/features/payments/types";
+import type { Paginated } from "@/types/api";
 import { ApiError, api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 
@@ -33,6 +36,7 @@ export function PagosPage() {
   const [linkPayment, setLinkPayment] = useState<PaymentLink | null>(null);
   const [registering, setRegistering] = useState(false);
   const canLinkProspect = hasPermission("prospects:update");
+  const canSearchProspects = hasPermission("prospects:read");
 
   const { config, links, loading, error, createLink, cancelLink, registerClient, isCreating } = usePayments(token);
 
@@ -52,13 +56,30 @@ export function PagosPage() {
     );
   }
 
+  async function searchProspects(query: string) {
+    if (!token || !canSearchProspects) return { items: [], total: 0 };
+    const params = new URLSearchParams({
+      search: query,
+      page: "1",
+      page_size: String(PROSPECT_SEARCH_LIMIT),
+    });
+    const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
+    return { items: data.items, total: data.total };
+  }
+
   async function handleCreate(payload: PaymentLinkCreatePayload) {
     try {
       const result = await createLink(payload);
       await navigator.clipboard.writeText(result.link.payment_url);
       await modal.alert({
-        title: t("payments.createSuccessTitle"),
-        message: t("payments.createSuccessMessage"),
+        title: result.email_sent
+          ? t("payments.createSuccessEmailTitle")
+          : t("payments.createSuccessTitle"),
+        message: result.message || (
+          result.email_sent
+            ? t("payments.createSuccessEmailMessage", { email: payload.customer_email })
+            : t("payments.createSuccessMessage")
+        ),
         variant: "success",
       });
     } catch (err) {
@@ -148,7 +169,12 @@ export function PagosPage() {
               <h2 className="text-lg font-semibold">{t("payments.form.title")}</h2>
               <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t("payments.form.subtitle")}</p>
               <div className="mt-4">
-                <PaymentLinkForm config={config} submitting={isCreating} onSubmit={handleCreate} />
+                <PaymentLinkForm
+                  config={config}
+                  submitting={isCreating}
+                  onSubmit={handleCreate}
+                  onSearchProspects={canSearchProspects ? searchProspects : undefined}
+                />
               </div>
             </section>
 
