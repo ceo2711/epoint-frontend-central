@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
@@ -26,7 +28,7 @@ export function PublicPaymentPage() {
     setLoading(true);
     fetchPublicPayment(token)
       .then(setData)
-      .catch((err) => setError(err instanceof ApiError ? err.message : t("payments.public.error")))
+      .catch((err) => setError(getUserFacingErrorMessage(err, t("payments.public.error"))))
       .finally(() => setLoading(false));
   }, [token, t]);
 
@@ -43,7 +45,7 @@ export function PublicPaymentPage() {
       const updated = await completePublicPaymentStub(token);
       setData(updated);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("payments.public.payError"));
+      setError(getUserFacingErrorMessage(err, t("payments.public.payError")));
     } finally {
       setPaying(false);
     }

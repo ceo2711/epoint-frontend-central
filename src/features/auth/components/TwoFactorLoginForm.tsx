@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ApiError } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -27,7 +28,7 @@ export function TwoFactorLoginForm({ userName, onSubmit, onBack }: TwoFactorLogi
     try {
       await onSubmit(code.trim());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("twoFactor.verifyError"));
+      setError(getUserFacingErrorMessage(err, t("twoFactor.verifyError")));
     } finally {
       setSubmitting(false);
     }

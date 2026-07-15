@@ -1,4 +1,5 @@
 "use client";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -213,7 +214,7 @@ export function CalendlyEventFormModal({
         if (!cancelled) {
           setAvailableSlots([]);
           setSlotValue("");
-          setSlotsMessage(err instanceof Error ? err.message : t("calendly.slotsError"));
+          setSlotsMessage(getUserFacingErrorMessage(err, t("calendly.slotsError")));
         }
       } finally {
         if (!cancelled) {
@@ -257,7 +258,7 @@ export function CalendlyEventFormModal({
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("calendly.saveEventError"));
+      setError(getUserFacingErrorMessage(err, t("calendly.saveEventError")));
     } finally {
       setSubmitting(false);
     }

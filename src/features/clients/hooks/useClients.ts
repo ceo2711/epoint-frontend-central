@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ClientMerchantFilter } from "@/features/clients/components/ClientListFilters";
 import { isUnauthorizedError } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 import { fetchClientsList } from "@/lib/queryFetchers";
@@ -13,22 +14,39 @@ export const CLIENTS_PAGE_SIZE = 10;
 export function useClients(
   token: string | null,
   authLoading: boolean,
-  options?: { onboardingOnly?: boolean; page?: number; pageSize?: number },
+  options?: {
+    onboardingOnly?: boolean;
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    merchantFilter?: ClientMerchantFilter;
+  },
 ) {
   const queryClient = useQueryClient();
   const onboardingOnly = options?.onboardingOnly ?? false;
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? CLIENTS_PAGE_SIZE;
+  const search = options?.search?.trim() ?? "";
+  const merchantFilter = options?.merchantFilter;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize),
-    queryFn: async () => fetchClientsList(token!, { onboardingOnly, page, pageSize }),
+    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter),
+    queryFn: async () =>
+      fetchClientsList(token!, {
+        onboardingOnly,
+        page,
+        pageSize,
+        search,
+        merchantFilter,
+      }),
     enabled: !authLoading && !!token,
   });
 
   useEffect(() => {
     const handleRefresh = () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+      void queryClient.refetchQueries({ queryKey: queryKeys.clients.all, type: "active" });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard", "metrics"] });
     };
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
@@ -39,7 +57,7 @@ export function useClients(
       if (authLoading || !token) return;
       if (loadOptions?.bustCache) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize),
+          queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter),
         });
       }
       try {
@@ -50,7 +68,7 @@ export function useClients(
         }
       }
     },
-    [authLoading, token, queryClient, onboardingOnly, page, pageSize, refetch],
+    [authLoading, token, queryClient, onboardingOnly, page, pageSize, search, merchantFilter, refetch],
   );
 
   return {

@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={closeMobile}
         />
         <Sidebar />
-        <main className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
+        <main className="relative flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
           {children}
         </main>
       </div>

@@ -5,9 +5,11 @@ import {
   setSession,
   setToken,
 } from "@/features/auth/auth-storage";
+import { getApiBaseUrl } from "@/lib/api-config";
+import { logClientError, NETWORK_ERROR_MESSAGE } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_URL = getApiBaseUrl();
 
 const RESTORE_MAX_ATTEMPTS = 6;
 const RESTORE_RETRY_MS = 1000;
@@ -65,11 +67,9 @@ async function fetchCurrentUser(token: string): Promise<User> {
         Authorization: `Bearer ${token}`,
       },
     });
-  } catch {
-    throw new SessionError(
-      0,
-      `No se pudo conectar con el servidor. Verificá que el backend esté corriendo (${API_URL}).`,
-    );
+  } catch (cause) {
+    logClientError("auth:me", cause, { baseUrl: API_URL });
+    throw new SessionError(0, NETWORK_ERROR_MESSAGE);
   }
 
   if (!response.ok) {

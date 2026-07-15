@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
-import { Button } from "@/components/ui/Button";
+import { useState } from "react";
+import { HiOutlineBellAlert } from "react-icons/hi2";
+
+import { IconActionButton } from "@/components/ui/IconActionButton";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
@@ -67,7 +70,7 @@ export function OnboardingRemindersButton({ token }: OnboardingRemindersButtonPr
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("clients.remindersRunError"),
+        message: getUserFacingErrorMessage(err, t("clients.remindersRunError")),
         variant: "error",
       });
     } finally {
@@ -76,8 +79,11 @@ export function OnboardingRemindersButton({ token }: OnboardingRemindersButtonPr
   }
 
   return (
-    <Button size="sm" variant="secondary" onClick={() => void handleRun()} disabled={running}>
-      {running ? t("clients.remindersRunning") : t("clients.remindersRunAction")}
-    </Button>
+    <IconActionButton
+      label={running ? t("clients.remindersRunning") : t("clients.remindersRunAction")}
+      icon={<HiOutlineBellAlert />}
+      disabled={running}
+      onClick={() => void handleRun()}
+    />
   );
 }

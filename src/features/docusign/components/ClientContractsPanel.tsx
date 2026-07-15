@@ -1,8 +1,16 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  HiOutlineArrowPath,
+  HiOutlineDocumentArrowDown,
+  HiOutlineDocumentCheck,
+} from "react-icons/hi2";
 
 import { Button } from "@/components/ui/Button";
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -83,7 +91,7 @@ export function ClientContractsPanel({
       );
       setEnvelopes(data);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("docusign.clientContractsError"));
+      setError(getUserFacingErrorMessage(err, t("docusign.clientContractsError")));
       setEnvelopes([]);
     } finally {
       setLoading(false);
@@ -107,7 +115,7 @@ export function ClientContractsPanel({
       lastSyncAtRef.current = Date.now();
       await load();
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : t("docusign.syncError"));
+      onError?.(getUserFacingErrorMessage(err, t("docusign.syncError")));
     } finally {
       syncInFlightRef.current = false;
       setSyncingAll(false);
@@ -165,7 +173,7 @@ export function ClientContractsPanel({
     try {
       await openBlob(`/docusign/envelopes/${envelopeId}/document`);
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : t("docusign.downloadError"));
+      onError?.(getUserFacingErrorMessage(err, t("docusign.downloadError")));
     } finally {
       setDownloadingId(null);
     }
@@ -176,7 +184,7 @@ export function ClientContractsPanel({
     try {
       await openBlob(`/docusign/envelopes/${envelopeId}/document/sent`);
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : t("docusign.downloadSentError"));
+      onError?.(getUserFacingErrorMessage(err, t("docusign.downloadSentError")));
     } finally {
       setDownloadingSentId(null);
     }
@@ -193,7 +201,7 @@ export function ClientContractsPanel({
       );
       setEnvelopes((prev) => prev.map((item) => (item.id === envelopeId ? updated : item)));
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : t("docusign.syncError"));
+      onError?.(getUserFacingErrorMessage(err, t("docusign.syncError")));
     } finally {
       setSyncingId(null);
     }
@@ -215,7 +223,7 @@ export function ClientContractsPanel({
         variant: "success",
       });
     } catch (err) {
-      onError?.(err instanceof ApiError ? err.message : t("docusign.sendError"));
+      onError?.(getUserFacingErrorMessage(err, t("docusign.sendError")));
       throw err;
     }
   }
@@ -283,40 +291,41 @@ export function ClientContractsPanel({
                         : t("common.dash")}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
+                      <TableActions>
                         {showSent ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
+                          <IconActionButton
+                            label={
+                              downloadingSentId === envelope.id
+                                ? t("docusign.downloading")
+                                : t("docusign.viewSent")
+                            }
+                            icon={<HiOutlineDocumentArrowDown />}
                             disabled={downloadingSentId === envelope.id}
                             onClick={() => void handleDownloadSent(envelope.id)}
-                          >
-                            {downloadingSentId === envelope.id
-                              ? t("docusign.downloading")
-                              : t("docusign.viewSent")}
-                          </Button>
+                          />
                         ) : null}
                         {showSigned ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
+                          <IconActionButton
+                            label={
+                              downloadingId === envelope.id
+                                ? t("docusign.downloading")
+                                : t("docusign.viewSigned")
+                            }
+                            icon={<HiOutlineDocumentCheck />}
                             disabled={downloadingId === envelope.id}
                             onClick={() => void handleDownloadSigned(envelope.id)}
-                          >
-                            {downloadingId === envelope.id
-                              ? t("docusign.downloading")
-                              : t("docusign.viewSigned")}
-                          </Button>
+                          />
                         ) : null}
-                        <Button
-                          size="sm"
+                        <IconActionButton
+                          label={
+                            syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
+                          }
+                          icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
                           variant="ghost"
                           disabled={syncingId === envelope.id}
                           onClick={() => void handleSync(envelope.id)}
-                        >
-                          {syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")}
-                        </Button>
-                      </div>
+                        />
+                      </TableActions>
                     </td>
                   </tr>
                 );

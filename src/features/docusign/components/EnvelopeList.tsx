@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import {
+  HiOutlineArrowPath,
+  HiOutlineDocumentArrowDown,
+  HiOutlineDocumentCheck,
+  HiOutlineUserPlus,
+} from "react-icons/hi2";
 
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/Button";
 import type { DocusignEnvelope } from "@/features/docusign/types";
 import { canDownloadSentDocument, canDownloadSignedDocument } from "@/features/docusign/utils";
 
@@ -125,45 +131,49 @@ export function EnvelopeList({
                       : t("common.dash")}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
+                    <TableActions>
                       {showSent ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
+                        <IconActionButton
+                          label={
+                            downloadingSentId === envelope.id
+                              ? t("docusign.downloading")
+                              : t("docusign.viewSent")
+                          }
+                          icon={<HiOutlineDocumentArrowDown />}
                           disabled={downloadingSentId === envelope.id}
                           onClick={() => void handleDownloadSent(envelope.id)}
-                        >
-                          {downloadingSentId === envelope.id
-                            ? t("docusign.downloading")
-                            : t("docusign.viewSent")}
-                        </Button>
+                        />
                       ) : null}
                       {showSigned ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
+                        <IconActionButton
+                          label={
+                            downloadingId === envelope.id
+                              ? t("docusign.downloading")
+                              : t("docusign.viewSigned")
+                          }
+                          icon={<HiOutlineDocumentCheck />}
                           disabled={downloadingId === envelope.id}
                           onClick={() => void handleDownloadSigned(envelope.id)}
-                        >
-                          {downloadingId === envelope.id
-                            ? t("docusign.downloading")
-                            : t("docusign.viewSigned")}
-                        </Button>
+                        />
                       ) : null}
                       {envelope.can_register_client && onRegisterClient ? (
-                        <Button size="sm" onClick={() => onRegisterClient(envelope)}>
-                          {t("docusign.registerClientAction")}
-                        </Button>
+                        <IconActionButton
+                          label={t("docusign.registerClientAction")}
+                          icon={<HiOutlineUserPlus />}
+                          variant="primary"
+                          onClick={() => onRegisterClient(envelope)}
+                        />
                       ) : null}
-                      <Button
-                        size="sm"
+                      <IconActionButton
+                        label={
+                          syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
+                        }
+                        icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
                         variant="ghost"
                         disabled={syncingId === envelope.id}
                         onClick={() => void onSync(envelope.id)}
-                      >
-                        {syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")}
-                      </Button>
-                    </div>
+                      />
+                    </TableActions>
                   </td>
                 </tr>
               );

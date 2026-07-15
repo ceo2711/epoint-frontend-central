@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useState } from "react";
 
 import { Header } from "@/components/layout/Header";
@@ -13,10 +15,10 @@ import { MerchantFormModal } from "@/features/merchants/components/MerchantFormM
 import { MerchantsTable } from "@/features/merchants/components/MerchantsTable";
 import { useMerchants } from "@/features/merchants/hooks/useMerchants";
 import type { Merchant } from "@/features/merchants/types";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function MerchantsPage() {
-  const { token, hasPermission } = useAuth();
+  const { token, hasPermission, refreshUser } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
   const { merchants, loading, error, reload } = useMerchants(
@@ -44,6 +46,49 @@ export default function MerchantsPage() {
     setEditing(null);
   }
 
+  async function handleReactivate(merchant: Merchant) {
+    if (!token) return;
+    const confirmed = await modal.confirm({
+      title: t("merchants.reactivateTitle"),
+      message: t("merchants.reactivateConfirm", { name: merchant.name }),
+      confirmLabel: t("merchants.reactivate"),
+    });
+    if (!confirmed) return;
+    try {
+      await api.patch(`/merchants/${merchant.id}`, { is_active: true }, token);
+      await reload();
+      await refreshUser();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
+  }
+
+  async function handleDelete(merchant: Merchant) {
+    if (!token) return;
+    const confirmed = await modal.confirm({
+      title: t("merchants.deleteTitle"),
+      message: t("merchants.deleteConfirm", { name: merchant.name }),
+      confirmLabel: t("merchants.delete"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    try {
+      await api.post(`/merchants/${merchant.id}/purge`, {}, token);
+      await reload();
+      await refreshUser();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
+  }
+
   async function handleDeactivate(merchant: Merchant) {
     if (!token) return;
     const confirmed = await modal.confirm({
@@ -56,10 +101,11 @@ export default function MerchantsPage() {
     try {
       await api.delete(`/merchants/${merchant.id}`, token);
       await reload();
+      await refreshUser();
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
         variant: "error",
       });
     }
@@ -92,6 +138,8 @@ export default function MerchantsPage() {
             canDelete={hasPermission("merchants:delete")}
             onEdit={openEdit}
             onDeactivate={handleDeactivate}
+            onReactivate={handleReactivate}
+            onDelete={handleDelete}
           />
         )}
       </PageContent>

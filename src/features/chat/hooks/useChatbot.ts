@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useModal } from "@/contexts/ModalContext";
@@ -300,7 +302,10 @@ export function useChatbot(
         Boolean(response.clients_updated);
 
       if (shouldRefreshClients) {
-        emitClientsRefresh();
+        emitClientsRefresh({
+          clientId: response.client_id ?? undefined,
+          showAllMerchants: Boolean(response.clients_updated),
+        });
       }
 
       if (response.calendly_updated) {
@@ -372,7 +377,7 @@ export function useChatbot(
 
         applyChatResponse(response, currentPendingAction);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Error al enviar mensaje";
+        const message = getUserFacingErrorMessage(err, t("common.requestError"));
         setError(message);
       } finally {
         setLoading(false);
@@ -463,7 +468,7 @@ export function useChatbot(
 
         applyChatResponse(response, currentPendingAction);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Error al enviar mensaje";
+        const message = getUserFacingErrorMessage(err, t("common.requestError"));
         setError(message);
       } finally {
         setLoading(false);
@@ -659,7 +664,7 @@ export function useChatbot(
         }
         emitClientsRefresh({ clientId: clientId ?? undefined, scope: "documents" });
       } catch (err) {
-        const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
+        const message = getUserFacingErrorMessage(err, t("common.error"));
         setError(message);
         appendAssistant(chatT("chat.uploadError", { message }));
       } finally {
@@ -710,7 +715,7 @@ export function useChatbot(
         }
         emitClientsRefresh({ clientId, scope: "board" });
       } catch (err) {
-        const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : t("common.error");
+        const message = getUserFacingErrorMessage(err, t("common.error"));
         setError(message);
         appendAssistant(chatT("chat.uploadError", { message }));
       } finally {

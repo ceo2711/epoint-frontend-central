@@ -5,7 +5,8 @@ import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { AppLogo } from "@/components/layout/AppLogo";
-import { ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { EmailIcon, Input, PasswordInput } from "@/components/ui/Input";
@@ -29,7 +30,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
     try {
       await onSubmit(email.trim(), password.trim());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common.loginError"));
+      setError(getUserFacingErrorMessage(err, t("common.loginError")));
     } finally {
       setSubmitting(false);
     }
@@ -46,7 +47,6 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
           <div className="mb-4 flex items-center gap-4">
             <AppLogo size="xl" priority className="rounded-2xl" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-500">ePoint Corp</p>
               <p className="text-2xl font-bold tracking-tight text-slate-900">ePoint Central</p>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader"
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { Client } from "@/types/api";
 
 function parseOptionalInt(value: string): number | null {
@@ -202,7 +203,7 @@ export default function PortalDatosPage() {
       await loadStoredSsn(updated.has_ssn);
       setMessage(t("portalData.dataSaved"));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("portalData.saveError"));
+      setError(getUserFacingErrorMessage(err, t("portalData.saveError")));
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -59,7 +61,7 @@ export function PagosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("payments.createError"),
+        message: getUserFacingErrorMessage(err, t("payments.createError")),
         variant: "error",
       });
     }
@@ -72,7 +74,7 @@ export function PagosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("payments.cancelError"),
+        message: getUserFacingErrorMessage(err, t("payments.cancelError")),
         variant: "error",
       });
     } finally {
@@ -96,7 +98,7 @@ export function PagosPage() {
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: err instanceof ApiError ? err.message : t("payments.register.error"),
+        message: getUserFacingErrorMessage(err, t("payments.register.error")),
         variant: "error",
       });
     } finally {
@@ -113,7 +115,7 @@ export function PagosPage() {
             <LoadingSpinner />
           </div>
         ) : error ? (
-          <p className="text-sm text-red-600">{error.message}</p>
+          <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>
         ) : (
           <div className="space-y-6">
             <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">

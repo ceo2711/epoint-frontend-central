@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -37,7 +39,7 @@ export function ChangePasswordForm({ onSubmit }: ChangePasswordFormProps) {
     try {
       await onSubmit(currentPassword, newPassword);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("changePassword.error"));
+      setError(getUserFacingErrorMessage(err, t("changePassword.error")));
     } finally {
       setSubmitting(false);
     }

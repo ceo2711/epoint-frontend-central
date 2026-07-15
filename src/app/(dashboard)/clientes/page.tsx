@@ -1,22 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { HiOutlineTrash, HiOutlineUserPlus } from "react-icons/hi2";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
+import { IconActionButton } from "@/components/ui/IconActionButton";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useMerchant } from "@/contexts/MerchantContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientCreateModal } from "@/features/clients/components/ClientCreateModal";
+import {
+  ClientListFilters,
+  type ClientMerchantFilter,
+} from "@/features/clients/components/ClientListFilters";
 import { ClientList } from "@/features/clients/components/ClientList";
 import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { CLIENTS_PAGE_SIZE, useClients } from "@/features/clients/hooks/useClients";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
+import { onClientsRefresh } from "@/lib/clientEvents";
 
 export default function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
+  const { merchants: workspaceMerchants, activeMerchantId } = useMerchant();
   const { t } = useTranslation();
   const roleCode = user?.role.code;
   const clientsSubtitle =
@@ -27,16 +36,69 @@ export default function ClientesPage() {
         : t("clients.subtitle");
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const showMerchantFilter = workspaceMerchants.length > 1;
+  const canBulkDelete = roleCode === "ADMIN" && hasPermission("clients:delete");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, merchantFilter]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, debouncedSearch, merchantFilter]);
+
+  useEffect(() => {
+    return onClientsRefresh((detail) => {
+      setPage(1);
+      setSelectedIds([]);
+      if (detail?.showAllMerchants && showMerchantFilter) {
+        setMerchantFilter("all");
+      }
+    });
+  }, [showMerchantFilter]);
+
   const { clients, loading, load, total, pages, pageSize } = useClients(token, authLoading, {
     onboardingOnly: roleCode === "ONBOARDING_MANAGER",
     page,
     pageSize: CLIENTS_PAGE_SIZE,
+    search: debouncedSearch,
+    merchantFilter: showMerchantFilter ? merchantFilter : activeMerchantId ?? undefined,
   });
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
     token,
     hasPermission("clients:create") || hasPermission("clients:update"),
   );
-  const { approveClient, rejectClient, resubmitClient } = useClientWorkflow(token);
+  const { approveClient, rejectClient, resubmitClient, bulkDeleteClients } = useClientWorkflow(token);
+
+  const visibleClientIds = useMemo(() => clients.map((client) => client.id), [clients]);
+
+  const toggleSelect = useCallback((clientId: number) => {
+    setSelectedIds((current) =>
+      current.includes(clientId) ? current.filter((id) => id !== clientId) : [...current, clientId],
+    );
+  }, []);
+
+  const toggleSelectAllOnPage = useCallback(() => {
+    setSelectedIds((current) => {
+      const allSelected = visibleClientIds.every((id) => current.includes(id));
+      if (allSelected) {
+        return current.filter((id) => !visibleClientIds.includes(id));
+      }
+      return Array.from(new Set([...current, ...visibleClientIds]));
+    });
+  }, [visibleClientIds]);
 
   async function handleApprove(id: number, name: string) {
     if (await approveClient(id, name)) await load();
@@ -48,6 +110,15 @@ export default function ClientesPage() {
 
   async function handleResubmit(id: number, name: string) {
     if (await resubmitClient(id, name)) await load();
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.length === 0) return;
+    const ok = await bulkDeleteClients(selectedIds);
+    if (ok) {
+      setSelectedIds([]);
+      await load({ bustCache: true });
+    }
   }
 
   function handleCreateSuccess() {
@@ -66,17 +137,43 @@ export default function ClientesPage() {
     <>
       <Header title={t("clients.headerContext")} subtitle={clientsSubtitle} />
       <PageContent>
-        <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
-          {canRunReminders && <OnboardingRemindersButton token={token} />}
-          {hasPermission("clients:create") ? (
-            <Button size="sm" onClick={() => setCreateModalOpen(true)}>
-              {t("clients.register")}
-            </Button>
-          ) : null}
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <ClientListFilters
+            search={searchInput}
+            merchantFilter={merchantFilter}
+            merchants={workspaceMerchants}
+            showMerchantFilter={showMerchantFilter}
+            onSearchChange={setSearchInput}
+            onMerchantFilterChange={setMerchantFilter}
+          />
+
+          <div className="flex shrink-0 items-center gap-1.5 self-end">
+            {canRunReminders ? <OnboardingRemindersButton token={token} /> : null}
+            {hasPermission("clients:create") ? (
+              <IconActionButton
+                label={t("clients.register")}
+                icon={<HiOutlineUserPlus />}
+                variant="primary"
+                onClick={() => setCreateModalOpen(true)}
+              />
+            ) : null}
+          </div>
         </div>
 
+        {canBulkDelete && selectedIds.length > 0 ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3">
+            <p className="text-sm font-medium text-slate-700">
+              {t("clients.selectedCount", { count: selectedIds.length })}
+            </p>
+            <Button variant="danger" size="sm" onClick={() => void handleBulkDelete()}>
+              <HiOutlineTrash className="mr-1.5 inline h-4 w-4" />
+              {t("clients.bulkDelete")}
+            </Button>
+          </div>
+        ) : null}
+
         {loading ? (
-          <div className="flex justify-center py-16">
+          <div className="flex justify-center py-12">
             <LoadingSpinner label={t("clients.loading")} />
           </div>
         ) : (
@@ -84,6 +181,11 @@ export default function ClientesPage() {
             clients={clients}
             canApprove={hasPermission("clients:approve")}
             canUpdate={hasPermission("clients:update")}
+            canBulkDelete={canBulkDelete}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAllOnPage}
+            showMerchantColumn={merchantFilter === "all"}
             page={page}
             pages={pages}
             total={total}

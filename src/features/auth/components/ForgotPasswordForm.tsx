@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -27,7 +29,7 @@ export function ForgotPasswordForm() {
       });
       setSuccess(result.message);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("forgotPassword.error"));
+      setError(getUserFacingErrorMessage(err, t("forgotPassword.error")));
     } finally {
       setSubmitting(false);
     }

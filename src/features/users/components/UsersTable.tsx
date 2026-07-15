@@ -1,7 +1,10 @@
 "use client";
 
+import { HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
+
 import { ActiveBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { User } from "@/features/users/types";
 
@@ -24,6 +27,32 @@ export function UsersTable({
 }: UsersTableProps) {
   const { t } = useTranslation();
 
+  function renderActions(user: User) {
+    if (!user.is_active || user.id === currentUserId) {
+      return t("common.dash");
+    }
+
+    return (
+      <TableActions>
+        {canUpdate ? (
+          <IconActionButton
+            label={t("common.edit")}
+            icon={<HiOutlinePencilSquare />}
+            onClick={() => onEdit(user)}
+          />
+        ) : null}
+        {canDelete ? (
+          <IconActionButton
+            label={t("users.deactivate")}
+            icon={<HiOutlineNoSymbol />}
+            variant="danger"
+            onClick={() => onDeactivate(user)}
+          />
+        ) : null}
+      </TableActions>
+    );
+  }
+
   return (
     <>
       <div className="space-y-3 md:hidden">
@@ -38,20 +67,9 @@ export function UsersTable({
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
               <ActiveBadge active={user.is_active} />
             </div>
-            {(canUpdate || canDelete) && user.is_active && user.id !== currentUserId && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {canUpdate && (
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(user)}>
-                    {t("common.edit")}
-                  </button>
-                )}
-                {canDelete && (
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(user)}>
-                    {t("users.deactivate")}
-                  </button>
-                )}
-              </div>
-            )}
+            {(canUpdate || canDelete) && user.is_active && user.id !== currentUserId ? (
+              <div className="mt-3">{renderActions(user)}</div>
+            ) : null}
           </Card>
         ))}
       </div>
@@ -80,26 +98,7 @@ export function UsersTable({
                 </td>
                 <td>{user.area?.name ?? t("common.dash")}</td>
                 <td><ActiveBadge active={user.is_active} /></td>
-                {(canUpdate || canDelete) && (
-                  <td>
-                    {user.is_active && user.id !== currentUserId ? (
-                      <div className="flex flex-wrap gap-2">
-                        {canUpdate && (
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onEdit(user)}>
-                            {t("common.edit")}
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => onDeactivate(user)}>
-                            {t("users.deactivate")}
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      t("common.dash")
-                    )}
-                  </td>
-                )}
+                {(canUpdate || canDelete) && <td>{renderActions(user)}</td>}
               </tr>
             ))}
           </tbody>

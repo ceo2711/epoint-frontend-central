@@ -8,8 +8,27 @@ import type {
   PaymentLinkCreatePayload,
   PaymentRegisterClientPayload,
 } from "@/features/payments/types";
-import { ApiError, api } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
+import { api } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api-config";
+import { logClientError, NETWORK_ERROR_MESSAGE } from "@/lib/user-facing-error";
 import { queryKeys } from "@/lib/queryKeys";
+
+async function publicPaymentFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const base = getApiBaseUrl();
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, init);
+  } catch (cause) {
+    logClientError("payments:public", cause, { path, baseUrl: base });
+    throw new ApiError(0, NETWORK_ERROR_MESSAGE);
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.detail ?? "Error en la solicitud");
+  }
+  return res.json() as Promise<T>;
+}
 
 export function usePayments(token: string | null) {
   const queryClient = useQueryClient();
@@ -68,21 +87,12 @@ export function usePayments(token: string | null) {
 }
 
 export async function fetchPublicPayment(token: string): Promise<import("@/features/payments/types").PublicPaymentLink> {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  const res = await fetch(`${base}/payments/public/${token}`);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.detail ?? "Link no encontrado");
-  }
-  return res.json();
+  return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(`/payments/public/${token}`);
 }
 
-export async function completePublicPaymentStub(token: string) {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  const res = await fetch(`${base}/payments/public/${token}/complete`, { method: "POST" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.detail ?? "No se pudo completar el pago");
-  }
-  return res.json();
+export async function completePublicPaymentStub(token: string): Promise<import("@/features/payments/types").PublicPaymentLink> {
+  return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(
+    `/payments/public/${token}/complete`,
+    { method: "POST" },
+  );
 }

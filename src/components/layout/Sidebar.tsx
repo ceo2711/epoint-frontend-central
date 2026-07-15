@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppBrand } from "@/components/layout/AppBrand";
+import { MerchantSwitcher } from "@/components/layout/MerchantSwitcher";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useShell } from "@/contexts/ShellContext";
@@ -61,7 +62,7 @@ export function Sidebar() {
         }`}
       >
         <div className={`flex min-w-0 items-center ${collapsed ? "gap-3 lg:justify-center lg:gap-0 lg:[&_.brand-label]:hidden" : "gap-3"}`}>
-          <AppBrand showSubtitle dark logoPriority />
+          <AppBrand dark logoPriority />
         </div>
         <div className={`flex shrink-0 items-center gap-1 ${collapsed ? "lg:w-full lg:justify-center" : ""}`}>
           <button
@@ -85,6 +86,8 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <MerchantSwitcher collapsed={collapsed} />
 
       <nav className={`flex-1 space-y-1 overflow-y-auto py-5 ${collapsed ? "px-3 lg:px-2" : "px-3"}`}>
         <p

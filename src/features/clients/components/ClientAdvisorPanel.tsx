@@ -1,5 +1,7 @@
 "use client";
 
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+
 import { FormEvent, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -64,7 +66,7 @@ export function ClientAdvisorPanel({
       onAdvisorUpdated(updated);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("common.error"));
+      setError(getUserFacingErrorMessage(err, t("common.error")));
     } finally {
       setSaving(false);
     }
