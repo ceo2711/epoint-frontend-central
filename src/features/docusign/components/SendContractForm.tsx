@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
+import type { Prospect } from "@/features/prospects/types";
 import type {
   DocusignSendPayload,
   DocusignTemplate,
@@ -17,13 +18,15 @@ interface SendContractFormProps {
   defaultTemplateId?: string | null;
   defaultRoleName?: string | null;
   onSearchClients: (query: string) => Promise<Client[]>;
+  onSearchProspects?: (query: string) => Promise<Prospect[]>;
   onLoadTemplateDetail?: (templateId: string) => Promise<DocusignTemplateDetail | null>;
   onSubmit: (payload: DocusignSendPayload) => Promise<void>;
   /** Sin card ni título; para usar dentro de un modal. */
   embedded?: boolean;
-  /** Datos precargados (p. ej. invitado de Calendly). */
-  initialSigner?: { name: string; email: string; clientId?: number };
+  /** Datos precargados (p. ej. invitado de Calendly o prospecto). */
+  initialSigner?: { name: string; email: string; clientId?: number; prospectId?: number };
   hideClientSearch?: boolean;
+  hideProspectSearch?: boolean;
 }
 
 export function SendContractForm({
@@ -31,11 +34,13 @@ export function SendContractForm({
   defaultTemplateId,
   defaultRoleName,
   onSearchClients,
+  onSearchProspects,
   onLoadTemplateDetail,
   onSubmit,
   embedded = false,
   initialSigner,
   hideClientSearch = false,
+  hideProspectSearch = false,
 }: SendContractFormProps) {
   const { t } = useTranslation();
   const submittingRef = useRef(false);
@@ -47,6 +52,11 @@ export function SendContractForm({
   const [clientSearch, setClientSearch] = useState("");
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(initialSigner?.clientId);
+  const [prospectSearch, setProspectSearch] = useState("");
+  const [prospectOptions, setProspectOptions] = useState<Prospect[]>([]);
+  const [selectedProspectId, setSelectedProspectId] = useState<number | undefined>(
+    initialSigner?.prospectId,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [templateDetail, setTemplateDetail] = useState<DocusignTemplateDetail | null>(null);
 
@@ -70,6 +80,11 @@ export function SendContractForm({
   }, [initialSigner?.email, initialSigner?.clientId, onSearchClients]);
 
   useEffect(() => {
+    if (!initialSigner?.prospectId) return;
+    setSelectedProspectId(initialSigner.prospectId);
+  }, [initialSigner?.prospectId]);
+
+  useEffect(() => {
     if (!templateDetail?.roles.length) return;
     const validRoles = templateDetail.roles.map((role) => role.role_name);
     if (!validRoles.includes(roleName)) {
@@ -90,6 +105,18 @@ export function SendContractForm({
   }, [clientSearch, onSearchClients]);
 
   useEffect(() => {
+    const query = prospectSearch.trim();
+    if (!onSearchProspects || query.length < 2) {
+      setProspectOptions([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void onSearchProspects(query).then(setProspectOptions);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [prospectSearch, onSearchProspects]);
+
+  useEffect(() => {
     if (!templateId || !onLoadTemplateDetail) {
       setTemplateDetail(null);
       return;
@@ -106,9 +133,23 @@ export function SendContractForm({
 
   function selectClient(client: Client) {
     setSelectedClientId(client.id);
+    setSelectedProspectId(undefined);
     setSignerName(`${client.first_name} ${client.last_name}`.trim());
     setSignerEmail(client.email);
     setClientSearch(`${client.first_name} ${client.last_name}`);
+    setClientOptions([]);
+    setProspectSearch("");
+    setProspectOptions([]);
+  }
+
+  function selectProspect(prospect: Prospect) {
+    setSelectedProspectId(prospect.id);
+    setSelectedClientId(undefined);
+    setSignerName(prospect.full_name);
+    setSignerEmail(prospect.email);
+    setProspectSearch(prospect.full_name);
+    setProspectOptions([]);
+    setClientSearch("");
     setClientOptions([]);
   }
 
@@ -125,12 +166,15 @@ export function SendContractForm({
         template_role_name: roleName.trim() || undefined,
         subject: subject.trim(),
         client_id: selectedClientId,
+        prospect_id: selectedProspectId,
       });
       if (!embedded) {
         setSignerName("");
         setSignerEmail("");
         setClientSearch("");
         setSelectedClientId(undefined);
+        setProspectSearch("");
+        setSelectedProspectId(undefined);
       }
     } finally {
       submittingRef.current = false;
@@ -172,6 +216,36 @@ export function SendContractForm({
                       {client.first_name} {client.last_name}
                     </span>
                     <span className="text-slate-500">{client.email}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+
+      {!hideProspectSearch && onSearchProspects ? (
+        <>
+          <Input
+            label={t("docusign.searchProspect")}
+            value={prospectSearch}
+            onChange={(e) => setProspectSearch(e.target.value)}
+            placeholder={t("docusign.searchProspectPlaceholder")}
+          />
+          {selectedProspectId ? (
+            <p className="text-xs text-emerald-700">{t("docusign.prospectLinkedHint")}</p>
+          ) : null}
+          {prospectOptions.length > 0 ? (
+            <ul className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              {prospectOptions.map((prospect) => (
+                <li key={prospect.id}>
+                  <button
+                    type="button"
+                    className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    onClick={() => selectProspect(prospect)}
+                  >
+                    <span className="font-medium text-slate-900">{prospect.full_name}</span>
+                    <span className="text-slate-500">{prospect.email}</span>
                   </button>
                 </li>
               ))}

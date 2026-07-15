@@ -19,6 +19,7 @@ export interface PaymentLink {
   public_token: string;
   created_by_user_id: number;
   client_id: number | null;
+  prospect_id?: number | null;
   customer_first_name: string;
   customer_last_name: string;
   customer_email: string;
@@ -45,6 +46,7 @@ export interface PaymentLinkCreatePayload {
   currency: string;
   provider: PaymentProvider;
   description?: string;
+  prospect_id?: number;
 }
 
 export interface PublicPaymentLink {

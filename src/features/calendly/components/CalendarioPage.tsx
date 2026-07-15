@@ -26,7 +26,9 @@ import { SendContractModal } from "@/features/docusign/components/SendContractMo
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { onCalendlyRefresh } from "@/lib/calendlyEvents";
 import { ApiError } from "@/lib/api";
+import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { CalendlyEvent } from "@/features/calendly/types";
+import { api } from "@/lib/api";
 
 const CALENDAR_ROLES = new Set(["ADMIN", "SALES_REP"]);
 
@@ -37,13 +39,15 @@ type EventFormState =
 export function CalendarioPage() {
   const router = useRouter();
   const modal = useModal();
-  const { user, token } = useAuth();
+  const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
   const isAdmin = user?.role.code === "ADMIN";
   const isSalesRep = user?.role.code === "SALES_REP";
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendlyEvent | null>(null);
   const [sendContractEvent, setSendContractEvent] = useState<CalendlyEvent | null>(null);
+  const [linkProspectEvent, setLinkProspectEvent] = useState<CalendlyEvent | null>(null);
+  const canLinkProspect = hasPermission("prospects:update");
   const [formState, setFormState] = useState<EventFormState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -171,6 +175,31 @@ export function CalendarioPage() {
   function handleOpenSendContract(event: CalendlyEvent) {
     setSelectedEvent(null);
     setSendContractEvent(event);
+  }
+
+  async function handleLinkProspect(prospectId: number) {
+    if (!token || !linkProspectEvent) return;
+    try {
+      await api.post(
+        `/prospects/${prospectId}/link-calendly`,
+        { calendly_event_id: linkProspectEvent.id },
+        token,
+      );
+      await sync();
+      setLinkProspectEvent(null);
+      setSelectedEvent(null);
+      await modal.alert({
+        title: t("prospects.linkCalendlySuccessTitle"),
+        message: t("prospects.linkCalendlySuccessMessage"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
   }
 
   async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
@@ -311,6 +340,7 @@ export function CalendarioPage() {
           event={selectedEvent}
           canManage={!!canManageEvents}
           canSendContract={canSendContract}
+          canLinkProspect={canLinkProspect}
           onClose={() => setSelectedEvent(null)}
           onEdit={() => {
             setFormState({ mode: "edit", event: selectedEvent });
@@ -318,6 +348,10 @@ export function CalendarioPage() {
           }}
           onDelete={() => void handleDeleteEvent(selectedEvent)}
           onSendContract={() => handleOpenSendContract(selectedEvent)}
+          onLinkProspect={() => {
+            setLinkProspectEvent(selectedEvent);
+            setSelectedEvent(null);
+          }}
         />
       )}
 
@@ -325,6 +359,7 @@ export function CalendarioPage() {
         <SendContractModal
           signerName={sendContractEvent.invitee_name ?? sendContractEvent.invitee_email}
           signerEmail={sendContractEvent.invitee_email}
+          prospectId={sendContractEvent.prospect_id ?? undefined}
           templates={docusignTemplates}
           defaultTemplateId={docusignConnection?.default_template_id}
           defaultRoleName={docusignConnection?.default_template_role_name}
@@ -332,6 +367,16 @@ export function CalendarioPage() {
           onLoadTemplateDetail={loadTemplateDetail}
           onSubmit={handleSendContract}
           onClose={() => setSendContractEvent(null)}
+        />
+      ) : null}
+
+      {linkProspectEvent ? (
+        <ProspectLinkPickerModal
+          token={token}
+          title={t("prospects.linkToProspect")}
+          emailHint={linkProspectEvent.invitee_email ?? undefined}
+          onClose={() => setLinkProspectEvent(null)}
+          onSelect={handleLinkProspect}
         />
       ) : null}
 

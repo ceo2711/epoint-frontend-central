@@ -17,6 +17,7 @@ interface SendContractModalProps {
   signerName: string;
   signerEmail: string;
   clientId?: number;
+  prospectId?: number;
   templates: DocusignTemplate[];
   defaultTemplateId?: string | null;
   defaultRoleName?: string | null;
@@ -30,6 +31,7 @@ export function SendContractModal({
   signerName,
   signerEmail,
   clientId,
+  prospectId,
   templates,
   defaultTemplateId,
   defaultRoleName,
@@ -80,7 +82,7 @@ export function SendContractModal({
         templates={templates}
         defaultTemplateId={defaultTemplateId}
         defaultRoleName={defaultRoleName}
-        initialSigner={{ name: signerName, email: signerEmail, clientId }}
+        initialSigner={{ name: signerName, email: signerEmail, clientId, prospectId }}
         onSearchClients={onSearchClients}
         onLoadTemplateDetail={onLoadTemplateDetail}
         onSubmit={handleSubmit}

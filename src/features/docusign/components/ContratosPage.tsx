@@ -19,8 +19,11 @@ import { EnvelopeList } from "@/features/docusign/components/EnvelopeList";
 import { RegisterClientFromContractModal } from "@/features/docusign/components/RegisterClientFromContractModal";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
+import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { DocusignEnvelope, DocusignRegisterClientPayload } from "@/features/docusign/types";
-import { ApiError } from "@/lib/api";
+import type { Prospect } from "@/features/prospects/types";
+import type { Paginated } from "@/types/api";
+import { ApiError, api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 
 const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
@@ -28,16 +31,18 @@ const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
 export function ContratosPage() {
   const router = useRouter();
   const modal = useModal();
-  const { user, token } = useAuth();
+  const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [registerEnvelope, setRegisterEnvelope] = useState<DocusignEnvelope | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  const [linkEnvelope, setLinkEnvelope] = useState<DocusignEnvelope | null>(null);
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
   const isAdmin = user?.role.code === "ADMIN";
   const isSalesRep = user?.role.code === "SALES_REP";
+  const canLinkProspect = hasPermission("prospects:update");
 
   const {
     connection,
@@ -82,6 +87,13 @@ export function ContratosPage() {
   }
 
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
+
+  async function searchProspects(query: string): Promise<Prospect[]> {
+    if (!token || !canLinkProspect) return [];
+    const params = new URLSearchParams({ search: query, page: "1", page_size: "10" });
+    const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
+    return data.items;
+  }
 
   async function handleSend(payload: Parameters<typeof sendEnvelope>[0]) {
     try {
@@ -167,6 +179,29 @@ export function ContratosPage() {
     }
   }
 
+  async function handleLinkEnvelopeToProspect(prospectId: number) {
+    if (!token || !linkEnvelope) return;
+    try {
+      await api.post(
+        `/prospects/${prospectId}/link-envelope`,
+        { envelope_id: linkEnvelope.id },
+        token,
+      );
+      setLinkEnvelope(null);
+      await modal.alert({
+        title: t("prospects.linkContractSuccessTitle"),
+        message: t("prospects.linkContractSuccessMessage"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
+  }
+
   const pageSubtitle = isAdmin ? t("docusign.adminPageSubtitle") : t("docusign.pageSubtitle");
 
   return (
@@ -231,6 +266,7 @@ export function ContratosPage() {
                       onSync={handleSync}
                       onDownloadSigned={handleDownloadSigned}
                       onDownloadSent={handleDownloadSent}
+                      onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
                       syncingId={syncingId}
                       showClientColumn={false}
                     />
@@ -244,6 +280,7 @@ export function ContratosPage() {
                   defaultTemplateId={connection.default_template_id}
                   defaultRoleName={connection.default_template_role_name}
                   onSearchClients={searchClients}
+                  onSearchProspects={canLinkProspect ? searchProspects : undefined}
                   onLoadTemplateDetail={loadTemplateDetail}
                   onSubmit={handleSend}
                 />
@@ -254,6 +291,7 @@ export function ContratosPage() {
                   onDownloadSigned={handleDownloadSigned}
                   onDownloadSent={handleDownloadSent}
                   onRegisterClient={setRegisterEnvelope}
+                  onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
                   syncingId={syncingId}
                   showClientColumn={false}
                 />
@@ -269,6 +307,16 @@ export function ContratosPage() {
           token={token}
           onSubmit={handleRegisterClient}
           onClose={() => setRegisterEnvelope(null)}
+        />
+      ) : null}
+
+      {linkEnvelope && canLinkProspect ? (
+        <ProspectLinkPickerModal
+          token={token}
+          title={t("prospects.linkToProspect")}
+          emailHint={linkEnvelope.signer_email}
+          onClose={() => setLinkEnvelope(null)}
+          onSelect={handleLinkEnvelopeToProspect}
         />
       ) : null}
     </>

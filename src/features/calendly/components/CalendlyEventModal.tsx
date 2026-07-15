@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -9,10 +11,12 @@ interface CalendlyEventModalProps {
   event: CalendlyEvent;
   canManage: boolean;
   canSendContract?: boolean;
+  canLinkProspect?: boolean;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onSendContract?: () => void;
+  onLinkProspect?: () => void;
 }
 
 function formatEventRange(start: string, end: string, locale: string) {
@@ -36,10 +40,12 @@ export function CalendlyEventModal({
   event,
   canManage,
   canSendContract = false,
+  canLinkProspect = false,
   onClose,
   onEdit,
   onDelete,
   onSendContract,
+  onLinkProspect,
 }: CalendlyEventModalProps) {
   const { t, locale } = useTranslation();
 
@@ -73,6 +79,26 @@ export function CalendlyEventModal({
           <span className="font-medium text-slate-900">{t("calendly.scheduledAt")}:</span>{" "}
           {formatEventRange(event.start_time, event.end_time, locale)}
         </p>
+
+        {canLinkProspect ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t("prospects.title")}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {event.prospect_id ? (
+                <Link href={`/prospectos/${event.prospect_id}`} className="btn btn-secondary btn-sm">
+                  {t("prospects.viewLinkedProspect")}
+                </Link>
+              ) : onLinkProspect ? (
+                <Button type="button" variant="secondary" size="sm" onClick={onLinkProspect}>
+                  {t("prospects.linkToProspect")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         {event.meeting_url || canSendContract ? (
           <div className="flex flex-wrap gap-2 pt-1">
             {event.meeting_url ? (

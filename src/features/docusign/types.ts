@@ -32,6 +32,7 @@ export interface DocusignEnvelope {
   status: string;
   client_id?: number | null;
   client_name?: string | null;
+  prospect_id?: number | null;
   sent_by_user_id: number;
   sent_by_name?: string | null;
   sent_at: string;
@@ -63,5 +64,6 @@ export interface DocusignSendPayload {
   template_role_name?: string;
   subject?: string;
   client_id?: number;
+  prospect_id?: number;
   text_tabs?: Record<string, string>;
 }

@@ -29,6 +29,7 @@ export interface CalendlyEvent {
   invitee_comment: string | null;
   location: string | null;
   meeting_url: string | null;
+  prospect_id?: number | null;
 }
 
 export interface CalendlyCustomQuestion {

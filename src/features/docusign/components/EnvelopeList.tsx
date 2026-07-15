@@ -5,6 +5,7 @@ import {
   HiOutlineArrowPath,
   HiOutlineDocumentArrowDown,
   HiOutlineDocumentCheck,
+  HiOutlineLink,
   HiOutlineUserPlus,
 } from "react-icons/hi2";
 
@@ -19,6 +20,7 @@ interface EnvelopeListProps {
   onDownloadSigned: (envelopeId: number) => Promise<void>;
   onDownloadSent: (envelopeId: number) => Promise<void>;
   onRegisterClient?: (envelope: DocusignEnvelope) => void;
+  onLinkProspect?: (envelope: DocusignEnvelope) => void;
   syncingId?: number | null;
   showClientColumn?: boolean;
 }
@@ -47,6 +49,7 @@ export function EnvelopeList({
   onDownloadSigned,
   onDownloadSent,
   onRegisterClient,
+  onLinkProspect,
   syncingId,
   showClientColumn = true,
 }: EnvelopeListProps) {
@@ -162,6 +165,14 @@ export function EnvelopeList({
                           icon={<HiOutlineUserPlus />}
                           variant="primary"
                           onClick={() => onRegisterClient(envelope)}
+                        />
+                      ) : null}
+                      {!envelope.prospect_id && onLinkProspect ? (
+                        <IconActionButton
+                          label={t("prospects.linkToProspect")}
+                          icon={<HiOutlineLink />}
+                          variant="ghost"
+                          onClick={() => onLinkProspect(envelope)}
                         />
                       ) : null}
                       <IconActionButton

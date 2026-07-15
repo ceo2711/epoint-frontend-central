@@ -16,8 +16,9 @@ import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm"
 import { PaymentLinkList } from "@/features/payments/components/PaymentLinkList";
 import { RegisterClientFromPaymentModal } from "@/features/payments/components/RegisterClientFromPaymentModal";
 import { usePayments } from "@/features/payments/hooks/usePayments";
+import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { PaymentLink, PaymentLinkCreatePayload } from "@/features/payments/types";
-import { ApiError } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 
 const PAYMENT_ROLES = new Set(["ADMIN", "SALES_REP"]);
@@ -25,11 +26,13 @@ const PAYMENT_ROLES = new Set(["ADMIN", "SALES_REP"]);
 export function PagosPage() {
   const router = useRouter();
   const modal = useModal();
-  const { user, token } = useAuth();
+  const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [registerLink, setRegisterLink] = useState<PaymentLink | null>(null);
+  const [linkPayment, setLinkPayment] = useState<PaymentLink | null>(null);
   const [registering, setRegistering] = useState(false);
+  const canLinkProspect = hasPermission("prospects:update");
 
   const { config, links, loading, error, createLink, cancelLink, registerClient, isCreating } = usePayments(token);
 
@@ -106,6 +109,29 @@ export function PagosPage() {
     }
   }
 
+  async function handleLinkPaymentToProspect(prospectId: number) {
+    if (!token || !linkPayment) return;
+    try {
+      await api.post(
+        `/prospects/${prospectId}/link-payment`,
+        { payment_link_id: linkPayment.id },
+        token,
+      );
+      setLinkPayment(null);
+      await modal.alert({
+        title: t("prospects.linkPaymentSuccessTitle"),
+        message: t("prospects.linkPaymentSuccessMessage"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
+  }
+
   return (
     <>
       <Header title={t("payments.title")} subtitle={t("payments.subtitle")} />
@@ -133,6 +159,7 @@ export function PagosPage() {
                   links={links}
                   onCancel={handleCancel}
                   onRegisterClient={setRegisterLink}
+                  onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
                   cancellingId={cancellingId}
                 />
               </div>
@@ -149,6 +176,16 @@ export function PagosPage() {
         onClose={() => setRegisterLink(null)}
         onSubmit={handleRegister}
       />
+
+      {linkPayment && canLinkProspect ? (
+        <ProspectLinkPickerModal
+          token={token}
+          title={t("prospects.linkToProspect")}
+          emailHint={linkPayment.customer_email}
+          onClose={() => setLinkPayment(null)}
+          onSelect={handleLinkPaymentToProspect}
+        />
+      ) : null}
     </>
   );
 }

@@ -12,13 +12,15 @@ interface PaymentLinkFormProps {
   config: PaymentConfig | undefined;
   submitting: boolean;
   onSubmit: (payload: PaymentLinkCreatePayload) => Promise<void>;
+  initialData?: Partial<PaymentLinkCreatePayload>;
 }
 
-export function PaymentLinkForm({ config, submitting, onSubmit }: PaymentLinkFormProps) {
+export function PaymentLinkForm({ config, submitting, onSubmit, initialData }: PaymentLinkFormProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<PaymentLinkCreatePayload>({
     ...EMPTY_PAYMENT_FORM,
     provider: config?.default_provider ?? "stripe",
+    ...initialData,
   });
 
   const disabled = !config?.payments_enabled || submitting;

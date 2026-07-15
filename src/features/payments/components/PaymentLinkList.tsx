@@ -4,6 +4,7 @@ import {
   HiOutlineArrowTopRightOnSquare,
   HiOutlineClipboard,
   HiOutlineEye,
+  HiOutlineLink,
   HiOutlineUserPlus,
   HiOutlineXMark,
 } from "react-icons/hi2";
@@ -16,6 +17,7 @@ interface PaymentLinkListProps {
   links: PaymentLink[];
   onCancel?: (linkId: number) => void;
   onRegisterClient?: (link: PaymentLink) => void;
+  onLinkProspect?: (link: PaymentLink) => void;
   cancellingId?: number | null;
 }
 
@@ -34,6 +36,7 @@ export function PaymentLinkList({
   links,
   onCancel,
   onRegisterClient,
+  onLinkProspect,
   cancellingId,
 }: PaymentLinkListProps) {
   const { t } = useTranslation();
@@ -104,6 +107,14 @@ export function PaymentLinkList({
                   icon={<HiOutlineUserPlus />}
                   variant="primary"
                   onClick={() => onRegisterClient(link)}
+                />
+              ) : null}
+              {!link.prospect_id && onLinkProspect ? (
+                <IconActionButton
+                  label={t("prospects.linkToProspect")}
+                  icon={<HiOutlineLink />}
+                  variant="ghost"
+                  onClick={() => onLinkProspect(link)}
                 />
               ) : null}
               {link.client_id ? (
