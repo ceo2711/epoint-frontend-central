@@ -26,7 +26,7 @@ export function AccountSettingsPage() {
   const { user, token, refreshUser } = useAuth();
   const { t } = useTranslation();
   const isClient = user?.role.code === "CLIENT";
-  const isStaff = !!user && !isClient;
+  const canEditProfile = user?.role.code === "ADMIN";
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
   const [setupData, setSetupData] = useState<TotpSetupResponse | null>(null);
@@ -174,7 +174,7 @@ export function AccountSettingsPage() {
           <h2 className="text-lg font-semibold text-slate-900">{t("account.profileTitle")}</h2>
           <p className="mt-1 text-sm text-slate-500">{t("account.profileSubtitle")}</p>
 
-          {isStaff ? (
+          {canEditProfile ? (
             <form onSubmit={handleUpdateProfile} className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input
@@ -210,32 +210,35 @@ export function AccountSettingsPage() {
               </Button>
             </form>
           ) : (
-            <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {t("common.firstName")}
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">{user.first_name}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {t("common.lastName")}
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">{user.last_name}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {t("common.email")}
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">{user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {t("common.role")}
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
-              </div>
-            </dl>
+            <>
+              <p className="mt-3 text-sm text-slate-500">{t("account.profileReadOnlyHint")}</p>
+              <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    {t("common.firstName")}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">{user.first_name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    {t("common.lastName")}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">{user.last_name}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    {t("common.email")}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">{user.email}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    {t("common.role")}
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
+                </div>
+              </dl>
+            </>
           )}
         </Card>
 

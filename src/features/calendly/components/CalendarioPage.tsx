@@ -22,8 +22,6 @@ import { CalendlyShareLink } from "@/features/calendly/components/CalendlyShareL
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
 import { CALENDLY_WRITE_ENABLED } from "@/features/calendly/config";
 import { useCalendly } from "@/features/calendly/hooks/useCalendly";
-import { SendContractModal } from "@/features/docusign/components/SendContractModal";
-import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { onCalendlyRefresh } from "@/lib/calendlyEvents";
 import { ApiError } from "@/lib/api";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
@@ -45,7 +43,6 @@ export function CalendarioPage() {
   const isSalesRep = user?.role.code === "SALES_REP";
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendlyEvent | null>(null);
-  const [sendContractEvent, setSendContractEvent] = useState<CalendlyEvent | null>(null);
   const [linkProspectEvent, setLinkProspectEvent] = useState<CalendlyEvent | null>(null);
   const canLinkProspect = hasPermission("prospects:update");
   const [formState, setFormState] = useState<EventFormState | null>(null);
@@ -83,16 +80,6 @@ export function CalendarioPage() {
   } = useCalendly(token, targetUserId, {
     enabled: !isAdmin || selectedRepId !== null,
   });
-
-  const {
-    connection: docusignConnection,
-    templates: docusignTemplates,
-    sendEnvelope,
-    searchClients,
-    loadTemplateDetail,
-  } = useDocusign(token, { loadEnvelopes: false });
-
-  const canSendContract = !!docusignConnection?.connected;
 
   const selectedRep = useMemo(
     () => salesReps.find((rep) => rep.id === selectedRepId) ?? null,
@@ -173,11 +160,6 @@ export function CalendarioPage() {
     }
   }
 
-  function handleOpenSendContract(event: CalendlyEvent) {
-    setSelectedEvent(null);
-    setSendContractEvent(event);
-  }
-
   async function handleLinkProspect(prospectId: number) {
     if (!token || !linkProspectEvent) return;
     try {
@@ -200,25 +182,6 @@ export function CalendarioPage() {
         message: getUserFacingErrorMessage(err, t("common.error")),
         variant: "error",
       });
-    }
-  }
-
-  async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
-    try {
-      const result = await sendEnvelope(payload);
-      setSendContractEvent(null);
-      await modal.alert({
-        title: t("docusign.sendSuccessTitle"),
-        message: result?.message ?? t("docusign.sendSuccessMessage"),
-        variant: "success",
-      });
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: getUserFacingErrorMessage(err, t("docusign.sendError")),
-        variant: "error",
-      });
-      throw err;
     }
   }
 
@@ -340,7 +303,6 @@ export function CalendarioPage() {
         <CalendlyEventModal
           event={selectedEvent}
           canManage={!!canManageEvents}
-          canSendContract={canSendContract}
           canLinkProspect={canLinkProspect}
           onClose={() => setSelectedEvent(null)}
           onEdit={() => {
@@ -348,28 +310,12 @@ export function CalendarioPage() {
             setSelectedEvent(null);
           }}
           onDelete={() => void handleDeleteEvent(selectedEvent)}
-          onSendContract={() => handleOpenSendContract(selectedEvent)}
           onLinkProspect={() => {
             setLinkProspectEvent(selectedEvent);
             setSelectedEvent(null);
           }}
         />
       )}
-
-      {sendContractEvent?.invitee_email ? (
-        <SendContractModal
-          signerName={sendContractEvent.invitee_name ?? sendContractEvent.invitee_email}
-          signerEmail={sendContractEvent.invitee_email}
-          prospectId={sendContractEvent.prospect_id ?? undefined}
-          templates={docusignTemplates}
-          defaultTemplateId={docusignConnection?.default_template_id}
-          defaultRoleName={docusignConnection?.default_template_role_name}
-          onSearchClients={searchClients}
-          onLoadTemplateDetail={loadTemplateDetail}
-          onSubmit={handleSendContract}
-          onClose={() => setSendContractEvent(null)}
-        />
-      ) : null}
 
       {linkProspectEvent ? (
         <ProspectLinkPickerModal

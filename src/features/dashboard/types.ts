@@ -18,6 +18,11 @@ export interface StatusCount {
   count: number;
 }
 
+export interface SourceCount {
+  source: string;
+  count: number;
+}
+
 export interface TimeseriesPoint {
   date: string;
   count: number;
@@ -37,6 +42,7 @@ export interface AreaMetrics {
   completed: number;
   conversion_rate: number | null;
   by_status: StatusCount[];
+  by_source?: SourceCount[];
 }
 
 export interface DashboardMetrics {
@@ -46,8 +52,10 @@ export interface DashboardMetrics {
   by_status: Record<string, number>;
   areas: AreaMetrics[];
   registrations: TimeseriesPoint[];
+  prospect_registrations: TimeseriesPoint[];
   completions: TimeseriesPoint[];
   registration_projections: ProjectionPoint[];
+  prospect_registration_projections: ProjectionPoint[];
   completion_projections: ProjectionPoint[];
 }
 

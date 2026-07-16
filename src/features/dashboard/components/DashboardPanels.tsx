@@ -8,8 +8,11 @@ import {
   StatusPieChart,
   TrendLineChart,
 } from "@/features/dashboard/components/DashboardCharts";
+import { MetricReveal } from "@/features/dashboard/components/MetricReveal";
 import { StatCard } from "@/features/dashboard/components/StatCard";
 import { StatusBreakdownTable } from "@/features/dashboard/components/StatusBreakdownTable";
+import { PipelineStageConversion } from "@/features/dashboard/components/PipelineStageConversion";
+import { SourceOriginBreakdown } from "@/features/dashboard/components/SourceOriginBreakdown";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 export function DashboardAreaHome({
@@ -53,102 +56,135 @@ export function AreaMetricsPanel({
   const { t } = useTranslation();
   const isSales = area.code === "VENTAS";
   const isPersonal = area.scope === "personal";
-
-  const subtitle = isSales
-    ? isPersonal
-      ? t("dashboard.salesMetricsSubtitlePersonal")
-      : t("dashboard.salesMetricsSubtitle")
-    : t("dashboard.onboardingMetricsSubtitle");
+  const subtitle = t("dashboard.onboardingMetricsSubtitle");
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          {showBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-dark"
-            >
-              ← {t("dashboard.backToAreas")}
-            </button>
-          ) : null}
-          <h2 className="text-xl font-bold text-slate-900">{area.name}</h2>
-          <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
+      {showBack || !isSales ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {showBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-dark"
+              >
+                ← {t("dashboard.backToAreas")}
+              </button>
+            ) : null}
+            <h2 className="text-xl font-bold text-slate-900">{area.name}</h2>
+            {!isSales ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
+          </div>
         </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          title={isPersonal ? t("dashboard.myClientsTotal") : t("dashboard.totalInArea")}
-          value={area.total}
-          accent="slate"
-        />
-        <StatCard
-          title={isSales ? t("dashboard.pendingPipeline") : t("dashboard.inPipeline")}
-          value={area.in_pipeline}
-          accent="amber"
-        />
-        {isSales ? (
-          <StatCard
-            title={t("dashboard.conversion")}
-            value={area.conversion_rate ?? 0}
-            suffix="%"
-            accent="green"
-          />
-        ) : (
-          <StatCard title={t("dashboard.completedClients")} value={area.completed} accent="green" />
-        )}
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <StatusPieChart data={area.by_status} title={t("dashboard.statusDistribution")} />
-        <StatusBarChart data={area.by_status} title={t("dashboard.statusByCount")} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <TrendLineChart
-          data={metrics.registrations}
-          title={
-            isSales
-              ? isPersonal
-                ? t("dashboard.myRegistrationsTrend")
-                : t("dashboard.registrationsTrend")
-              : t("dashboard.newClientsTrend")
-          }
-          color={isSales ? "#2563eb" : "#3d6b45"}
-        />
-        {!isSales ? (
-          <TrendLineChart
-            data={metrics.completions}
-            title={t("dashboard.completionsTrend")}
-            color="#059669"
-          />
-        ) : (
-          <ProjectionLineChart
-            history={metrics.registrations}
-            projections={metrics.registration_projections}
-            title={
-              isPersonal ? t("dashboard.myRegistrationsProjection") : t("dashboard.registrationsProjection")
-            }
-          />
-        )}
-      </div>
-
-      {!isSales ? (
-        <ProjectionLineChart
-          history={metrics.completions}
-          projections={metrics.completion_projections}
-          title={t("dashboard.completionsProjection")}
-        />
       ) : null}
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          {t("dashboard.statusBreakdown")}
-        </h3>
-        <StatusBreakdownTable data={area.by_status} />
-      </div>
+      {isSales ? (
+        <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+          <MetricReveal delayMs={40}>
+            <PipelineStageConversion data={area.by_status} />
+          </MetricReveal>
+          <MetricReveal delayMs={100}>
+            <SourceOriginBreakdown data={area.by_source ?? []} />
+          </MetricReveal>
+        </div>
+      ) : null}
+
+      {!isSales ? (
+        <MetricReveal delayMs={40}>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <StatCard
+              title={isPersonal ? t("dashboard.myClientsTotal") : t("dashboard.totalInArea")}
+              value={area.total}
+              accent="slate"
+            />
+            <StatCard title={t("dashboard.inPipeline")} value={area.in_pipeline} accent="amber" />
+            <StatCard title={t("dashboard.completedClients")} value={area.completed} accent="green" />
+          </div>
+        </MetricReveal>
+      ) : null}
+
+      <MetricReveal delayMs={isSales ? 180 : 120}>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <StatusPieChart data={area.by_status} title={t("dashboard.statusDistribution")} />
+          <StatusBarChart data={area.by_status} title={t("dashboard.statusByCount")} />
+        </div>
+      </MetricReveal>
+
+      <MetricReveal delayMs={isSales ? 260 : 220}>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <TrendLineChart
+            data={isSales ? (metrics.prospect_registrations ?? []) : metrics.registrations}
+            title={
+              isSales
+                ? isPersonal
+                  ? t("dashboard.myProspectsTrend")
+                  : t("dashboard.prospectsTrend")
+                : t("dashboard.newClientsTrend")
+            }
+            color={isSales ? "#2563eb" : "#3d6b45"}
+          />
+          {!isSales ? (
+            <TrendLineChart
+              data={metrics.completions}
+              title={t("dashboard.completionsTrend")}
+              color="#059669"
+            />
+          ) : (
+            <ProjectionLineChart
+              history={metrics.prospect_registrations ?? []}
+              projections={metrics.prospect_registration_projections ?? []}
+              title={
+                isPersonal ? t("dashboard.myProspectsProjection") : t("dashboard.prospectsProjection")
+              }
+            />
+          )}
+        </div>
+      </MetricReveal>
+
+      {!isSales ? (
+        <MetricReveal delayMs={320}>
+          <ProjectionLineChart
+            history={metrics.completions}
+            projections={metrics.completion_projections}
+            title={t("dashboard.completionsProjection")}
+          />
+        </MetricReveal>
+      ) : null}
+
+      {!isSales ? (
+        <MetricReveal delayMs={400}>
+          <div>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {t("dashboard.statusBreakdown")}
+            </h3>
+            <StatusBreakdownTable data={area.by_status} />
+          </div>
+        </MetricReveal>
+      ) : null}
+
+      {isSales ? (
+        <MetricReveal delayMs={340}>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              title={isPersonal ? t("dashboard.myProspectsTotal") : t("dashboard.totalProspects")}
+              value={area.total}
+              accent="slate"
+            />
+            <StatCard
+              title={t("dashboard.prospectsInPipeline")}
+              value={area.in_pipeline}
+              accent="amber"
+            />
+            <StatCard
+              title={t("dashboard.conversion")}
+              value={area.conversion_rate ?? 0}
+              suffix="%"
+              accent="green"
+            />
+            <StatCard title={t("dashboard.paymentsCompleted")} value={area.completed} accent="blue" />
+          </div>
+        </MetricReveal>
+      ) : null}
     </div>
   );
 }

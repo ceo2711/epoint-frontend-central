@@ -70,29 +70,44 @@ export function AreaSelectorCards({
               </div>
               <p className="mt-3 text-sm leading-relaxed text-white/85">{t(`dashboard.${descriptionKey}`)}</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 px-6 py-4">
+            <div className={`grid gap-3 px-6 py-4 ${area.code === "VENTAS" ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t("dashboard.totalInArea")}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {area.code === "VENTAS" ? t("dashboard.totalProspects") : t("dashboard.totalInArea")}
+                </p>
                 <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{area.total}</p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  {area.code === "VENTAS" ? t("dashboard.pendingPipeline") : t("dashboard.inPipeline")}
+                  {area.code === "VENTAS" ? t("dashboard.prospectsInPipeline") : t("dashboard.inPipeline")}
                 </p>
                 <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{area.in_pipeline}</p>
               </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  {area.code === "VENTAS" ? t("dashboard.conversion") : t("dashboard.completedClients")}
-                </p>
-                <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
-                  {area.code === "VENTAS"
-                    ? area.conversion_rate != null
-                      ? `${area.conversion_rate}%`
-                      : "—"
-                    : area.completed}
-                </p>
-              </div>
+              {area.code === "VENTAS" ? (
+                <>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      {t("dashboard.conversion")}
+                    </p>
+                    <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                      {area.conversion_rate != null ? `${area.conversion_rate}%` : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      {t("dashboard.paymentsCompleted")}
+                    </p>
+                    <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{area.completed}</p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {t("dashboard.completedClients")}
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{area.completed}</p>
+                </div>
+              )}
             </div>
             <div className="border-t border-slate-100 px-6 py-3 text-sm font-medium text-brand group-hover:text-brand-dark">
               {t("dashboard.viewMetrics")} →

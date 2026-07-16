@@ -12,6 +12,7 @@ import { STATUS_CHART_COLORS } from "@/features/dashboard/constants";
 import type { StatusCount } from "@/features/dashboard/types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { CLIENT_STATUS_LABELS } from "@/types/api";
+import { PROSPECT_STATUS_ORDER } from "@/features/prospects/types";
 
 interface StatusBreakdownRow {
   status: string;
@@ -21,20 +22,34 @@ interface StatusBreakdownRow {
 }
 
 const columnHelper = createColumnHelper<StatusBreakdownRow>();
+const PROSPECT_STATUS_SET = new Set<string>(PROSPECT_STATUS_ORDER);
 
-export function StatusBreakdownTable({ data }: { data: StatusCount[] }) {
+export function StatusBreakdownTable({
+  data,
+  title,
+  subtitle,
+  countLabel,
+}: {
+  data: StatusCount[];
+  title?: string;
+  subtitle?: string;
+  countLabel?: string;
+}) {
   const { t } = useTranslation();
   const total = data.reduce((sum, item) => sum + item.count, 0);
+  const entityLabel = countLabel ?? t("dashboard.tableClients");
 
   const rows = useMemo<StatusBreakdownRow[]>(
     () =>
       data.map((item) => ({
         status: item.status,
-        label: CLIENT_STATUS_LABELS[item.status] ?? item.status,
+        label: PROSPECT_STATUS_SET.has(item.status)
+          ? t(`prospects.status.${item.status}` as never)
+          : (CLIENT_STATUS_LABELS[item.status] ?? item.status),
         count: item.count,
         share: total > 0 ? Math.round((item.count / total) * 100) : 0,
       })),
-    [data, total],
+    [data, t, total],
   );
 
   const columns = useMemo(
@@ -44,7 +59,7 @@ export function StatusBreakdownTable({ data }: { data: StatusCount[] }) {
         cell: (info) => <span className="font-medium text-slate-800">{info.getValue()}</span>,
       }),
       columnHelper.accessor("count", {
-        header: t("dashboard.tableClients"),
+        header: entityLabel,
         cell: (info) => <span className="tabular-nums text-slate-700">{info.getValue()}</span>,
       }),
       columnHelper.accessor("share", {
@@ -69,7 +84,7 @@ export function StatusBreakdownTable({ data }: { data: StatusCount[] }) {
         },
       }),
     ],
-    [t],
+    [entityLabel, t],
   );
 
   const table = useReactTable({
@@ -80,6 +95,12 @@ export function StatusBreakdownTable({ data }: { data: StatusCount[] }) {
 
   return (
     <div className="card-flat overflow-hidden">
+      {title ? (
+        <div className="border-b border-slate-100 px-5 py-4">
+          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          {subtitle ? <p className="mt-1 text-sm text-slate-500">{subtitle}</p> : null}
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">

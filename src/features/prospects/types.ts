@@ -1,17 +1,11 @@
 export type ProspectStatus =
-  | "LEAD_CALIFICADO"
-  | "LEAD_NO_CALIFICADO"
   | "PENDIENTE_CONTACTAR"
   | "LEAD_CONTACTADO"
   | "LEAD_CERRADO"
   | "CONTRATO_ENVIADO"
   | "PAGO_COMPLETADO";
 
-export const INITIAL_PROSPECT_STATUSES: ProspectStatus[] = ["LEAD_CALIFICADO", "LEAD_NO_CALIFICADO"];
-
 export const PROSPECT_STATUS_ORDER: ProspectStatus[] = [
-  "LEAD_CALIFICADO",
-  "LEAD_NO_CALIFICADO",
   "PENDIENTE_CONTACTAR",
   "LEAD_CONTACTADO",
   "CONTRATO_ENVIADO",
@@ -74,6 +68,7 @@ export interface Prospect {
   merchant_id: number;
   assigned_to_user_id: number;
   status: ProspectStatus;
+  is_qualified: boolean;
   first_name: string;
   last_name: string;
   full_name: string;
@@ -102,6 +97,7 @@ export interface ProspectDetail extends Prospect {
 export interface ProspectPipelineSummary {
   prospect_id: number;
   status: ProspectStatus;
+  is_qualified: boolean;
   history: ProspectHistoryEntry[];
   calendly_event: ProspectCalendlyBrief | null;
   docusign_envelopes: ProspectEnvelopeBrief[];
@@ -115,7 +111,7 @@ export interface ProspectFormData {
   phone: string;
   source: string;
   merchant_id: string;
-  initial_status: ProspectStatus;
+  is_qualified: boolean;
   notes: string;
 }
 
@@ -126,6 +122,6 @@ export const EMPTY_PROSPECT_FORM: ProspectFormData = {
   phone: "",
   source: "OTHER",
   merchant_id: "",
-  initial_status: "LEAD_CALIFICADO",
+  is_qualified: true,
   notes: "",
 };

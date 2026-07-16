@@ -8,11 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
-import {
-  EMPTY_PROSPECT_FORM,
-  INITIAL_PROSPECT_STATUSES,
-  type ProspectFormData,
-} from "@/features/prospects/types";
+import { EMPTY_PROSPECT_FORM, type ProspectFormData } from "@/features/prospects/types";
 import type { MerchantBrief } from "@/types/api";
 import { api } from "@/lib/api";
 
@@ -52,7 +48,7 @@ export function ProspectCreateModal({
           phone: form.phone,
           source: form.source,
           merchant_id: Number(form.merchant_id),
-          initial_status: form.initial_status,
+          is_qualified: form.is_qualified,
           notes: form.notes || undefined,
         },
         token,
@@ -107,23 +103,28 @@ export function ProspectCreateModal({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-slate-700">
-            {t("prospects.initialStatus")}
-            <select
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              value={form.initial_status}
-              onChange={(e) =>
-                setForm({ ...form, initial_status: e.target.value as ProspectFormData["initial_status"] })
-              }
-              required
-            >
-              {INITIAL_PROSPECT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {t(`prospects.status.${status}` as never)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="mb-2 text-sm font-medium text-slate-700">{t("prospects.qualification")}</p>
+          <div className="flex flex-wrap gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input
+                type="radio"
+                name="is_qualified"
+                checked={form.is_qualified}
+                onChange={() => setForm({ ...form, is_qualified: true })}
+              />
+              {t("prospects.qualified")}
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+              <input
+                type="radio"
+                name="is_qualified"
+                checked={!form.is_qualified}
+                onChange={() => setForm({ ...form, is_qualified: false })}
+              />
+              {t("prospects.unqualified")}
+            </label>
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">{t("prospects.qualificationHint")}</p>
         </div>
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-700">

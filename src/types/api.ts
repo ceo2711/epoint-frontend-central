@@ -115,6 +115,7 @@ export interface ClientSignedContractBrief {
 export interface Client {
   id: number;
   status: string;
+  is_qualified?: boolean;
   first_name: string;
   last_name: string;
   email: string;

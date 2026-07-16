@@ -7,10 +7,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/AuthContext";
 import { getAccessibleHrefs } from "@/lib/appNavigation";
 import { prefetchAppData, prefetchCurrentRouteData } from "@/lib/appPrefetch";
+import { prefetchAccessibleRouteModules } from "@/lib/lazyPanels";
 
-/** Esperar a que el dashboard pinte antes de prefetch de datos. */
+/** Esperar a que la ruta actual pinte antes de prefetch de datos. */
 const CURRENT_ROUTE_PREFETCH_MS = 2_500;
-const ROUTE_BUNDLE_PREFETCH_MS = 4_000;
+/** Calentar bundles JS de las rutas del menú en idle. */
+const ROUTE_MODULE_PREFETCH_MS = 1_500;
+const ROUTE_BUNDLE_PREFETCH_MS = 3_000;
 const DEFERRED_PREFETCH_MS = 12_000;
 
 function scheduleIdle(task: () => void, fallbackMs = 250) {
@@ -39,6 +42,13 @@ export function AppDataPrefetcher() {
     prefetchedKeyRef.current = sessionKey;
 
     const hrefs = getAccessibleHrefs(user, hasPermission);
+
+    const moduleTimer = window.setTimeout(() => {
+      scheduleIdle(() => {
+        prefetchAccessibleRouteModules(hrefs);
+      }, 300);
+    }, ROUTE_MODULE_PREFETCH_MS);
+
     const routeBundleTimer = window.setTimeout(() => {
       scheduleIdle(() => {
         for (const href of hrefs) {
@@ -60,6 +70,7 @@ export function AppDataPrefetcher() {
     }, DEFERRED_PREFETCH_MS);
 
     return () => {
+      window.clearTimeout(moduleTimer);
       window.clearTimeout(routeBundleTimer);
       window.clearTimeout(currentRouteTimer);
       window.clearTimeout(deferredTimer);

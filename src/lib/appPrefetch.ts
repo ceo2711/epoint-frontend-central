@@ -117,6 +117,22 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
       }
       return;
 
+    case "/prospectos":
+      // Lista usa useState (no React Query); el win es el code-split + warm de módulo JS.
+      return;
+
+    case "/pagos":
+      if (roleCode !== "ADMIN" && roleCode !== "SALES_REP") return;
+      await queryClient.prefetchQuery({
+        queryKey: queryKeys.payments.links,
+        queryFn: async () => {
+          const { api } = await import("@/lib/api");
+          return api.get("/payments/links", token);
+        },
+        staleTime: PREFETCH_STALE_MS,
+      });
+      return;
+
     case "/calendario":
       if (roleCode === "SALES_REP") {
         await prefetchCalendlyBundle(ctx, user.id);

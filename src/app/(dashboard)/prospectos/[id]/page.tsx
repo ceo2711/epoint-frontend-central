@@ -9,11 +9,14 @@ import { useParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
+import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
 import { SendContractModal } from "@/features/docusign/components/SendContractModal";
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
@@ -24,14 +27,36 @@ import { ProspectContractsModal } from "@/features/prospects/components/Prospect
 import { ProspectExistingPaymentModal } from "@/features/prospects/components/ProspectExistingResourceModals";
 import { ProspectHistoryTimeline } from "@/features/prospects/components/ProspectHistoryTimeline";
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
-import { ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
+import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
 import { isReadyForClientConversion } from "@/features/prospects/utils/pipeline";
-import type { ProspectStatus } from "@/features/prospects/types";
+import type { ProspectDetail, ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
 
 const PENDING_CONTRACT_SYNC_MS = 90_000;
+
+type ProspectEditForm = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  source: string;
+  notes: string;
+  is_qualified: boolean;
+};
+
+function buildProspectForm(prospect: ProspectDetail): ProspectEditForm {
+  return {
+    first_name: prospect.first_name,
+    last_name: prospect.last_name,
+    email: prospect.email,
+    phone: prospect.phone,
+    source: prospect.source ?? "",
+    notes: prospect.notes ?? "",
+    is_qualified: prospect.is_qualified,
+  };
+}
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -63,13 +88,23 @@ export default function ProspectoDetailPage() {
   const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<ProspectEditForm | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const canUpdate = hasPermission("prospects:update");
   const isConverted = !!prospect?.converted_client_id;
+  const canEditBasic = canUpdate && !isConverted;
   const allowedStatuses = prospect ? getAllowedNextStatuses(prospect.status) : [];
   const manualStatuses = prospect
     ? getManualStatusOptions(user?.role.code, prospect.status)
     : [];
+
+  useEffect(() => {
+    if (prospect && !editing) {
+      setEditForm(buildProspectForm(prospect));
+    }
+  }, [prospect, editing]);
 
   const {
     connection,
@@ -388,8 +423,63 @@ export default function ProspectoDetailPage() {
   const canMarkContacted =
     canUpdate &&
     !isConverted &&
-    (prospect.status === "PENDIENTE_CONTACTAR" || prospect.status === "LEAD_CALIFICADO") &&
+    prospect.status === "PENDIENTE_CONTACTAR" &&
     allowedStatuses.includes("LEAD_CONTACTADO");
+
+  async function handleSaveBasic(e: FormEvent) {
+    e.preventDefault();
+    if (!token || !prospect || !editForm || !canEditBasic) return;
+    setEditSubmitting(true);
+    try {
+      await api.patch(
+        `/prospects/${prospect.id}`,
+        {
+          first_name: editForm.first_name.trim(),
+          last_name: editForm.last_name.trim(),
+          email: editForm.email.trim(),
+          phone: editForm.phone.trim(),
+          source: editForm.source || undefined,
+          notes: editForm.notes.trim(),
+          is_qualified: editForm.is_qualified,
+        },
+        token,
+      );
+      await reload({ silent: true });
+      setEditing(false);
+      await modal.alert({
+        title: locale === "en" ? "Prospect updated" : "Prospecto actualizado",
+        message:
+          locale === "en"
+            ? "The basic details were saved successfully."
+            : "Los datos básicos se guardaron correctamente.",
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(
+          err,
+          locale === "en"
+            ? "Could not save prospect details"
+            : "No se pudieron guardar los datos del prospecto",
+        ),
+        variant: "error",
+      });
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  function startEditing() {
+    if (!prospect) return;
+    setEditForm(buildProspectForm(prospect));
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    if (prospect) setEditForm(buildProspectForm(prospect));
+    setEditing(false);
+  }
 
   return (
     <>
@@ -402,11 +492,17 @@ export default function ProspectoDetailPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">{prospect.full_name}</h2>
             <p className="text-sm text-slate-500">{prospect.email}</p>
-            <div className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <ProspectStatusBadge status={prospect.status} />
+              <ProspectQualificationBadge isQualified={prospect.is_qualified} />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            {canEditBasic && !editing ? (
+              <Button size="sm" variant="secondary" onClick={startEditing}>
+                {t("common.edit")}
+              </Button>
+            ) : null}
             {isConverted ? (
               <Link href={`/clientes/${prospect.converted_client_id}`} className="btn btn-primary btn-sm">
                 {t("prospects.viewClient")}
@@ -424,20 +520,110 @@ export default function ProspectoDetailPage() {
 
         <Card className="p-4 sm:p-6">
           <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-            {t("prospects.overview")}
+            {editing ? t("prospects.editBasic") : t("prospects.overview")}
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <InfoRow label={t("common.email")} value={prospect.email} />
-            <InfoRow label={t("common.phone")} value={prospect.phone} />
-            <InfoRow label={t("prospects.columns.merchant")} value={prospect.merchant_name} />
-            <InfoRow label={t("prospects.columns.salesRep")} value={salesRepName} />
-            <InfoRow label={t("clients.source")} value={prospect.source ?? "—"} />
-            {prospect.notes ? (
-              <div className="sm:col-span-2 lg:col-span-3">
-                <InfoRow label={t("common.notes")} value={prospect.notes} />
+
+          {editing && editForm ? (
+            <form onSubmit={(e) => void handleSaveBasic(e)} className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label={t("common.firstName")}
+                required
+                value={editForm.first_name}
+                onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+              />
+              <Input
+                label={t("common.lastName")}
+                required
+                value={editForm.last_name}
+                onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+              />
+              <Input
+                label={t("common.email")}
+                type="email"
+                required
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+              <Input
+                label={t("common.phone")}
+                required
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+              <ClientSourceSelect
+                value={editForm.source}
+                onChange={(source) => setEditForm({ ...editForm, source })}
+              />
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-slate-700">{t("prospects.qualification")}</p>
+                <select
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  value={editForm.is_qualified ? "1" : "0"}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, is_qualified: e.target.value === "1" })
+                  }
+                >
+                  <option value="1">{t("prospects.qualified")}</option>
+                  <option value="0">{t("prospects.unqualified")}</option>
+                </select>
               </div>
-            ) : null}
-          </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  {t("common.notes")}
+                  <textarea
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="sm:col-span-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-500">
+                <p>
+                  <span className="font-medium text-slate-700">{t("prospects.columns.merchant")}:</span>{" "}
+                  {prospect.merchant_name ?? "—"}
+                </p>
+                <p className="mt-1">
+                  <span className="font-medium text-slate-700">{t("prospects.columns.salesRep")}:</span>{" "}
+                  {salesRepName}
+                </p>
+              </div>
+              <div className="sm:col-span-2 flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={cancelEditing} disabled={editSubmitting}>
+                  {t("common.cancel")}
+                </Button>
+                <Button type="submit" disabled={editSubmitting}>
+                  {editSubmitting ? t("common.saving") : t("common.saveChanges")}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <InfoRow label={t("common.email")} value={prospect.email} />
+              <InfoRow label={t("common.phone")} value={prospect.phone} />
+              <InfoRow label={t("prospects.columns.merchant")} value={prospect.merchant_name} />
+              <InfoRow label={t("prospects.columns.salesRep")} value={salesRepName} />
+              <InfoRow
+                label={t("clients.source")}
+                value={
+                  prospect.source && prospect.source in CLIENT_SOURCE_LABEL_KEYS
+                    ? t(CLIENT_SOURCE_LABEL_KEYS[prospect.source as ClientSourceValue])
+                    : (prospect.source ?? "—")
+                }
+              />
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                <p className="section-label">{t("prospects.qualification")}</p>
+                <div className="mt-1">
+                  <ProspectQualificationBadge isQualified={prospect.is_qualified} />
+                </div>
+              </div>
+              {prospect.notes ? (
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <InfoRow label={t("common.notes")} value={prospect.notes} />
+                </div>
+              ) : null}
+            </div>
+          )}
         </Card>
 
         {!isConverted ? (

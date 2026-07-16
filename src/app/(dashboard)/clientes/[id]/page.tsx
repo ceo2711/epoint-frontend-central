@@ -32,6 +32,7 @@ import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
 import { canEditClientProfile, canViewApprovedClientWorkspace, canViewClientOnboardingWorkspace } from "@/features/clients/client-access";
 import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
+import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
@@ -425,7 +426,10 @@ export default function ClienteDetailPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
               <p className="section-label">{t("common.status")}</p>
-              <div className="mt-2"><StatusBadge status={client.status} /></div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <StatusBadge status={client.status} />
+                <ProspectQualificationBadge isQualified={client.is_qualified} />
+              </div>
             </div>
             <div className="text-sm text-slate-500 sm:text-right">
               ID #{client.id}

@@ -457,8 +457,8 @@ body {
 }
 
 .table-modern thead {
-  background: linear-gradient(to bottom, var(--cream-100), var(--cream-500));
-  border-bottom: 1px solid var(--border);
+  background: #e8e4dc;
+  border-bottom: 1px solid #d6d0c4;
 }
 
 .table-modern th {
@@ -467,7 +467,7 @@ body {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-subtle);
+  color: #57534e;
 }
 
 .table-modern td {
@@ -481,7 +481,7 @@ body {
 }
 
 .table-modern tbody tr:hover {
-  background: var(--cream-100);
+  background: #f1efe9;
 }
 
 .table-modern tbody tr:last-child td {
@@ -1417,5 +1417,38 @@ main .text-slate-700,
 
   .calendly-calendar .fc .fc-toolbar-chunk {
     justify-content: center;
+  }
+}
+
+/* ── Dashboard metrics entrance ─────────────────── */
+@keyframes metric-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metric-reveal {
+  opacity: 0;
+  animation: metric-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--metric-delay, 0ms);
+}
+
+.metric-reveal-row {
+  opacity: 0;
+  animation: metric-fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--metric-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-reveal,
+  .metric-reveal-row {
+    opacity: 1;
+    animation: none;
+    transform: none;
   }
 }

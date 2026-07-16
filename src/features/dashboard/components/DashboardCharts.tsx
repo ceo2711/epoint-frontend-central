@@ -18,9 +18,13 @@ import {
 
 import type { ProjectionPoint, StatusCount, TimeseriesPoint } from "@/features/dashboard/types";
 import { STATUS_CHART_COLORS } from "@/features/dashboard/constants";
+import { useTranslation } from "@/contexts/LanguageContext";
 import { CLIENT_STATUS_LABELS } from "@/types/api";
+import { PROSPECT_STATUS_ORDER } from "@/features/prospects/types";
 
 const STATUS_COLORS = STATUS_CHART_COLORS;
+
+const PROSPECT_STATUS_SET = new Set<string>(PROSPECT_STATUS_ORDER);
 
 const CHART_TOOLTIP_STYLE = {
   borderRadius: "12px",
@@ -33,15 +37,19 @@ function formatShortDate(value: string) {
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: string, translate?: (key: string) => string) {
+  if (PROSPECT_STATUS_SET.has(status) && translate) {
+    return translate(`prospects.status.${status}`);
+  }
   return CLIENT_STATUS_LABELS[status] ?? status;
 }
 
 export function StatusPieChart({ data, title }: { data: StatusCount[]; title: string }) {
+  const { t } = useTranslation();
   const chartData = data
     .filter((item) => item.count > 0)
     .map((item) => ({
-      name: statusLabel(item.status),
+      name: statusLabel(item.status, (key) => t(key as never)),
       value: item.count,
       status: item.status,
     }));
@@ -81,18 +89,19 @@ export function StatusPieChart({ data, title }: { data: StatusCount[]; title: st
 }
 
 export function StatusBarChart({ data, title }: { data: StatusCount[]; title: string }) {
+  const { t } = useTranslation();
   const chartData = data.map((item) => ({
-    name: statusLabel(item.status),
+    name: statusLabel(item.status, (key) => t(key as never)),
     count: item.count,
     status: item.status,
   }));
 
   return (
     <ChartCard title={title}>
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 48 }}>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 72 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-24} textAnchor="end" height={70} />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-32} textAnchor="end" height={90} interval={0} />
           <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
           <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
           <Bar dataKey="count" radius={[8, 8, 0, 0]}>

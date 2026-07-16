@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { AppBrand } from "@/components/layout/AppBrand";
 import { MerchantSwitcher } from "@/components/layout/MerchantSwitcher";
@@ -11,6 +11,7 @@ import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveActiveHref } from "@/components/layout/sidebarNav";
 import { getAccessibleNavItems } from "@/lib/appNavigation";
+import { prefetchRouteModule } from "@/lib/lazyPanels";
 
 function NavIcon({ d }: { d: string }) {
   return (
@@ -34,6 +35,7 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, hasPermission, logout } = useAuth();
   const { t } = useTranslation();
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
@@ -45,6 +47,11 @@ export function Sidebar() {
     pathname,
     items.map((item) => item.href),
   );
+
+  function warmRoute(href: string) {
+    router.prefetch(href);
+    prefetchRouteModule(href);
+  }
 
   return (
     <aside
@@ -107,6 +114,8 @@ export function Sidebar() {
               href={item.href}
               title={collapsed ? label : undefined}
               onClick={closeMobile}
+              onMouseEnter={() => warmRoute(item.href)}
+              onFocus={() => warmRoute(item.href)}
               className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                 collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""
               } ${

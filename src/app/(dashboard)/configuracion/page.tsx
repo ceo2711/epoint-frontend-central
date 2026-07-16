@@ -1,5 +1,7 @@
-import { AccountSettingsPage } from "@/features/auth/components/AccountSettingsPage";
+"use client";
 
-export default function ConfiguracionPage() {
-  return <AccountSettingsPage />;
+import { LazyConfiguracionPage } from "@/lib/lazyPanels";
+
+export default function ConfiguracionRoutePage() {
+  return <LazyConfiguracionPage />;
 }

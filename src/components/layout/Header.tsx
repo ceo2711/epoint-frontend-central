@@ -50,21 +50,21 @@ export function Header({
         </div>
       </div>
 
-      {/* Desktop: título completo + acciones */}
+      {/* Desktop: título + acciones */}
       <div className="hidden px-6 lg:flex lg:items-start lg:justify-between lg:gap-4 lg:px-0">
         <div className="min-w-0 flex-1">
+          {user && !bareTitle ? (
+            <p className="mb-1 text-sm font-medium text-slate-500">
+              {t("header.hello")},{" "}
+              <span className="font-semibold text-brand">{user.first_name}</span>
+            </p>
+          ) : null}
           <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900">
-            {user && !bareTitle ? (
-              <>
-                {t("header.hello")}{" "}
-                <span className="text-brand">{user.first_name}</span>,{" "}
-                <span className="font-semibold text-slate-800">{title}</span>
-              </>
-            ) : (
-              title
-            )}
+            <span className="font-semibold text-slate-800">{title}</span>
           </h1>
-          {subtitle && <p className="mt-0.5 truncate text-sm text-slate-600">{subtitle}</p>}
+          {subtitle ? (
+            <p className="mt-1 truncate text-sm font-medium text-slate-500">{subtitle}</p>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">

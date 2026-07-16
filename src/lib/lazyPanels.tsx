@@ -54,6 +54,30 @@ export const LazyFloatingChatWidget = dynamic(
   { ssr: false },
 );
 
+export const LazyDashboardPage = dynamic(
+  () =>
+    import("@/features/dashboard/components/DashboardPage").then((module) => ({
+      default: module.DashboardPage,
+    })),
+  { loading: panelLoader(), ssr: false },
+);
+
+export const LazyClientesPage = dynamic(
+  () =>
+    import("@/features/clients/components/ClientesPage").then((module) => ({
+      default: module.ClientesPage,
+    })),
+  { loading: panelLoader(), ssr: false },
+);
+
+export const LazyProspectosPage = dynamic(
+  () =>
+    import("@/features/prospects/components/ProspectosPage").then((module) => ({
+      default: module.ProspectosPage,
+    })),
+  { loading: panelLoader(), ssr: false },
+);
+
 export const LazyContratosPage = dynamic(
   () =>
     import("@/features/docusign/components/ContratosPage").then((module) => ({
@@ -77,3 +101,39 @@ export const LazyPagosPage = dynamic(
     })),
   { loading: panelLoader(), ssr: false },
 );
+
+export const LazyConfiguracionPage = dynamic(
+  () =>
+    import("@/features/auth/components/AccountSettingsPage").then((module) => ({
+      default: module.AccountSettingsPage,
+    })),
+  { loading: panelLoader(), ssr: false },
+);
+
+/** Prefetch del JS de cada ruta del menú (code-split), sin bloquear la UI. */
+export const ROUTE_MODULE_PREFETCHERS: Record<string, () => Promise<unknown>> = {
+  "/dashboard": () => import("@/features/dashboard/components/DashboardPage"),
+  "/clientes": () => import("@/features/clients/components/ClientesPage"),
+  "/prospectos": () => import("@/features/prospects/components/ProspectosPage"),
+  "/calendario": () => import("@/features/calendly/components/CalendarioPage"),
+  "/contratos": () => import("@/features/docusign/components/ContratosPage"),
+  "/pagos": () => import("@/features/payments/components/PagosPage"),
+  "/configuracion": () => import("@/features/auth/components/AccountSettingsPage"),
+};
+
+const warmedModules = new Set<string>();
+
+export function prefetchRouteModule(href: string): void {
+  const loader = ROUTE_MODULE_PREFETCHERS[href];
+  if (!loader || warmedModules.has(href)) return;
+  warmedModules.add(href);
+  void loader().catch(() => {
+    warmedModules.delete(href);
+  });
+}
+
+export function prefetchAccessibleRouteModules(hrefs: string[]): void {
+  for (const href of hrefs) {
+    prefetchRouteModule(href);
+  }
+}
