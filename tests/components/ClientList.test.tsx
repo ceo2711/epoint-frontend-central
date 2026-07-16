@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { ClientList } from "@/features/clients/components/ClientList";
 import type { Client } from "@/features/clients/types";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock("@/contexts/LanguageContext", () => ({
   useTranslation: () => ({ t: (key: string) => key, locale: "es" }),
 }));
@@ -23,39 +27,37 @@ const sampleClient: Client = {
   source: "WEB",
   merchant: null,
   registered_by_user_id: 1,
+  registered_by: {
+    id: 1,
+    first_name: "Ana",
+    last_name: "Vendedora",
+    email: "ana@epoint.com",
+  },
   created_at: new Date().toISOString(),
+};
+
+const pagination = {
+  page: 1,
+  pages: 1,
+  total: 1,
+  pageSize: 10,
+  onPageChange: vi.fn(),
 };
 
 describe("ClientList", () => {
   it("renders client name and email", () => {
-    render(
-      <ClientList
-        clients={[sampleClient]}
-        canApprove={false}
-        canUpdate={false}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-        onResubmit={vi.fn()}
-      />,
-    );
+    render(<ClientList clients={[sampleClient]} {...pagination} />);
 
     expect(screen.getAllByText("Juan Pérez").length).toBeGreaterThan(0);
     expect(screen.getAllByText("juan@test.com").length).toBeGreaterThan(0);
   });
 
-  it("shows approve buttons when permitted", () => {
+  it("shows sales rep column for admin", () => {
     render(
-      <ClientList
-        clients={[sampleClient]}
-        canApprove
-        canUpdate={false}
-        onApprove={vi.fn()}
-        onReject={vi.fn()}
-        onResubmit={vi.fn()}
-      />,
+      <ClientList clients={[sampleClient]} showSalesRepColumn {...pagination} />,
     );
 
-    expect(screen.getAllByText("clients.approve").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("clients.reject").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("prospects.columns.salesRep").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ana Vendedora").length).toBeGreaterThan(0);
   });
 });

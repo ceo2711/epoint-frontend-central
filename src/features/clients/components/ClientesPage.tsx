@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useMerchant } from "@/contexts/MerchantContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import type { CalendlySalesRep } from "@/features/calendly/types";
 import {
   ClientListFilters,
   type ClientMerchantFilter,
@@ -19,6 +20,7 @@ import { OnboardingRemindersButton } from "@/features/clients/components/Onboard
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { CLIENTS_PAGE_SIZE, useClients } from "@/features/clients/hooks/useClients";
 import { onClientsRefresh } from "@/lib/clientEvents";
+import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
 
 export function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
@@ -35,10 +37,23 @@ export function ClientesPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
+  const [salesRepId, setSalesRepId] = useState<number | null>(null);
+  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
+  const showSalesRepFilter = roleCode === "ADMIN";
   const canBulkDelete = roleCode === "ADMIN" && hasPermission("clients:delete");
+
+  useEffect(() => {
+    if (!token || !showSalesRepFilter) {
+      setSalesReps([]);
+      return;
+    }
+    void fetchCalendlySalesReps(token)
+      .then(setSalesReps)
+      .catch(() => setSalesReps([]));
+  }, [token, showSalesRepFilter]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -49,11 +64,11 @@ export function ClientesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, merchantFilter]);
+  }, [debouncedSearch, merchantFilter, salesRepId]);
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [page, debouncedSearch, merchantFilter]);
+  }, [page, debouncedSearch, merchantFilter, salesRepId]);
 
   useEffect(() => {
     return onClientsRefresh((detail) => {
@@ -71,6 +86,7 @@ export function ClientesPage() {
     pageSize: CLIENTS_PAGE_SIZE,
     search: debouncedSearch,
     merchantFilter: showMerchantFilter ? merchantFilter : activeMerchantId ?? undefined,
+    salesRepId: showSalesRepFilter ? salesRepId : null,
   });
   const { bulkDeleteClients } = useClientWorkflow(token);
 
@@ -119,8 +135,12 @@ export function ClientesPage() {
             merchantFilter={merchantFilter}
             merchants={workspaceMerchants}
             showMerchantFilter={showMerchantFilter}
+            salesRepId={salesRepId}
+            salesReps={salesReps}
+            showSalesRepFilter={showSalesRepFilter}
             onSearchChange={setSearchInput}
             onMerchantFilterChange={setMerchantFilter}
+            onSalesRepFilterChange={setSalesRepId}
           />
 
           {canRunReminders ? (
@@ -154,6 +174,7 @@ export function ClientesPage() {
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAllOnPage}
             showMerchantColumn={merchantFilter === "all"}
+            showSalesRepColumn={showSalesRepFilter}
             page={page}
             pages={pages}
             total={total}

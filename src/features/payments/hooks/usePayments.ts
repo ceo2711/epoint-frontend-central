@@ -30,20 +30,33 @@ async function publicPaymentFetch<T>(path: string, init?: RequestInit): Promise<
   return res.json() as Promise<T>;
 }
 
-export function usePayments(token: string | null) {
+type UsePaymentsOptions = {
+  adminView?: boolean;
+  salesRepId?: number | null;
+};
+
+export function usePayments(token: string | null, options?: UsePaymentsOptions) {
   const queryClient = useQueryClient();
+  const adminView = options?.adminView ?? false;
+  const salesRepId = options?.salesRepId ?? null;
 
   const configQuery = useQuery({
     queryKey: queryKeys.payments.config,
     queryFn: () => api.get<PaymentConfig>("/payments/config", token!),
-    enabled: !!token,
+    enabled: !!token && !adminView,
     staleTime: 5 * 60_000,
   });
 
+  const linksQueryKey =
+    salesRepId != null ? queryKeys.payments.linksBySalesRep(salesRepId) : queryKeys.payments.links;
+
   const linksQuery = useQuery({
-    queryKey: queryKeys.payments.links,
-    queryFn: () => api.get<PaymentLink[]>("/payments/links", token!),
-    enabled: !!token,
+    queryKey: linksQueryKey,
+    queryFn: () => {
+      const query = salesRepId != null ? `?created_by_user_id=${salesRepId}` : "";
+      return api.get<PaymentLink[]>(`/payments/links${query}`, token!);
+    },
+    enabled: !!token && (!adminView || salesRepId != null),
     staleTime: 5 * 60_000,
   });
 
@@ -79,10 +92,15 @@ export function usePayments(token: string | null) {
     },
   });
 
+  const loading = adminView
+    ? salesRepId != null && linksQuery.isLoading
+    : configQuery.isLoading || linksQuery.isLoading;
+
   return {
     config: configQuery.data,
     links: linksQuery.data ?? [],
-    loading: configQuery.isLoading || linksQuery.isLoading,
+    loading,
+    loadingLinks: linksQuery.isLoading,
     error: (configQuery.error ?? linksQuery.error) as ApiError | null,
     createLink: createLinkMutation.mutateAsync,
     cancelLink: cancelLinkMutation.mutateAsync,

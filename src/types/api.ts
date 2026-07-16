@@ -128,6 +128,7 @@ export interface Client {
   date_of_birth: string | null;
   has_ssn: boolean;
   registered_by_user_id: number;
+  registered_by?: AdvisorBrief | null;
   created_at: string;
   docusign_contract_signed_at?: string | null;
   signed_contract?: ClientSignedContractBrief | null;

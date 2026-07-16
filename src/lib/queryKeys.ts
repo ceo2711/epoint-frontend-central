@@ -11,6 +11,7 @@ export const queryKeys = {
       pageSize?: number,
       search?: string,
       merchantFilter?: "all" | number,
+      salesRepId?: number | null,
     ) =>
       [
         "clients",
@@ -21,6 +22,7 @@ export const queryKeys = {
           pageSize: pageSize ?? 10,
           search: search?.trim() || "",
           merchantFilter: merchantFilter ?? "active",
+          salesRepId: salesRepId ?? null,
         },
       ] as const,
     detail: (id: number) => ["clients", "detail", id] as const,

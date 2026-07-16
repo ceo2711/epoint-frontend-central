@@ -372,7 +372,10 @@ export const en: Messages = {
     cancelError: "Could not cancel the link",
     adminRepsTitle: "Sales reps",
     adminRepsSubtitle: "Select a rep to view their payment links",
+    adminPageSubtitle: "Review payment links created by each sales rep",
+    adminRepLinksHint: "Payment links created by this sales rep from the platform.",
     backToAll: "View all payments",
+    backToSalesReps: "Back to sales reps",
     form: {
       title: "New payment link",
       subtitle: "Enter client details and amount. If it matches a prospect, you can link them before sending.",

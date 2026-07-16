@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@/contexts/LanguageContext";
+import type { CalendlySalesRep } from "@/features/calendly/types";
 import type { MerchantBrief } from "@/types/api";
 
 export type ClientMerchantFilter = "all" | number;
@@ -10,8 +11,12 @@ interface ClientListFiltersProps {
   merchantFilter: ClientMerchantFilter;
   merchants: MerchantBrief[];
   showMerchantFilter: boolean;
+  salesRepId: number | null;
+  salesReps: CalendlySalesRep[];
+  showSalesRepFilter: boolean;
   onSearchChange: (value: string) => void;
   onMerchantFilterChange: (value: ClientMerchantFilter) => void;
+  onSalesRepFilterChange: (value: number | null) => void;
 }
 
 export function ClientListFilters({
@@ -19,8 +24,12 @@ export function ClientListFilters({
   merchantFilter,
   merchants,
   showMerchantFilter,
+  salesRepId,
+  salesReps,
+  showSalesRepFilter,
   onSearchChange,
   onMerchantFilterChange,
+  onSalesRepFilterChange,
 }: ClientListFiltersProps) {
   const { t } = useTranslation();
 
@@ -59,6 +68,29 @@ export function ClientListFilters({
             {merchants.map((merchant) => (
               <option key={merchant.id} value={merchant.id}>
                 {merchant.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {showSalesRepFilter ? (
+        <div className="w-full sm:w-auto sm:min-w-[12rem]">
+          <label htmlFor="clients-sales-rep-filter" className="input-label mb-1">
+            {t("prospects.columns.salesRep")}
+          </label>
+          <select
+            id="clients-sales-rep-filter"
+            value={salesRepId ?? ""}
+            onChange={(event) =>
+              onSalesRepFilterChange(event.target.value ? Number(event.target.value) : null)
+            }
+            className="input-field py-2"
+          >
+            <option value="">{t("common.all")}</option>
+            {salesReps.map((rep) => (
+              <option key={rep.id} value={rep.id}>
+                {rep.first_name} {rep.last_name}
               </option>
             ))}
           </select>

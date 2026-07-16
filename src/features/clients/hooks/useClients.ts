@@ -21,6 +21,7 @@ export function useClients(
     pageSize?: number;
     search?: string;
     merchantFilter?: ClientMerchantFilter;
+    salesRepId?: number | null;
   },
 ) {
   const queryClient = useQueryClient();
@@ -29,9 +30,10 @@ export function useClients(
   const pageSize = options?.pageSize ?? CLIENTS_PAGE_SIZE;
   const search = options?.search?.trim() ?? "";
   const merchantFilter = options?.merchantFilter;
+  const salesRepId = options?.salesRepId ?? null;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter),
+    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter, salesRepId),
     queryFn: async () =>
       fetchClientsList(token!, {
         onboardingOnly,
@@ -39,6 +41,7 @@ export function useClients(
         pageSize,
         search,
         merchantFilter,
+        salesRepId,
       }),
     enabled: !authLoading && !!token,
   });
@@ -56,7 +59,14 @@ export function useClients(
       if (authLoading || !token) return;
       if (loadOptions?.bustCache) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter),
+          queryKey: queryKeys.clients.list(
+            onboardingOnly,
+            page,
+            pageSize,
+            search,
+            merchantFilter,
+            salesRepId,
+          ),
         });
       }
       try {
@@ -67,7 +77,18 @@ export function useClients(
         }
       }
     },
-    [authLoading, token, queryClient, onboardingOnly, page, pageSize, search, merchantFilter, refetch],
+    [
+      authLoading,
+      token,
+      queryClient,
+      onboardingOnly,
+      page,
+      pageSize,
+      search,
+      merchantFilter,
+      salesRepId,
+      refetch,
+    ],
   );
 
   return {

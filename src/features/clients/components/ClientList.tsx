@@ -16,11 +16,17 @@ interface ClientListProps {
   onToggleSelect?: (clientId: number) => void;
   onToggleSelectAll?: () => void;
   showMerchantColumn?: boolean;
+  showSalesRepColumn?: boolean;
   page: number;
   pages: number;
   total: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+}
+
+function salesRepLabel(client: Client, dash: string) {
+  if (!client.registered_by) return dash;
+  return `${client.registered_by.first_name} ${client.registered_by.last_name}`;
 }
 
 export function ClientList({
@@ -30,6 +36,7 @@ export function ClientList({
   onToggleSelect,
   onToggleSelectAll,
   showMerchantColumn = false,
+  showSalesRepColumn = false,
   page,
   pages,
   total,
@@ -60,7 +67,8 @@ export function ClientList({
     );
   }
 
-  const emptyColSpan = 4 + (showMerchantColumn ? 1 : 0) + (canBulkDelete ? 1 : 0);
+  const emptyColSpan =
+    4 + (showMerchantColumn ? 1 : 0) + (showSalesRepColumn ? 1 : 0) + (canBulkDelete ? 1 : 0);
   return (
     <>
       <div className="space-y-3 md:hidden">
@@ -89,6 +97,11 @@ export function ClientList({
                       <p className="mt-1 break-all text-sm text-slate-500">{c.email}</p>
                       {showMerchantColumn && c.merchant?.name ? (
                         <p className="mt-1 text-sm text-slate-500">{c.merchant.name}</p>
+                      ) : null}
+                      {showSalesRepColumn ? (
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t("prospects.columns.salesRep")}: {salesRepLabel(c, t("common.dash"))}
+                        </p>
                       ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -127,6 +140,7 @@ export function ClientList({
               <th>{t("common.client")}</th>
               <th>{t("common.email")}</th>
               {showMerchantColumn ? <th>{t("clients.merchant")}</th> : null}
+              {showSalesRepColumn ? <th>{t("prospects.columns.salesRep")}</th> : null}
               <th>{t("common.status")}</th>
               <th>{t("prospects.columns.qualification")}</th>
             </tr>
@@ -155,6 +169,9 @@ export function ClientList({
                   <td className="text-slate-500">{c.email}</td>
                   {showMerchantColumn ? (
                     <td className="text-slate-500">{c.merchant?.name ?? t("common.dash")}</td>
+                  ) : null}
+                  {showSalesRepColumn ? (
+                    <td className="text-slate-500">{salesRepLabel(c, t("common.dash"))}</td>
                   ) : null}
                   <td>
                     <StatusBadge status={c.status} />

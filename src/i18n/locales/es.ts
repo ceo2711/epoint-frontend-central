@@ -371,7 +371,10 @@ export const es = {
     cancelError: "No se pudo cancelar el link",
     adminRepsTitle: "Vendedores",
     adminRepsSubtitle: "Seleccioná un vendedor para ver sus links de pago",
+    adminPageSubtitle: "Revisá los links de pago generados por cada vendedor",
+    adminRepLinksHint: "Links de pago creados por este vendedor desde la plataforma.",
     backToAll: "Ver todos los pagos",
+    backToSalesReps: "Volver a vendedores",
     form: {
       title: "Nuevo link de pago",
       subtitle: "Completá los datos del cliente y el monto. Si coincide con un prospecto, podés vincularlo antes de enviar.",

@@ -42,6 +42,7 @@ export function fetchClientsList(
     pageSize?: number;
     search?: string;
     merchantFilter?: "all" | number;
+    salesRepId?: number | null;
   },
 ) {
   const params = new URLSearchParams();
@@ -55,6 +56,7 @@ export function fetchClientsList(
   } else if (typeof options?.merchantFilter === "number") {
     params.set("merchant_id", String(options.merchantFilter));
   }
+  if (options?.salesRepId) params.set("sales_rep_id", String(options.salesRepId));
   const query = params.toString();
   return api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
 }
