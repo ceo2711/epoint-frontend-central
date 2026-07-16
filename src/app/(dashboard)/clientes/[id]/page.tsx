@@ -428,7 +428,7 @@ export default function ClienteDetailPage() {
               <p className="section-label">{t("common.status")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <StatusBadge status={client.status} />
-                <ProspectQualificationBadge isQualified={client.is_qualified} />
+                <ProspectQualificationBadge isQualified={client.is_qualified ?? true} />
               </div>
             </div>
             <div className="text-sm text-slate-500 sm:text-right">

@@ -69,9 +69,10 @@ export function SourceOriginBreakdown({ data }: { data: SourceCount[] }) {
               </Pie>
               <Tooltip
                 contentStyle={CHART_TOOLTIP_STYLE}
-                formatter={(value: number, name: string) => {
-                  const share = total > 0 ? Math.round((value / total) * 100) : 0;
-                  return [`${value} (${share}%)`, name];
+                formatter={(value, name) => {
+                  const num = typeof value === "number" ? value : Number(value) || 0;
+                  const share = total > 0 ? Math.round((num / total) * 100) : 0;
+                  return [`${num} (${share}%)`, String(name ?? "")];
                 }}
               />
               <Legend />
