@@ -8,6 +8,8 @@ describe("app-routes", () => {
     expect(isKnownAppPath("/login")).toBe(true);
     expect(isKnownAppPath("/dashboard")).toBe(true);
     expect(isKnownAppPath("/clientes/42")).toBe(true);
+    expect(isKnownAppPath("/prospectos")).toBe(true);
+    expect(isKnownAppPath("/prospectos/7")).toBe(true);
     expect(isKnownAppPath("/calendario")).toBe(true);
     expect(isKnownAppPath("/pagos")).toBe(true);
     expect(isKnownAppPath("/pagar/abc123")).toBe(true);

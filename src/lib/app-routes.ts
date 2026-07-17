@@ -9,6 +9,8 @@ const KNOWN_PATH_PATTERNS: RegExp[] = [
   /^\/dashboard$/,
   /^\/clientes$/,
   /^\/clientes\/\d+$/,
+  /^\/prospectos$/,
+  /^\/prospectos\/\d+$/,
   /^\/calendario$/,
   /^\/contratos$/,
   /^\/pagos$/,

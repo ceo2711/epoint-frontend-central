@@ -58,9 +58,80 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
     );
   }
 
+  const prospectActions = (prospect: Prospect) => (
+    <TableActions>
+      <IconActionButton
+        label={t("emailCompose.action")}
+        icon={<HiOutlineEnvelope className="h-4 w-4" />}
+        onClick={() => setEmailTarget(prospect)}
+      />
+      {isAdmin ? (
+        <IconActionButton
+          label={t("prospects.deleteAction")}
+          icon={<HiOutlineTrash className="h-4 w-4" />}
+          variant="danger"
+          disabled={deletingId === prospect.id}
+          onClick={() => void handleDelete(prospect)}
+        />
+      ) : null}
+    </TableActions>
+  );
+
   return (
     <>
-      <div className="table-wrap">
+      {/* Mobile: cards */}
+      <div className="space-y-3 md:hidden">
+        {prospects.map((prospect) => (
+          <div
+            key={prospect.id}
+            role="link"
+            tabIndex={0}
+            className="card-flat cursor-pointer p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            onClick={() => router.push(`/prospectos/${prospect.id}`)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                router.push(`/prospectos/${prospect.id}`);
+              }
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-slate-900">{prospect.full_name}</p>
+                <p className="truncate text-sm text-slate-500">{prospect.email}</p>
+              </div>
+              <div onClick={(event) => event.stopPropagation()}>{prospectActions(prospect)}</div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ProspectStatusBadge status={prospect.status} />
+              <ProspectQualificationBadge isQualified={prospect.is_qualified} />
+            </div>
+
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-sm">
+              <div className="min-w-0">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {t("prospects.columns.merchant")}
+                </dt>
+                <dd className="mt-0.5 truncate text-slate-700">{prospect.merchant_name ?? "—"}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {t("prospects.columns.salesRep")}
+                </dt>
+                <dd className="mt-0.5 truncate text-slate-700">
+                  {prospect.assigned_to
+                    ? `${prospect.assigned_to.first_name} ${prospect.assigned_to.last_name}`
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop / tablet: table */}
+      <div className="table-wrap max-md:hidden">
         <table className="table-modern">
           <thead>
             <tr>
@@ -102,24 +173,7 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
                 <td>
                   <ProspectQualificationBadge isQualified={prospect.is_qualified} />
                 </td>
-                <td onClick={(event) => event.stopPropagation()}>
-                  <TableActions>
-                    <IconActionButton
-                      label={t("emailCompose.action")}
-                      icon={<HiOutlineEnvelope className="h-4 w-4" />}
-                      onClick={() => setEmailTarget(prospect)}
-                    />
-                    {isAdmin ? (
-                      <IconActionButton
-                        label={t("prospects.deleteAction")}
-                        icon={<HiOutlineTrash className="h-4 w-4" />}
-                        variant="danger"
-                        disabled={deletingId === prospect.id}
-                        onClick={() => void handleDelete(prospect)}
-                      />
-                    ) : null}
-                  </TableActions>
-                </td>
+                <td onClick={(event) => event.stopPropagation()}>{prospectActions(prospect)}</td>
               </tr>
             ))}
           </tbody>
