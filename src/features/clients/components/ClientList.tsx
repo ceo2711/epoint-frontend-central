@@ -1,12 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { HiOutlineEnvelope } from "react-icons/hi2";
 
+import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { Pagination } from "@/components/ui/Pagination";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
+import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
 import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 
 interface ClientListProps {
@@ -45,6 +49,7 @@ export function ClientList({
 }: ClientListProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const [emailTarget, setEmailTarget] = useState<Client | null>(null);
   const selectedSet = new Set(selectedIds);
   const allOnPageSelected = clients.length > 0 && clients.every((client) => selectedSet.has(client.id));
   const someOnPageSelected = clients.some((client) => selectedSet.has(client.id));
@@ -68,7 +73,7 @@ export function ClientList({
   }
 
   const emptyColSpan =
-    4 + (showMerchantColumn ? 1 : 0) + (showSalesRepColumn ? 1 : 0) + (canBulkDelete ? 1 : 0);
+    5 + (showMerchantColumn ? 1 : 0) + (showSalesRepColumn ? 1 : 0) + (canBulkDelete ? 1 : 0);
   return (
     <>
       <div className="space-y-3 md:hidden">
@@ -109,6 +114,15 @@ export function ClientList({
                       <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />
                     </div>
                   </div>
+                  <div className="mt-3" onClick={(event) => event.stopPropagation()}>
+                    <TableActions>
+                      <IconActionButton
+                        label={t("emailCompose.action")}
+                        icon={<HiOutlineEnvelope className="h-4 w-4" />}
+                        onClick={() => setEmailTarget(c)}
+                      />
+                    </TableActions>
+                  </div>
                 </div>
               </div>
             </div>
@@ -143,6 +157,7 @@ export function ClientList({
               {showSalesRepColumn ? <th>{t("prospects.columns.salesRep")}</th> : null}
               <th>{t("common.status")}</th>
               <th>{t("prospects.columns.qualification")}</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -179,6 +194,15 @@ export function ClientList({
                   <td>
                     <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />
                   </td>
+                  <td onClick={(event) => event.stopPropagation()}>
+                    <TableActions>
+                      <IconActionButton
+                        label={t("emailCompose.action")}
+                        icon={<HiOutlineEnvelope className="h-4 w-4" />}
+                        onClick={() => setEmailTarget(c)}
+                      />
+                    </TableActions>
+                  </td>
                 </tr>
               );
             })}
@@ -200,6 +224,15 @@ export function ClientList({
         pageSize={pageSize}
         onPageChange={onPageChange}
       />
+
+      {emailTarget ? (
+        <SendEmailModal
+          recipientName={`${emailTarget.first_name} ${emailTarget.last_name}`}
+          recipientEmail={emailTarget.email}
+          basePath={`/clients/${emailTarget.id}`}
+          onClose={() => setEmailTarget(null)}
+        />
+      ) : null}
     </>
   );
 }
