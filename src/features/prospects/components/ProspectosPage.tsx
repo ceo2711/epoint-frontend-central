@@ -126,7 +126,7 @@ export function ProspectosPage() {
             <LoadingSpinner label={t("common.loading")} />
           </div>
         ) : (
-          <ProspectList prospects={prospects} />
+          <ProspectList prospects={prospects} onDeleted={() => void load()} />
         )}
 
         {pages > 1 ? (

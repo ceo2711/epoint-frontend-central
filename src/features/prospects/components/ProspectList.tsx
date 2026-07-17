@@ -2,22 +2,55 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { HiOutlineEnvelope } from "react-icons/hi2";
+import { HiOutlineEnvelope, HiOutlineTrash } from "react-icons/hi2";
 
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
+import { useModal } from "@/contexts/ModalContext";
+import { useAuth } from "@/features/auth/AuthContext";
 import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import type { Prospect } from "@/features/prospects/types";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ProspectListProps {
   prospects: Prospect[];
+  onDeleted?: () => void;
 }
 
-export function ProspectList({ prospects }: ProspectListProps) {
+export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const modal = useModal();
+  const { token, user } = useAuth();
   const [emailTarget, setEmailTarget] = useState<Prospect | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const isAdmin = user?.role.code === "ADMIN";
+
+  async function handleDelete(prospect: Prospect) {
+    if (!token || deletingId !== null) return;
+    const confirmed = await modal.confirm({
+      title: t("prospects.deleteTitle"),
+      message: t("prospects.deleteMessage", { name: prospect.full_name }),
+      confirmLabel: t("prospects.deleteAction"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    setDeletingId(prospect.id);
+    try {
+      await api.delete(`/prospects/${prospect.id}`, token);
+      onDeleted?.();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   if (prospects.length === 0) {
     return (
@@ -76,6 +109,15 @@ export function ProspectList({ prospects }: ProspectListProps) {
                       icon={<HiOutlineEnvelope className="h-4 w-4" />}
                       onClick={() => setEmailTarget(prospect)}
                     />
+                    {isAdmin ? (
+                      <IconActionButton
+                        label={t("prospects.deleteAction")}
+                        icon={<HiOutlineTrash className="h-4 w-4" />}
+                        variant="danger"
+                        disabled={deletingId === prospect.id}
+                        onClick={() => void handleDelete(prospect)}
+                      />
+                    ) : null}
                   </TableActions>
                 </td>
               </tr>

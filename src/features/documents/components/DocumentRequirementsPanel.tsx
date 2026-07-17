@@ -122,14 +122,16 @@ function DocumentUploadRow({
                       >
                         {t("portalDocs.viewDocument")}
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void onDownloadDocument?.(doc)}
-                      >
-                        {t("clientDetail.downloadDocument")}
-                      </Button>
+                      {onDownloadDocument ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void onDownloadDocument(doc)}
+                        >
+                          {t("clientDetail.downloadDocument")}
+                        </Button>
+                      ) : null}
                     </div>
                   </>
                 )}

@@ -167,6 +167,13 @@ export const en: Messages = {
     verifyError: "Could not verify the code",
     backToLogin: "Back to sign in",
   },
+  twoFactorRequired: {
+    title: "Set up two-factor authentication",
+    subtitle: "This is mandatory for every ePoint user",
+    explanation:
+      "To protect your account and company data, two-factor authentication is mandatory. Set it up now with Microsoft Authenticator, Google Authenticator or any compatible app. You won't be able to use the platform until it's done.",
+    start: "Set up now",
+  },
   account: {
     title: "My account",
     subtitle: "Personal details and account security",
@@ -191,10 +198,8 @@ export const en: Messages = {
       codeLabel: "6-digit code",
       confirm: "Confirm activation",
       confirming: "Confirming...",
-      disable: "Disable two-factor",
-      disabling: "Disabling...",
-      disableHint: "To disable two-factor, confirm your password and a valid code.",
-      passwordLabel: "Current password",
+      mandatoryHint:
+        "Two-factor authentication is mandatory for every user and cannot be disabled. If you lost access to your authenticator app, contact an administrator.",
       error: "Could not update two-factor settings",
     },
   },
@@ -445,8 +450,16 @@ export const en: Messages = {
     createTitle: "New prospect",
     qualification: "Qualification",
     qualificationHint: "Independent flag from pipeline status. Kept when converting to a client.",
+    duplicateEmail: "This email is already registered to {name} ({entity})",
+    duplicatePhone: "This phone number is already registered to {name} ({entity})",
+    conflictClient: "existing client",
+    conflictProspect: "active prospect",
     qualified: "Qualified lead",
     unqualified: "Unqualified lead",
+    deleteAction: "Delete prospect",
+    deleteTitle: "Delete prospect permanently",
+    deleteMessage:
+      "{name} and their entire history will be permanently deleted. This action cannot be undone. Continue?",
     detailTitle: "Prospect details",
     notFound: "Prospect not found.",
     overview: "Overview",

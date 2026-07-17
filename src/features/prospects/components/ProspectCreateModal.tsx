@@ -5,12 +5,18 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
+import {
+  formatProspectConflict,
+  useProspectAvailabilityCheck,
+} from "@/features/prospects/hooks/useProspectAvailabilityCheck";
 import { EMPTY_PROSPECT_FORM, type ProspectFormData } from "@/features/prospects/types";
 import type { MerchantBrief } from "@/types/api";
 import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ProspectCreateModalProps {
   token: string | null;
@@ -28,15 +34,29 @@ export function ProspectCreateModal({
   onSuccess,
 }: ProspectCreateModalProps) {
   const { t } = useTranslation();
+  const modal = useModal();
   const [form, setForm] = useState<ProspectFormData>(EMPTY_PROSPECT_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const { availability, checking, hasConflict } = useProspectAvailabilityCheck(
+    token,
+    form.merchant_id,
+    form.email,
+    form.phone,
+  );
+
+  const emailError = availability?.email
+    ? formatProspectConflict(t, "email", availability.email)
+    : undefined;
+  const phoneError = availability?.phone
+    ? formatProspectConflict(t, "phone", availability.phone)
+    : undefined;
 
   const formComplete =
     form.first_name && form.last_name && form.email && form.phone && form.merchant_id;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!token || !formComplete) return;
+    if (!token || !formComplete || hasConflict) return;
     setSubmitting(true);
     try {
       await api.post(
@@ -55,6 +75,12 @@ export function ProspectCreateModal({
       );
       onSuccess();
       onClose();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -81,12 +107,14 @@ export function ProspectCreateModal({
           required
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          error={emailError}
         />
         <Input
           label={t("common.phone")}
           required
           value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          error={phoneError}
         />
         <div className="sm:col-span-2">
           <ClientSourceSelect
@@ -141,7 +169,7 @@ export function ProspectCreateModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={submitting || !formComplete}>
+          <Button type="submit" disabled={submitting || checking || hasConflict || !formComplete}>
             {submitting ? t("common.saving") : t("prospects.createAction")}
           </Button>
         </div>

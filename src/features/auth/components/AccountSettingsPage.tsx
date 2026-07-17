@@ -31,8 +31,6 @@ export function AccountSettingsPage() {
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
   const [setupData, setSetupData] = useState<TotpSetupResponse | null>(null);
   const [confirmCode, setConfirmCode] = useState("");
-  const [disablePassword, setDisablePassword] = useState("");
-  const [disableCode, setDisableCode] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -101,28 +99,6 @@ export function AccountSettingsPage() {
       setMessage(result.message);
       setSetupData(null);
       setConfirmCode("");
-      await refreshUser();
-    } catch (err) {
-      setError(getUserFacingErrorMessage(err, t("account.twoFactor.error")));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDisable2fa(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-    setBusy(true);
-    try {
-      const result = await api.post<{ message: string }>(
-        "/auth/2fa/disable",
-        { password: disablePassword, code: disableCode },
-        token,
-      );
-      setMessage(result.message);
-      setDisablePassword("");
-      setDisableCode("");
       await refreshUser();
     } catch (err) {
       setError(getUserFacingErrorMessage(err, t("account.twoFactor.error")));
@@ -312,30 +288,7 @@ export function AccountSettingsPage() {
           )}
 
           {user.totp_enabled && (
-            <form onSubmit={handleDisable2fa} className="mt-6 space-y-4">
-              <p className="text-sm text-slate-600">{t("account.twoFactor.disableHint")}</p>
-              <PasswordInput
-                label={t("account.twoFactor.passwordLabel")}
-                required
-                value={disablePassword}
-                onChange={(e) => setDisablePassword(e.target.value)}
-                showLabel={t("login.showPassword")}
-                hideLabel={t("login.hidePassword")}
-              />
-              <Input
-                id="disableCode"
-                label={t("account.twoFactor.codeLabel")}
-                inputMode="numeric"
-                maxLength={6}
-                required
-                value={disableCode}
-                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-              />
-              <Button type="submit" variant="secondary" disabled={busy || disableCode.length !== 6}>
-                {busy ? t("account.twoFactor.disabling") : t("account.twoFactor.disable")}
-              </Button>
-            </form>
+            <p className="mt-6 text-sm text-slate-600">{t("account.twoFactor.mandatoryHint")}</p>
           )}
         </Card>
 

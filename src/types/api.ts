@@ -161,6 +161,16 @@ export interface ClientAvailability {
   phone: ClientConflict | null;
 }
 
+export interface ProspectContactConflict extends ClientConflict {
+  kind: "client" | "prospect";
+}
+
+export interface ProspectAvailability {
+  available: boolean;
+  email: ProspectContactConflict | null;
+  phone: ProspectContactConflict | null;
+}
+
 export interface Address {
   id: number;
   type: string;

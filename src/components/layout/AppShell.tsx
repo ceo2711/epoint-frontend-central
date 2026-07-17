@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AppDataPrefetcher } from "@/components/providers/AppDataPrefetcher";
+import { MandatoryTwoFactorModal } from "@/features/auth/components/MandatoryTwoFactorModal";
 import { LazyFloatingChatWidget } from "@/lib/lazyPanels";
 import { NotificationsProvider } from "@/features/notifications/NotificationsContext";
 import { useShell } from "@/contexts/ShellContext";
@@ -54,6 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {mounted && showStaffNotifications && showChatWidget
         ? createPortal(<LazyFloatingChatWidget />, document.body)
         : null}
+      {mounted ? <MandatoryTwoFactorModal /> : null}
     </NotificationsProvider>
   );
 }

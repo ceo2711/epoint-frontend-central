@@ -654,7 +654,9 @@ export default function ClienteDetailPage() {
               locale={locale}
               onUploaded={() => void refreshDocuments()}
               onViewDocument={setViewingDoc}
-              onDownloadDocument={handleDownloadDocument}
+              onDownloadDocument={
+                user?.role.code === "ADMIN" ? handleDownloadDocument : undefined
+              }
             />
           </Card>
         )}

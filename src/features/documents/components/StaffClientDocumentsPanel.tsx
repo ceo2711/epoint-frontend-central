@@ -17,7 +17,7 @@ interface StaffClientDocumentsPanelProps {
   locale: Locale;
   onUploaded: () => void;
   onViewDocument: (doc: DocumentBrief) => void;
-  onDownloadDocument: (doc: DocumentBrief) => void;
+  onDownloadDocument?: (doc: DocumentBrief) => void;
 }
 
 function formatDate(value: string | null, locale: Locale) {

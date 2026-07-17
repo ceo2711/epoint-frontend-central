@@ -165,6 +165,13 @@ export const es = {
     verifyError: "No se pudo verificar el código",
     backToLogin: "Volver al inicio de sesión",
   },
+  twoFactorRequired: {
+    title: "Configurá el doble factor de autenticación",
+    subtitle: "Es un requisito obligatorio para todos los usuarios de ePoint",
+    explanation:
+      "Para proteger tu cuenta y los datos de la empresa, el doble factor de autenticación es obligatorio. Configuralo ahora con Microsoft Authenticator, Google Authenticator u otra app compatible. No vas a poder usar la plataforma hasta completarlo.",
+    start: "Configurar ahora",
+  },
   account: {
     title: "Mi cuenta",
     subtitle: "Datos personales y seguridad de tu acceso",
@@ -189,10 +196,8 @@ export const es = {
       codeLabel: "Código de 6 dígitos",
       confirm: "Confirmar activación",
       confirming: "Confirmando...",
-      disable: "Desactivar doble factor",
-      disabling: "Desactivando...",
-      disableHint: "Para desactivar el doble factor, confirmá tu contraseña y un código válido.",
-      passwordLabel: "Contraseña actual",
+      mandatoryHint:
+        "El doble factor es obligatorio para todos los usuarios y no se puede desactivar. Si perdiste el acceso a tu app autenticadora, contactá a un administrador.",
       error: "No se pudo actualizar el doble factor",
     },
   },
@@ -444,8 +449,16 @@ export const es = {
     createTitle: "Nuevo prospecto",
     qualification: "Calificación",
     qualificationHint: "Es una bandera independiente del estado del pipeline. Se conserva al convertir a cliente.",
+    duplicateEmail: "Este email ya está registrado por {name} ({entity})",
+    duplicatePhone: "Este teléfono ya está registrado por {name} ({entity})",
+    conflictClient: "cliente existente",
+    conflictProspect: "prospecto activo",
     qualified: "Lead calificado",
     unqualified: "Lead no calificado",
+    deleteAction: "Eliminar prospecto",
+    deleteTitle: "Eliminar prospecto definitivamente",
+    deleteMessage:
+      "Se eliminará a {name} y todo su historial de forma permanente. Esta acción no se puede deshacer. ¿Continuar?",
     detailTitle: "Detalle del prospecto",
     notFound: "No se encontró el prospecto.",
     overview: "Información general",

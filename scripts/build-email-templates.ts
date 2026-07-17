@@ -11,6 +11,7 @@ import { OnboardingReminderEmail } from "../emails/OnboardingReminderEmail";
 import { OnboardingReminderEmailEn } from "../emails/OnboardingReminderEmailEn";
 import { PasswordResetEmail } from "../emails/PasswordResetEmail";
 import { PaymentLinkEmail } from "../emails/PaymentLinkEmail";
+import { ClientConversionWelcomeEmail } from "../emails/ClientConversionWelcomeEmail";
 import { WelcomeEmail } from "../emails/WelcomeEmail";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +85,17 @@ async function main() {
         amountFormatted: "{{AMOUNT_FORMATTED}}",
         paymentUrl: "{{PAYMENT_URL}}",
         providerLabel: "{{PROVIDER_LABEL}}",
+        logoUrl: PLACEHOLDER_LOGO,
+      }),
+    ),
+  });
+
+  templates.push({
+    name: "client_conversion_welcome",
+    html: await render(
+      ClientConversionWelcomeEmail({
+        firstName: "{{FIRST_NAME}}",
+        amountFormatted: "{{AMOUNT_FORMATTED}}",
         logoUrl: PLACEHOLDER_LOGO,
       }),
     ),
