@@ -3,8 +3,8 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,7 @@ import { SendContractModal } from "@/features/docusign/components/SendContractMo
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
+import { PAYMENT_COMPLETED_EVENT, type PaymentCompletedDetail } from "@/features/payments/payment-events";
 import { usePayments } from "@/features/payments/hooks/usePayments";
 import { ProspectCalendlyLinkModal } from "@/features/prospects/components/ProspectCalendlyLinkModal";
 import { ProspectContractsModal } from "@/features/prospects/components/ProspectContractsModal";
@@ -34,7 +35,8 @@ import { isReadyForClientConversion } from "@/features/prospects/utils/pipeline"
 import type { ProspectDetail, ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
 
-const PENDING_CONTRACT_SYNC_MS = 90_000;
+const PENDING_CONTRACT_SYNC_MS = 15_000;
+const PIPELINE_POLL_MS = 10_000;
 
 type ProspectEditForm = {
   first_name: string;
@@ -69,6 +71,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function ProspectoDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const rawId = params.id;
   const id = typeof rawId === "string" ? Number(rawId) : NaN;
   const idValid = Number.isFinite(id) && id > 0;
@@ -77,6 +80,12 @@ export default function ProspectoDetailPage() {
   const { t, locale } = useTranslation();
   const modal = useModal();
   const { prospect, loading, reload } = useProspectDetail(token, idValid ? id : 0);
+  const pipelineSnapshotRef = useRef<{
+    hydrated: boolean;
+    ready: boolean;
+    convertedId: number | null;
+  }>({ hydrated: false, ready: false, convertedId: null });
+  const conversionModalKeyRef = useRef<string | null>(null);
 
   const [statusTarget, setStatusTarget] = useState<ProspectStatus | "">("");
   const [statusNote, setStatusNote] = useState("");
@@ -126,6 +135,13 @@ export default function ProspectoDetailPage() {
     );
   }, [prospect?.docusign_envelopes]);
 
+  const waitingForPayment = useMemo(() => {
+    if (!prospect || prospect.converted_client_id) return false;
+    const payment = prospect.payment_link;
+    if (!payment) return false;
+    return payment.status.toLowerCase() !== "paid";
+  }, [prospect]);
+
   const pipelineComplete = useMemo(() => {
     if (!prospect) return false;
     return isReadyForClientConversion(
@@ -135,6 +151,12 @@ export default function ProspectoDetailPage() {
       prospect.payment_link,
     );
   }, [prospect]);
+
+  const waitingOnPipeline = Boolean(
+    prospect &&
+      !prospect.converted_client_id &&
+      (hasPendingContracts || waitingForPayment || pipelineComplete),
+  );
 
   useEffect(() => {
     if (!prospect?.id) return;
@@ -147,44 +169,122 @@ export default function ProspectoDetailPage() {
   }, [prospect?.id, reload]);
 
   useEffect(() => {
-    if (!token || !prospect?.id || !hasPendingContracts) return;
+    if (!token || !prospect?.id || !waitingOnPipeline) return;
 
     let cancelled = false;
 
-    const syncPendingAndReload = async () => {
-      try {
-        await api.post("/docusign/envelopes/sync-pending", {}, token, { silentHttpErrors: true });
-      } catch {
-        /* El webhook o el próximo ciclo actualizarán el estado. */
+    const syncPipeline = async () => {
+      if (hasPendingContracts) {
+        try {
+          await api.post("/docusign/envelopes/sync-pending", {}, token, { silentHttpErrors: true });
+        } catch {
+          /* El webhook o el próximo ciclo actualizarán el estado. */
+        }
       }
       if (!cancelled) void reload({ silent: true });
     };
 
-    void syncPendingAndReload();
-    const timer = window.setInterval(() => void syncPendingAndReload(), PENDING_CONTRACT_SYNC_MS);
+    void syncPipeline();
+    const intervalMs = hasPendingContracts ? PENDING_CONTRACT_SYNC_MS : PIPELINE_POLL_MS;
+    const timer = window.setInterval(() => void syncPipeline(), intervalMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [token, prospect?.id, hasPendingContracts, reload]);
+  }, [token, prospect?.id, waitingOnPipeline, hasPendingContracts, reload]);
 
   useEffect(() => {
-    if (!prospect?.id || prospect.converted_client_id || !pipelineComplete) return;
+    if (!prospect?.id || prospect.converted_client_id || !waitingOnPipeline) return;
 
-    let cancelled = false;
-    const refreshUntilConverted = async () => {
-      if (!cancelled) await reload({ silent: true });
+    const refreshOnFocus = () => {
+      if (document.visibilityState === "visible") {
+        void reload({ silent: true });
+      }
     };
 
-    void refreshUntilConverted();
-    const timer = window.setInterval(() => void refreshUntilConverted(), 30_000);
-
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
     return () => {
-      cancelled = true;
-      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
     };
-  }, [prospect?.id, prospect?.converted_client_id, pipelineComplete, reload]);
+  }, [prospect?.id, prospect?.converted_client_id, waitingOnPipeline, reload]);
+
+  useEffect(() => {
+    if (!prospect?.id) return;
+
+    const onPaymentCompleted = (event: Event) => {
+      const detail = (event as CustomEvent<PaymentCompletedDetail>).detail;
+      const matchesProspect =
+        detail?.prospectId == null || detail.prospectId === prospect.id;
+      const matchesPaymentLink =
+        detail?.paymentLinkId == null ||
+        prospect.payment_link_id == null ||
+        detail.paymentLinkId === prospect.payment_link_id;
+      if (!matchesProspect || !matchesPaymentLink) return;
+      void reload({ silent: true });
+    };
+
+    window.addEventListener(PAYMENT_COMPLETED_EVENT, onPaymentCompleted);
+    return () => window.removeEventListener(PAYMENT_COMPLETED_EVENT, onPaymentCompleted);
+  }, [prospect?.id, prospect?.payment_link_id, reload]);
+
+  useEffect(() => {
+    if (!prospect) return;
+
+    const name = prospect.full_name;
+    const convertedId = prospect.converted_client_id;
+    const snapshot = pipelineSnapshotRef.current;
+
+    if (!snapshot.hydrated) {
+      pipelineSnapshotRef.current = {
+        hydrated: true,
+        ready: pipelineComplete,
+        convertedId,
+      };
+      return;
+    }
+
+    const justConverted = snapshot.convertedId == null && convertedId != null;
+    const justBecameReady = !snapshot.ready && pipelineComplete && convertedId == null;
+
+    pipelineSnapshotRef.current = {
+      hydrated: true,
+      ready: pipelineComplete || convertedId != null,
+      convertedId,
+    };
+
+    if (justConverted) {
+      const modalKey = `converted:${convertedId}`;
+      if (conversionModalKeyRef.current === modalKey) return;
+      conversionModalKeyRef.current = modalKey;
+      void (async () => {
+        const goToClient = await modal.confirm({
+          title: t("prospects.conversionDoneTitle"),
+          message: t("prospects.conversionDoneMessage", { name }),
+          confirmLabel: t("prospects.conversionDoneAction"),
+          cancelLabel: t("common.close"),
+          variant: "primary",
+        });
+        if (goToClient) {
+          router.push(`/clientes/${convertedId}`);
+        }
+      })();
+      return;
+    }
+
+    if (justBecameReady) {
+      const modalKey = `ready:${prospect.id}`;
+      if (conversionModalKeyRef.current === modalKey) return;
+      conversionModalKeyRef.current = modalKey;
+      void modal.alert({
+        title: t("prospects.conversionReadyTitle"),
+        message: t("prospects.conversionReadyMessage", { name }),
+        variant: "success",
+      });
+    }
+  }, [prospect, pipelineComplete, modal, t, router]);
 
   async function handleStatusUpdate(e: FormEvent) {
     e.preventDefault();

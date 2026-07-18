@@ -231,11 +231,16 @@ export function useClientWorkflow(token: string | null) {
               };
             }
 
+            const reasons = result.failures
+              .map((item) => `#${item.client_id}: ${item.reason}`)
+              .join(" · ");
+
             return {
               title: t("clients.bulkDeleteTitle"),
               message: t("clients.bulkDeletePartial", {
                 deleted: result.deleted_ids.length,
                 failed: result.failures.length,
+                reasons,
               }),
               variant: result.deleted_ids.length > 0 ? ("warning" as const) : ("error" as const),
             };

@@ -107,7 +107,6 @@ export default function ClienteDetailPage() {
   const [saving, setSaving] = useState(false);
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
-  const [downloadingContract, setDownloadingContract] = useState(false);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
   const loadInFlight = useRef(false);
   const deletedRef = useRef(false);
@@ -236,6 +235,10 @@ export default function ClienteDetailPage() {
     !!client?.approved_at &&
     user?.role.code === "ONBOARDING_MANAGER" &&
     hasPermission("clients:approve");
+  const showAdvisorContact =
+    !!client?.advisor &&
+    !canManageAdvisor &&
+    (user?.role.code === "SALES_REP" || user?.role.code === "ADMIN");
 
   const sourceLabel =
     client?.source && client.source in CLIENT_SOURCE_LABEL_KEYS
@@ -259,28 +262,6 @@ export default function ClienteDetailPage() {
       });
     }
   }
-
-  async function handleDownloadSignedContract() {
-    if (!token || !client) return;
-    setDownloadingContract(true);
-    try {
-      const blob = await api.getBlob(`/clients/${client.id}/signed-contract`, token);
-      const url = URL.createObjectURL(new Blob([blob.data], { type: blob.mimeType }));
-      window.open(url, "_blank", "noopener,noreferrer");
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: getUserFacingErrorMessage(err, t("clientDetail.signedContractDownloadError")),
-        variant: "error",
-      });
-    } finally {
-      setDownloadingContract(false);
-    }
-  }
-
-  const signedContract = client?.signed_contract;
-  const hasSignedContract = !!signedContract || !!client?.docusign_contract_signed_at;
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -469,6 +450,22 @@ export default function ClienteDetailPage() {
           />
         )}
 
+        {showAdvisorContact && client.advisor ? (
+          <Card className="p-4 sm:p-6">
+            <p className="section-label">{t("clientDetail.assignedAdvisor")}</p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">
+              {client.advisor.first_name} {client.advisor.last_name}
+            </p>
+            <a
+              href={`mailto:${client.advisor.email}`}
+              className="mt-1 inline-block break-all text-sm text-brand hover:underline"
+            >
+              {client.advisor.email}
+            </a>
+            <p className="mt-2 text-sm text-slate-500">{t("clientDetail.advisorContactHint")}</p>
+          </Card>
+        ) : null}
+
         {showApprovedWorkspace && workspaceHint && (
           <p className="text-sm text-slate-500">{workspaceHint}</p>
         )}
@@ -552,46 +549,6 @@ export default function ClienteDetailPage() {
                 </div>
               </Card>
             )}
-
-            {showOnboardingOverviewExtras && hasSignedContract ? (
-              <Card className="p-4 sm:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-                      {t("clientDetail.signedContractTitle")}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="badge badge-green">{t("clientDetail.signedContractBadge")}</span>
-                    </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <InfoRow
-                        label={t("clientDetail.signedContractAt")}
-                        value={formatDate(
-                          signedContract?.signed_at ?? client.docusign_contract_signed_at ?? null,
-                          locale,
-                        )}
-                      />
-                      {signedContract?.subject ? (
-                        <InfoRow label={t("clientDetail.signedContractSubject")} value={signedContract.subject} />
-                      ) : null}
-                    </div>
-                    <p className="mt-3 text-sm text-slate-500">{t("clientDetail.signedContractHint")}</p>
-                  </div>
-                  {(signedContract?.has_document ?? true) ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={downloadingContract}
-                      onClick={() => void handleDownloadSignedContract()}
-                    >
-                      {downloadingContract
-                        ? t("docusign.downloading")
-                        : t("clientDetail.signedContractDownload")}
-                    </Button>
-                  ) : null}
-                </div>
-              </Card>
-            ) : null}
 
             {showOnboardingOverviewExtras ? (
               <>

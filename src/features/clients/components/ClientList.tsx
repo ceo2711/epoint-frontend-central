@@ -21,6 +21,7 @@ interface ClientListProps {
   onToggleSelectAll?: () => void;
   showMerchantColumn?: boolean;
   showSalesRepColumn?: boolean;
+  showAdvisorColumn?: boolean;
   page: number;
   pages: number;
   total: number;
@@ -33,6 +34,11 @@ function salesRepLabel(client: Client, dash: string) {
   return `${client.registered_by.first_name} ${client.registered_by.last_name}`;
 }
 
+function advisorLabel(client: Client, dash: string) {
+  if (!client.advisor) return dash;
+  return `${client.advisor.first_name} ${client.advisor.last_name}`;
+}
+
 export function ClientList({
   clients,
   canBulkDelete = false,
@@ -41,6 +47,7 @@ export function ClientList({
   onToggleSelectAll,
   showMerchantColumn = false,
   showSalesRepColumn = false,
+  showAdvisorColumn = false,
   page,
   pages,
   total,
@@ -73,7 +80,11 @@ export function ClientList({
   }
 
   const emptyColSpan =
-    5 + (showMerchantColumn ? 1 : 0) + (showSalesRepColumn ? 1 : 0) + (canBulkDelete ? 1 : 0);
+    5 +
+    (showMerchantColumn ? 1 : 0) +
+    (showSalesRepColumn ? 1 : 0) +
+    (showAdvisorColumn ? 1 : 0) +
+    (canBulkDelete ? 1 : 0);
   return (
     <>
       <div className="space-y-3 md:hidden">
@@ -106,6 +117,14 @@ export function ClientList({
                       {showSalesRepColumn ? (
                         <p className="mt-1 text-sm text-slate-500">
                           {t("prospects.columns.salesRep")}: {salesRepLabel(c, t("common.dash"))}
+                        </p>
+                      ) : null}
+                      {showAdvisorColumn ? (
+                        <p className="mt-1 text-sm text-slate-500">
+                          {t("clients.columns.advisor")}: {advisorLabel(c, t("common.dash"))}
+                          {c.advisor?.email ? (
+                            <span className="block break-all text-slate-400">{c.advisor.email}</span>
+                          ) : null}
                         </p>
                       ) : null}
                     </div>
@@ -155,6 +174,7 @@ export function ClientList({
               <th>{t("common.email")}</th>
               {showMerchantColumn ? <th>{t("clients.merchant")}</th> : null}
               {showSalesRepColumn ? <th>{t("prospects.columns.salesRep")}</th> : null}
+              {showAdvisorColumn ? <th>{t("clients.columns.advisor")}</th> : null}
               <th>{t("common.status")}</th>
               <th>{t("prospects.columns.qualification")}</th>
               <th>{t("common.actions")}</th>
@@ -187,6 +207,14 @@ export function ClientList({
                   ) : null}
                   {showSalesRepColumn ? (
                     <td className="text-slate-500">{salesRepLabel(c, t("common.dash"))}</td>
+                  ) : null}
+                  {showAdvisorColumn ? (
+                    <td className="text-slate-500">
+                      <span className="block">{advisorLabel(c, t("common.dash"))}</span>
+                      {c.advisor?.email ? (
+                        <span className="block text-xs text-slate-400">{c.advisor.email}</span>
+                      ) : null}
+                    </td>
                   ) : null}
                   <td>
                     <StatusBadge status={c.status} />

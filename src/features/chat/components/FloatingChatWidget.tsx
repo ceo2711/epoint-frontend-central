@@ -142,7 +142,11 @@ export function FloatingChatWidget() {
 
   if (!user) return null;
 
-  const greeting = chatT("chat.greeting", { name: user.first_name });
+  const isClient = user.role.code === "CLIENT";
+  const greeting = chatT(isClient ? "chat.greetingClient" : "chat.greeting", {
+    name: user.first_name,
+  });
+  const chatSubtitle = chatT(isClient ? "chat.subtitleClient" : "chat.subtitle");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -179,7 +183,7 @@ export function FloatingChatWidget() {
           <header className="flex items-center justify-between gap-3 border-b border-cream-500 bg-gradient-to-r from-brown-800 to-brand px-4 py-3 text-white">
             <div>
               <p className="text-sm font-semibold">{chatT("chat.title")}</p>
-              <p className="text-xs text-cream-700">{chatT("chat.subtitle")}</p>
+              <p className="text-xs text-cream-700">{chatSubtitle}</p>
             </div>
             <button
               type="button"
@@ -197,7 +201,9 @@ export function FloatingChatWidget() {
             </div>
 
             {canAttachFile && !stagedUpload && (
-              <p className="mr-8 text-[11px] text-slate-500">{chatT("chat.attachFileHint")}</p>
+              <p className="mr-8 text-[11px] text-slate-500">
+                {chatT(isClient ? "chat.attachFileHintClient" : "chat.attachFileHint")}
+              </p>
             )}
 
             {messages.map((message) => (

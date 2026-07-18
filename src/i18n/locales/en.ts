@@ -185,7 +185,7 @@ export const en: Messages = {
     profileSaved: "Personal details updated successfully.",
     profileError: "Could not update your personal details",
     passwordTitle: "Password",
-    passwordSubtitle: "Update your portal sign-in password",
+    passwordSubtitle: "Update your sign-in password",
     twoFactor: {
       title: "Two-factor authentication",
       subtitle: "Protect your account with Microsoft Authenticator, Google Authenticator, or another compatible app.",
@@ -317,7 +317,7 @@ export const en: Messages = {
     templateMultiRoleWarning:
       "This template has more than one signer. DocuSign may send one email per role. Keep only one Signer role if you want a single email to the client.",
     templateRoleHint:
-      "The role must match the DocuSign template exactly (e.g. «Signer»). Using the wrong role creates duplicate signers and the status will not update.",
+      "The role must match the DocuSign template (e.g. «Cliente»). If the default does not match, the system picks the correct role automatically.",
     templateSignatureHint:
       "Signature placement is configured in DocuSign when editing the template (drag «Sign Here» fields onto the PDF). The CRM does not control where to sign.",
     subject: "Email subject",
@@ -514,7 +514,14 @@ export const en: Messages = {
     paymentLinked: "A payment link is linked.",
     viewClient: "View converted client",
     convertedHint:
-      "This prospect was converted to a client pending review. Onboarding can continue from there.",
+      "This prospect was already converted to a client. Onboarding continues from the client profile.",
+    conversionReadyTitle: "Prospect ready",
+    conversionReadyMessage:
+      "{name} completed the meeting, signed contract, and payment. They will now become a client automatically.",
+    conversionDoneTitle: "Now a client",
+    conversionDoneMessage:
+      "{name} met every requirement and is now a client in the platform.",
+    conversionDoneAction: "Go to client",
     linkToProspect: "Link to prospect",
     viewLinkedProspect: "View linked prospect",
     linkPickerEmpty: "No prospects matched that search.",
@@ -658,9 +665,12 @@ export const en: Messages = {
     subtitleOnboarding: "Clients pending approval and in onboarding — manage each profile separately",
     register: "+ Register client",
     newClient: "New client",
-    createModalSubtitle: "Complete the client's details to send them to onboarding review.",
+    createModalSubtitle: "Complete the client's details. If they look correct, approval happens automatically.",
     saveClient: "Save client",
     loading: "Loading clients...",
+    columns: {
+      advisor: "Advisor",
+    },
     noAdvisors: "No advisors available. Make sure there is an active user with the Advisor role.",
     advisorsLoadError: "Could not load advisors. Restart the backend and try again.",
     approveTitle: "Approve client",
@@ -708,7 +718,7 @@ export const en: Messages = {
       "Permanently delete {count} client(s)? All data, documents, and boards will be removed. This action cannot be undone or reversed.",
     bulkDeleteSuccess: "{count} client(s) were deleted successfully.",
     bulkDeletePartial:
-      "{deleted} client(s) were deleted. {failed} could not be deleted: check permissions or whether the client still exists.",
+      "{deleted} client(s) were deleted. Could not delete {failed}: {reasons}",
     selectedCount: "{count} selected",
     selectAllOnPage: "Select all on this page",
     deleting: "Deleting client...",
@@ -785,6 +795,7 @@ export const en: Messages = {
     signedContractDownload: "View signed contract",
     signedContractDownloadError: "Could not open the signed contract",
     assignedAdvisor: "Assigned advisor",
+    advisorContactHint: "If you need to talk about this client, contact this advisor.",
     noAdvisorAssigned: "No advisor assigned",
     assignAdvisor: "Assign advisor",
     changeAdvisor: "Change advisor",
@@ -997,6 +1008,7 @@ export const en: Messages = {
     noDescription: "No description yet.",
     attachments: "Attachments",
     addAttachment: "Add file",
+    uploadError: "Could not upload the file to the card.",
     noAttachments: "No attachments yet.",
     files: "Files",
     commentsActivity: "Comments and activity",
@@ -1045,7 +1057,10 @@ export const en: Messages = {
     open: "Open assistant",
     title: "Epoint Bot",
     subtitle: "Your ePoint Central assistant",
+    subtitleClient: "Your client portal guide",
     greeting: "Hi {name}! I'm Epoint Bot 😊 I'm here to help with whatever you need.",
+    greetingClient:
+      "Hi {name}! I'm Epoint Bot 😊 I can explain how the portal works, what you still need to complete, and where to upload your documents. How can I help?",
     placeholder: "Type your question…",
     send: "Send",
     messageTooLong: "Your message exceeds the {max} character limit. Split it into smaller parts.",
@@ -1056,6 +1071,7 @@ export const en: Messages = {
     selectBoardCard: "Choose a board card",
     attachFile: "Attach file",
     attachFileHint: "Attach a file with the clip 📎, then choose where it goes.",
+    attachFileHintClient: "Attach a document with the clip 📎 (SSN, ID, or proof of address).",
     stagedFileTitle: "File ready",
     selectDestination: "Where should this file go?",
     destinationDocument: "Client document",

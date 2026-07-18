@@ -57,7 +57,7 @@ export function SendContractForm({
   const [signerName, setSignerName] = useState(initialSigner?.name ?? "");
   const [signerEmail, setSignerEmail] = useState(initialSigner?.email ?? "");
   const [templateId, setTemplateId] = useState(defaultTemplateId ?? "");
-  const [roleName, setRoleName] = useState(defaultRoleName ?? "Signer");
+  const [roleName, setRoleName] = useState(defaultRoleName ?? "Cliente");
   const [subject, setSubject] = useState(t("docusign.defaultSubject"));
   const [clientSearch, setClientSearch] = useState("");
   const [clientOptions, setClientOptions] = useState<Client[]>([]);
@@ -68,10 +68,15 @@ export function SendContractForm({
   const skipEmailLinkRef = useRef(!!initialSigner?.prospectId);
   const [submitting, setSubmitting] = useState(false);
   const [templateDetail, setTemplateDetail] = useState<DocusignTemplateDetail | null>(null);
+  const [templateDetailLoading, setTemplateDetailLoading] = useState(false);
 
   useEffect(() => {
     if (defaultTemplateId) setTemplateId(defaultTemplateId);
   }, [defaultTemplateId]);
+
+  useEffect(() => {
+    if (defaultRoleName) setRoleName(defaultRoleName);
+  }, [defaultRoleName]);
 
   useEffect(() => {
     if (!initialSigner?.email || initialSigner.clientId) return;
@@ -154,17 +159,40 @@ export function SendContractForm({
   useEffect(() => {
     if (!templateId || !onLoadTemplateDetail) {
       setTemplateDetail(null);
+      setTemplateDetailLoading(false);
       return;
     }
     let cancelled = false;
-    void onLoadTemplateDetail(templateId).then((detail) => {
-      if (!cancelled) setTemplateDetail(detail);
-    });
+    setTemplateDetailLoading(true);
+    void onLoadTemplateDetail(templateId)
+      .then((detail) => {
+        if (!cancelled) setTemplateDetail(detail);
+      })
+      .finally(() => {
+        if (!cancelled) setTemplateDetailLoading(false);
+      });
     return () => {
       cancelled = true;
     };
     // Solo recargar al cambiar plantilla; onLoadTemplateDetail es estable (useCallback en el hook).
   }, [templateId, onLoadTemplateDetail]);
+
+  function resolveRoleForSubmit(detail: DocusignTemplateDetail | null = templateDetail): string {
+    const trimmed = roleName.trim();
+    const validRoles = detail?.roles.map((role) => role.role_name) ?? [];
+    if (!validRoles.length) return trimmed;
+    if (trimmed && validRoles.includes(trimmed)) return trimmed;
+    if (trimmed) {
+      const caseMatch = validRoles.find((role) => role.toLowerCase() === trimmed.toLowerCase());
+      if (caseMatch) return caseMatch;
+    }
+    const preferred = ["Cliente", "Client", "Signer", "Firmante"];
+    for (const name of preferred) {
+      const match = validRoles.find((role) => role.toLowerCase() === name.toLowerCase());
+      if (match) return match;
+    }
+    return validRoles[0];
+  }
 
   function selectClient(client: Client) {
     setSelectedClientId(client.id);
@@ -204,11 +232,20 @@ export function SendContractForm({
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      let detail = templateDetail;
+      if (templateId && onLoadTemplateDetail && !detail?.roles.length) {
+        detail = await onLoadTemplateDetail(templateId);
+        if (detail) setTemplateDetail(detail);
+      }
+      const resolvedRole = resolveRoleForSubmit(detail);
+      if (resolvedRole !== roleName) {
+        setRoleName(resolvedRole);
+      }
       await onSubmit({
         signer_name: signerName.trim(),
         signer_email: signerEmail.trim(),
         template_id: templateId || undefined,
-        template_role_name: roleName.trim() || undefined,
+        template_role_name: resolvedRole || undefined,
         subject: subject.trim(),
         client_id: selectedClientId,
         prospect_id: linkedProspect?.id,
@@ -314,12 +351,30 @@ export function SendContractForm({
             ))}
           </select>
         </label>
-        <Input
-          label={t("docusign.roleName")}
-          value={roleName}
-          onChange={(e) => setRoleName(e.target.value)}
-          required
-        />
+        <label className="block text-sm font-medium text-slate-700">
+          {t("docusign.roleName")}
+          {templateDetail?.roles.length ? (
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              required
+            >
+              {templateDetail.roles.map((role) => (
+                <option key={role.role_name} value={role.role_name}>
+                  {role.role_name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              className="mt-1"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              required
+            />
+          )}
+        </label>
       </div>
 
       <Input
@@ -330,8 +385,11 @@ export function SendContractForm({
       />
 
       {!embedded ? (
-        <Button type="submit" disabled={submitting || templates.length === 0}>
-          {submitting ? t("docusign.sending") : t("docusign.sendAction")}
+        <Button
+          type="submit"
+          disabled={submitting || templates.length === 0 || (!!templateId && templateDetailLoading)}
+        >
+          {submitting || templateDetailLoading ? t("docusign.sending") : t("docusign.sendAction")}
         </Button>
       ) : null}
     </form>

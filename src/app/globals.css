@@ -705,7 +705,9 @@ body {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* auto: si la columna no tiene overflow (o ya llegó al borde), el scroll
+     puede seguir hacia la página. contain lo bloqueaba al pasar el mouse. */
+  overscroll-behavior-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: var(--cream-600) transparent;

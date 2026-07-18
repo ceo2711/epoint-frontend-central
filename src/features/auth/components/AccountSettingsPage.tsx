@@ -25,7 +25,6 @@ function profileFromUser(user: User) {
 export function AccountSettingsPage() {
   const { user, token, refreshUser } = useAuth();
   const { t } = useTranslation();
-  const isClient = user?.role.code === "CLIENT";
   const canEditProfile = user?.role.code === "ADMIN";
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
@@ -292,41 +291,39 @@ export function AccountSettingsPage() {
           )}
         </Card>
 
-        {isClient && (
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-900">{t("account.passwordTitle")}</h2>
-            <p className="mt-1 text-sm text-slate-500">{t("account.passwordSubtitle")}</p>
-            <form onSubmit={handleChangePassword} className="mt-6 space-y-4">
-              <PasswordInput
-                label={t("changePassword.currentPassword")}
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                showLabel={t("login.showPassword")}
-                hideLabel={t("login.hidePassword")}
-              />
-              <PasswordInput
-                label={t("changePassword.newPassword")}
-                required
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                showLabel={t("login.showPassword")}
-                hideLabel={t("login.hidePassword")}
-              />
-              <PasswordInput
-                label={t("changePassword.confirmPassword")}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                showLabel={t("login.showPassword")}
-                hideLabel={t("login.hidePassword")}
-              />
-              <Button type="submit" disabled={busy}>
-                {busy ? t("changePassword.saving") : t("changePassword.save")}
-              </Button>
-            </form>
-          </Card>
-        )}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-slate-900">{t("account.passwordTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t("account.passwordSubtitle")}</p>
+          <form onSubmit={handleChangePassword} className="mt-6 space-y-4">
+            <PasswordInput
+              label={t("changePassword.currentPassword")}
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              showLabel={t("login.showPassword")}
+              hideLabel={t("login.hidePassword")}
+            />
+            <PasswordInput
+              label={t("changePassword.newPassword")}
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              showLabel={t("login.showPassword")}
+              hideLabel={t("login.hidePassword")}
+            />
+            <PasswordInput
+              label={t("changePassword.confirmPassword")}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              showLabel={t("login.showPassword")}
+              hideLabel={t("login.hidePassword")}
+            />
+            <Button type="submit" disabled={busy}>
+              {busy ? t("changePassword.saving") : t("changePassword.save")}
+            </Button>
+          </form>
+        </Card>
       </PageContent>
     </>
   );

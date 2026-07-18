@@ -134,7 +134,7 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
 
   return (
     <>
-      <div className="min-w-0 max-w-full overflow-hidden">
+      <div className="min-w-0 max-w-full">
         <TaskBoard
         board={board}
         onSelectCard={setSelected}
@@ -160,7 +160,6 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
           onSubmitCredentials={isClientPortal ? submitCredentials : undefined}
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
-          canUploadCardAttachments={canManageBoard}
         />
       )}
     </>

@@ -183,7 +183,7 @@ export const es = {
     profileSaved: "Datos personales actualizados correctamente.",
     profileError: "No se pudieron actualizar tus datos personales",
     passwordTitle: "Contraseña",
-    passwordSubtitle: "Actualizá tu contraseña de acceso al portal",
+    passwordSubtitle: "Actualizá tu contraseña de acceso a la plataforma",
     twoFactor: {
       title: "Doble factor de autenticación",
       subtitle: "Protegé tu cuenta con Microsoft Authenticator, Google Authenticator u otra app compatible.",
@@ -315,7 +315,7 @@ export const es = {
     templateMultiRoleWarning:
       "Esta plantilla tiene más de un firmante. DocuSign puede enviar un email por cada rol. Dejá solo un rol «Signer» si querés un único email al cliente.",
     templateRoleHint:
-      "El rol debe coincidir exactamente con el nombre en DocuSign (ej. «Signer»). Si usás un rol incorrecto, se crean firmantes duplicados y el estado no se actualiza.",
+      "El rol debe coincidir con la plantilla DocuSign (ej. «Cliente»). Si el default no coincide, el sistema elige el rol correcto automáticamente.",
     templateSignatureHint:
       "La ubicación de la firma se configura en DocuSign al editar la plantilla (arrastrar campos «Sign Here» al PDF). El CRM no define dónde firmar.",
     subject: "Asunto del email",
@@ -513,7 +513,14 @@ export const es = {
     paymentLinked: "Hay un link de pago vinculado.",
     viewClient: "Ver cliente convertido",
     convertedHint:
-      "Este prospecto ya pasó a clientes pendientes de revisión. Onboarding puede continuar el flujo desde allí.",
+      "Este prospecto ya se convirtió en cliente. El onboarding continúa desde el perfil del cliente.",
+    conversionReadyTitle: "Prospecto listo",
+    conversionReadyMessage:
+      "{name} ya completó reunión, contrato firmado y pago. Ahora pasará a cliente automáticamente.",
+    conversionDoneTitle: "Ya es cliente",
+    conversionDoneMessage:
+      "{name} cumplió todos los requisitos y ya es cliente en la plataforma.",
+    conversionDoneAction: "Ir al cliente",
     linkToProspect: "Vincular a prospecto",
     viewLinkedProspect: "Ver prospecto vinculado",
     linkPickerEmpty: "No encontramos prospectos con esa búsqueda.",
@@ -657,9 +664,12 @@ export const es = {
     subtitleOnboarding: "Clientes pendientes de aprobación y en onboarding — gestioná cada perfil por separado",
     register: "+ Registrar cliente",
     newClient: "Nuevo cliente",
-    createModalSubtitle: "Completá los datos del cliente para enviarlo a revisión de onboarding.",
+    createModalSubtitle: "Completá los datos del cliente. Si están correctos, se aprueba automáticamente.",
     saveClient: "Guardar cliente",
     loading: "Cargando clientes...",
+    columns: {
+      advisor: "Asesor",
+    },
     noAdvisors: "No hay asesores disponibles. Verificá que exista un usuario con rol Asesor activo.",
     advisorsLoadError: "No se pudieron cargar los asesores. Reiniciá el backend (uvicorn) e intentá de nuevo.",
     approveTitle: "Aprobar cliente",
@@ -707,7 +717,7 @@ export const es = {
       "¿Eliminar definitivamente {count} cliente(s)? Se borrarán sus datos, documentos y tableros. Esta acción no se puede deshacer ni revertir.",
     bulkDeleteSuccess: "Se eliminaron {count} cliente(s) correctamente.",
     bulkDeletePartial:
-      "Se eliminaron {deleted} cliente(s). No se pudieron eliminar {failed}: revisá los permisos o si el cliente aún existe.",
+      "Se eliminaron {deleted} cliente(s). No se pudieron eliminar {failed}: {reasons}",
     selectedCount: "{count} seleccionado(s)",
     selectAllOnPage: "Seleccionar todos en esta página",
     deleting: "Eliminando cliente...",
@@ -784,6 +794,7 @@ export const es = {
     signedContractDownload: "Ver contrato firmado",
     signedContractDownloadError: "No se pudo abrir el contrato firmado",
     assignedAdvisor: "Asesor asignado",
+    advisorContactHint: "Si necesitás hablar por este cliente, contactá a este asesor.",
     noAdvisorAssigned: "Sin asesor asignado",
     assignAdvisor: "Asignar asesor",
     changeAdvisor: "Cambiar asesor",
@@ -997,6 +1008,7 @@ export const es = {
     noDescription: "Sin descripción.",
     attachments: "Adjuntos",
     addAttachment: "Agregar archivo",
+    uploadError: "No se pudo subir el archivo a la card.",
     noAttachments: "Sin archivos adjuntos.",
     files: "Archivos",
     commentsActivity: "Comentarios y actividad",
@@ -1045,7 +1057,10 @@ export const es = {
     open: "Abrir asistente",
     title: "Epoint Bot",
     subtitle: "Tu asistente de ePoint Central",
+    subtitleClient: "Tu guía del portal de clientes",
     greeting: "¡Hola {name}! Soy Epoint Bot 😊 Estoy acá para ayudarte con lo que necesites.",
+    greetingClient:
+      "¡Hola {name}! Soy Epoint Bot 😊 Puedo explicarte cómo funciona el portal, qué tenés que completar y dónde subir tus documentos. ¿En qué te ayudo?",
     placeholder: "Escribí tu pregunta…",
     send: "Enviar",
     messageTooLong: "El mensaje supera el límite de {max} caracteres. Dividilo en partes más chicas.",
@@ -1056,6 +1071,7 @@ export const es = {
     selectBoardCard: "Elegí la tarjeta del tablero",
     attachFile: "Adjuntar archivo",
     attachFileHint: "Adjuntá un archivo con el clip 📎 y después elegí dónde va.",
+    attachFileHintClient: "Adjuntá un documento con el clip 📎 (SSN, identidad o comprobante de domicilio).",
     stagedFileTitle: "Archivo listo",
     selectDestination: "¿Dónde va este archivo?",
     destinationDocument: "Documento del cliente",

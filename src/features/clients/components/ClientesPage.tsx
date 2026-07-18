@@ -43,6 +43,7 @@ export function ClientesPage() {
 
   const showMerchantFilter = workspaceMerchants.length > 1;
   const showSalesRepFilter = roleCode === "ADMIN";
+  const showAdvisorColumn = roleCode === "SALES_REP" || roleCode === "ADMIN";
   const canBulkDelete = roleCode === "ADMIN" && hasPermission("clients:delete");
 
   useEffect(() => {
@@ -175,6 +176,7 @@ export function ClientesPage() {
             onToggleSelectAll={toggleSelectAllOnPage}
             showMerchantColumn={merchantFilter === "all"}
             showSalesRepColumn={showSalesRepFilter}
+            showAdvisorColumn={showAdvisorColumn}
             page={page}
             pages={pages}
             total={total}

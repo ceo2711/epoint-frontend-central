@@ -19,6 +19,8 @@ export function getNotificationHref(
   }
 
   if (notification.event_type === "PAYMENT_LINK_COMPLETED" && !isClient) {
+    const prospectId = payload?.prospect_id;
+    if (typeof prospectId === "number") return `/prospectos/${prospectId}`;
     return "/pagos";
   }
 

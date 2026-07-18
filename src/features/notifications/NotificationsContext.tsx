@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/features/auth/AuthContext";
 import { getToken } from "@/features/auth/auth-storage";
 import { dispatchDocusignRefresh } from "@/features/docusign/docusign-events";
+import { dispatchPaymentCompleted } from "@/features/payments/payment-events";
 import { connectNotificationStream } from "@/features/notifications/notificationStream";
 import {
   playNotificationSound,
@@ -137,6 +138,14 @@ export function NotificationsProvider({
         dispatchDocusignRefresh(
           typeof envelopeId === "number" ? { envelopeId } : undefined,
         );
+      }
+      if (notification.event_type === "PAYMENT_LINK_COMPLETED") {
+        const paymentLinkId = notification.payload?.payment_link_id;
+        const prospectId = notification.payload?.prospect_id;
+        dispatchPaymentCompleted({
+          paymentLinkId: typeof paymentLinkId === "number" ? paymentLinkId : undefined,
+          prospectId: typeof prospectId === "number" ? prospectId : null,
+        });
       }
 
       const prev = recentRef.current;

@@ -14,7 +14,9 @@ import { CardAttachmentThumbnail } from "@/features/boards/components/CardAttach
 import { CommentBody } from "@/features/boards/components/CommentBody";
 import { CommentMentionTextarea } from "@/features/boards/components/CommentMentionTextarea";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useModal } from "@/contexts/ModalContext";
 import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { MentionableUser } from "@/features/boards/utils/commentMentions";
 import { encodeMentionsInBody } from "@/features/boards/utils/commentMentions";
 import { useAttachmentContentUrl } from "@/features/boards/hooks/useAttachmentContentUrl";
@@ -34,7 +36,6 @@ interface CardDetailModalProps {
   onSubmitCredentials?: (cardId: number, username: string, password: string) => Promise<void>;
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
-  canUploadCardAttachments?: boolean;
 }
 
 function formatActivityDate(value: string, locale: string) {
@@ -69,14 +70,13 @@ export function CardDetailModal({
   onSubmitCredentials,
   canPostInternalComments = false,
   canEditDescription = false,
-  canUploadCardAttachments = false,
 }: CardDetailModalProps) {
   const { t, locale } = useTranslation();
+  const modal = useModal();
   const [description, setDescription] = useState(cardDescription(card));
   const [editingDescription, setEditingDescription] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [comment, setComment] = useState("");
-  const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [internalComment, setInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
@@ -159,6 +159,12 @@ export function CardDetailModal({
       for (const file of Array.from(fileList)) {
         await onUploadAttachment(card.id, file);
       }
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.uploadError")),
+        variant: "error",
+      });
     } finally {
       setUploadingAttachment(false);
     }
@@ -166,14 +172,19 @@ export function CardDetailModal({
 
   async function handleSubmitComment(e: FormEvent) {
     e.preventDefault();
-    if (!comment.trim() && commentFiles.length === 0) return;
+    if (!comment.trim()) return;
     setSubmittingComment(true);
     try {
       const encodedBody = encodeMentionsInBody(comment, mentionableUsers);
-      await onSubmitComment(card.id, encodedBody, commentFiles, internalComment);
+      await onSubmitComment(card.id, encodedBody, [], internalComment);
       setComment("");
-      setCommentFiles([]);
       setInternalComment(false);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
     } finally {
       setSubmittingComment(false);
     }
@@ -254,22 +265,6 @@ export function CardDetailModal({
               <section className="mt-8">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <SectionLabel>{t("portalBoard.attachments")}</SectionLabel>
-                  {canUploadCardAttachments && (
-                    <label className="btn btn-secondary btn-sm cursor-pointer">
-                      {uploadingAttachment ? t("common.uploading") : t("portalBoard.addAttachment")}
-                      <input
-                        type="file"
-                        className="hidden"
-                        multiple
-                        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
-                        disabled={uploadingAttachment}
-                        onChange={(e) => {
-                          void handleAttachmentUpload(e.target.files);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                  )}
                 </div>
                 <p className="mb-3 text-xs text-slate-400">{t("portalBoard.files")}</p>
                 {cardAttachments.length > 0 ? (
@@ -343,25 +338,6 @@ export function CardDetailModal({
                   onSubmit={handleSubmitComment}
                   className="mb-5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
                 >
-                  {commentFiles.length > 0 && (
-                    <div className="mb-2 flex flex-wrap gap-1.5 border-b border-slate-100 pb-2">
-                      {commentFiles.map((file, index) => (
-                        <span
-                          key={`${file.name}-${index}`}
-                          className="inline-flex max-w-full items-center gap-1 truncate rounded-md bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 ring-1 ring-blue-100"
-                        >
-                          {file.name}
-                          <button
-                            type="button"
-                            className="text-blue-400 hover:text-red-500"
-                            onClick={() => setCommentFiles((prev) => prev.filter((_, i) => i !== index))}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   <CommentMentionTextarea
                     value={comment}
                     onChange={setComment}
@@ -376,21 +352,24 @@ export function CardDetailModal({
                     <div className="flex flex-wrap items-center gap-1">
                       <label
                         title={t("portalBoard.attachFiles")}
-                        className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                        className={`inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 ${
+                          uploadingAttachment ? "pointer-events-none opacity-60" : ""
+                        }`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="h-4 w-4 shrink-0">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        <span className="sm:inline">{t("portalBoard.attachFiles")}</span>
+                        <span className="sm:inline">
+                          {uploadingAttachment ? t("common.uploading") : t("portalBoard.attachFiles")}
+                        </span>
                         <input
                           type="file"
                           className="hidden"
                           multiple
                           accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+                          disabled={uploadingAttachment}
                           onChange={(e) => {
-                            if (e.target.files) {
-                              setCommentFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-                            }
+                            void handleAttachmentUpload(e.target.files);
                             e.target.value = "";
                           }}
                         />
@@ -412,7 +391,7 @@ export function CardDetailModal({
                     </div>
                     <button
                       type="submit"
-                      disabled={submittingComment || (!comment.trim() && commentFiles.length === 0)}
+                      disabled={submittingComment || !comment.trim()}
                       className="self-end text-sm font-semibold text-blue-600 transition hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-40 sm:self-auto"
                     >
                       {submittingComment ? t("common.loading") : t("portalBoard.publish")}
