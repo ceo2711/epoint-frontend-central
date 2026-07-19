@@ -1,6 +1,6 @@
-# Integración Calendly — ePoint CRM
+# Integración Calendly — Epoint CRM
 
-Documentación completa de la integración entre ePoint CRM y [Calendly](https://calendly.com). Permite a los vendedores conectar su cuenta, ver y gestionar reuniones desde el calendario interno, compartir links públicos y operar el calendario desde el chatbot.
+Documentación completa de la integración entre Epoint CRM y [Calendly](https://calendly.com). Permite a los vendedores conectar su cuenta, ver y gestionar reuniones desde el calendario interno, compartir links públicos y operar el calendario desde el chatbot.
 
 **Ruta en la app:** `/calendario`  
 **Roles con acceso:** `ADMIN` (solo lectura de vendedores) y `SALES_REP` (gestión completa de su propio calendario)
@@ -55,7 +55,7 @@ Documentación completa de la integración entre ePoint CRM y [Calendly](https:/
 1. Iniciá sesión en [calendly.com](https://calendly.com).
 2. Andá a **Integraciones** → **API & Webhooks**.
 3. En la sección **Personal Access Tokens**, hacé clic en **Create Token** (o equivalente).
-4. Asignale un nombre descriptivo (ej. `ePoint CRM`).
+4. Asignale un nombre descriptivo (ej. `Epoint CRM`).
 5. Seleccioná el scope **`scheduled_events:write`** si vas a gestionar reuniones desde el CRM.
 6. Copiá el token generado (formato típico: `eyJ...`). **Solo se muestra una vez.**
 
@@ -174,7 +174,7 @@ El formulario usa la zona horaria del navegador (`Intl.DateTimeFormat().resolved
 ### Qué hace el backend (`PATCH /calendly/events/{id}`)
 
 1. Si no hay cambios respecto al evento actual, devuelve el mismo sin llamar a Calendly.
-2. Cancela el evento anterior en Calendly con razón: *"Reprogramado desde ePoint Central"*.
+2. Cancela el evento anterior en Calendly con razón: *"Reprogramado desde Epoint Central"*.
 3. Marca el evento local como `canceled`.
 4. Crea la nueva reserva vía `POST /invitees`.
 5. Sincroniza y devuelve el nuevo evento.

@@ -47,7 +47,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
           <div className="mb-4 flex items-center gap-4">
             <AppLogo size="xl" priority className="rounded-2xl" />
             <div className="min-w-0">
-              <p className="text-2xl font-bold tracking-tight text-slate-900">ePoint Central</p>
+              <p className="text-2xl font-bold tracking-tight text-slate-900">Epoint Central</p>
             </div>
           </div>
         </div>

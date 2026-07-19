@@ -21,9 +21,9 @@ export function PaymentLinkEmail({
 }: PaymentLinkEmailProps) {
   return (
     <EmailLayout
-      preview={`Completá tu pago de ${amountFormatted} en ePoint, ${firstName}`}
+      preview={`Completá tu pago de ${amountFormatted} en Epoint, ${firstName}`}
       logoUrl={logoUrl}
-      footerNote="Si tenés alguna consulta sobre este pago, respondé a este correo o contactá a tu asesor ePoint."
+      footerNote="Si tenés alguna consulta sobre este pago, respondé a este correo o contactá a tu asesor Epoint."
     >
       <Heading style={headingStyle}>Tu link de pago</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>

@@ -19,7 +19,7 @@ export function OnboardingReminderEmail({
 }: OnboardingReminderEmailProps) {
   return (
     <EmailLayout
-      preview={`${firstName}, tenés pendientes en tu onboarding de ePoint`}
+      preview={`${firstName}, tenés pendientes en tu onboarding de Epoint`}
       logoUrl={logoUrl}
     >
       <Heading style={headingStyle}>Completá tu onboarding</Heading>

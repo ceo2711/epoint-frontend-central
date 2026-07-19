@@ -21,10 +21,10 @@ export function WelcomeEmail({
 }: WelcomeEmailProps) {
   return (
     <EmailLayout
-      preview={`¡Bienvenido/a a ePoint, ${firstName}! Tu cuenta fue aprobada.`}
+      preview={`¡Bienvenido/a a Epoint, ${firstName}! Tu cuenta fue aprobada.`}
       logoUrl={logoUrl}
     >
-      <Heading style={headingStyle}>¡Bienvenido/a a ePoint!</Heading>
+      <Heading style={headingStyle}>¡Bienvenido/a a Epoint!</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>{"{{MERCHANT_LINE}}"}</Text>
       <Text style={paragraphStyle}>

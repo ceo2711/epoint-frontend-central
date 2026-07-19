@@ -169,7 +169,7 @@ export const en: Messages = {
   },
   twoFactorRequired: {
     title: "Set up two-factor authentication",
-    subtitle: "This is mandatory for every ePoint user",
+    subtitle: "This is mandatory for every Epoint user",
     explanation:
       "To protect your account and company data, two-factor authentication is mandatory. Set it up now with Microsoft Authenticator, Google Authenticator or any compatible app. You won't be able to use the platform until it's done.",
     start: "Set up now",
@@ -179,7 +179,7 @@ export const en: Messages = {
     subtitle: "Personal details and account security",
     profileReadOnlyHint: "Only an administrator can change these details. Ask an admin if you need an update.",
     profileTitle: "Personal details",
-    profileSubtitle: "Your ePoint account information",
+    profileSubtitle: "Your Epoint account information",
     profileSave: "Save changes",
     profileSaving: "Saving...",
     profileSaved: "Personal details updated successfully.",
@@ -321,7 +321,7 @@ export const en: Messages = {
     templateSignatureHint:
       "Signature placement is configured in DocuSign when editing the template (drag «Sign Here» fields onto the PDF). The CRM does not control where to sign.",
     subject: "Email subject",
-    defaultSubject: "ePoint contract — Signature required",
+    defaultSubject: "Epoint contract — Signature required",
     sendAction: "Send contract",
     sending: "Sending...",
     sendError: "Could not send the contract",
@@ -398,7 +398,7 @@ export const en: Messages = {
       clearProspect: "Remove",
       sendEmail: "Email payment link to client",
       sendEmailHint:
-        "The client will receive a branded ePoint email with a button to complete payment.",
+        "The client will receive a branded Epoint email with a button to complete payment.",
       generate: "Generate payment link",
       generateAndSend: "Generate and send by email",
       generating: "Generating...",
@@ -429,7 +429,7 @@ export const en: Messages = {
       error: "Could not register the client",
     },
     public: {
-      title: "ePoint payment",
+      title: "Epoint payment",
       paid: "Payment received! Thank you. Your sales rep was notified.",
       stubHint: "Test environment: payment is simulated until Authorize.net or PayPal are connected.",
       payStub: "Simulate successful payment",
@@ -810,7 +810,7 @@ export const en: Messages = {
     copyLink: "Copy link",
     showPassword: "Show",
     hidePassword: "Hide",
-    passwordUnavailable: "Password is not visible in this session. Use «Generate new password» to create a temporary one to share with the client.",
+    passwordUnavailable: "The client already changed their password, or the temporary one is no longer available. Use «Generate new password» if you need to share a new one.",
     regeneratePassword: "Generate new password",
     regeneratingPassword: "Generating...",
     portalAccessNote: "The password is only shown here in this browser session. If you lose it, use «Generate new password».",
@@ -838,7 +838,7 @@ export const en: Messages = {
   merchants: {
     title: "Merchants",
     headerContext: "Merchants",
-    subtitle: "ePoint group companies and merchants",
+    subtitle: "Epoint group companies and merchants",
     loadError: "Could not load merchants",
     noPermission: "You don't have permission to view merchants",
     add: "+ New merchant",
@@ -892,7 +892,7 @@ export const en: Messages = {
   portal: {
     greeting: "Hello, {name}",
     headerContext: "Portal",
-    subtitle: "Your ePoint onboarding portal",
+    subtitle: "Your Epoint onboarding portal",
     welcomeTitle: "Welcome to your portal",
     welcomeBody:
       "Complete your personal data, upload required documentation, and track your onboarding progress on the task board.",
@@ -1056,7 +1056,7 @@ export const en: Messages = {
     helpHint: "Click here for help",
     open: "Open assistant",
     title: "Epoint Bot",
-    subtitle: "Your ePoint Central assistant",
+    subtitle: "Your Epoint Central assistant",
     subtitleClient: "Your client portal guide",
     greeting: "Hi {name}! I'm Epoint Bot 😊 I'm here to help with whatever you need.",
     greetingClient:
@@ -1116,7 +1116,7 @@ export const en: Messages = {
     subjectPlaceholder: "Email subject",
     message: "Message",
     messagePlaceholder: "Write your message…",
-    hint: "Your message will be sent inside the ePoint branded email, with the recipient greeting and your signature.",
+    hint: "Your message will be sent inside the Epoint branded email, with the recipient greeting and your signature.",
     send: "Send email",
     sending: "Sending…",
     successTitle: "Email sent",

@@ -28,7 +28,7 @@ export function AppLogo({ size = "sm", className = "", priority }: AppLogoProps)
     >
       <Image
         src={EPOINT_LOGO_PATH}
-        alt="ePoint Corp"
+        alt="Epoint Corp"
         width={dimension}
         height={dimension}
         className="h-full w-full object-contain p-0.5"

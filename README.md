@@ -1,4 +1,4 @@
-# ePoint CRM — Frontend (Next.js)
+# Epoint CRM — Frontend (Next.js)
 
 Aplicación web del CRM. Diseñada para desplegarse como app Heroku independiente del backend.
 

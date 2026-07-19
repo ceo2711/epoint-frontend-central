@@ -17,11 +17,11 @@ export function ClientConversionWelcomeEmail({
 }: ClientConversionWelcomeEmailProps) {
   return (
     <EmailLayout
-      preview={`¡Bienvenido/a a ePoint, ${firstName}! Tu perfil está en revisión`}
+      preview={`¡Bienvenido/a a Epoint, ${firstName}! Tu perfil está en revisión`}
       logoUrl={logoUrl}
-      footerNote="Si tenés alguna consulta, respondé a este correo o contactá a tu asesor ePoint."
+      footerNote="Si tenés alguna consulta, respondé a este correo o contactá a tu asesor Epoint."
     >
-      <Heading style={headingStyle}>¡Bienvenido/a a ePoint!</Heading>
+      <Heading style={headingStyle}>¡Bienvenido/a a Epoint!</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>{"{{MERCHANT_LINE}}"}</Text>
       <Text style={paragraphStyle}>
@@ -45,7 +45,7 @@ export function ClientConversionWelcomeEmail({
       <Text style={closingStyle}>
         Gracias por elegirnos.
         <br />
-        Equipo ePoint
+        Equipo Epoint
       </Text>
     </EmailLayout>
   );

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ePoint Central",
+  title: "Epoint Central",
   description: "Plataforma de gestión y onboarding de clientes",
   icons: {
     icon: EPOINT_LOGO_PATH,

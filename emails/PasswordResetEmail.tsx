@@ -18,11 +18,11 @@ export function PasswordResetEmail({
   logoUrl,
 }: PasswordResetEmailProps) {
   return (
-    <EmailLayout preview={`Restablecé tu contraseña de ePoint, ${firstName}`} logoUrl={logoUrl}>
+    <EmailLayout preview={`Restablecé tu contraseña de Epoint, ${firstName}`} logoUrl={logoUrl}>
       <Heading style={headingStyle}>Restablecé tu contraseña</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>
-        Recibimos una solicitud para restablecer la contraseña de tu cuenta en ePoint. Hacé clic en
+        Recibimos una solicitud para restablecer la contraseña de tu cuenta en Epoint. Hacé clic en
         el botón para elegir una nueva contraseña.
       </Text>
 

@@ -39,7 +39,7 @@ import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentCon
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
-import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
+import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 function buildClientForm(client: Client) {
@@ -166,6 +166,9 @@ export default function ClienteDetailPage() {
           portalLoginUrl: c.portal_login_url ?? undefined,
         });
         setPortalPassword(c.portal_temp_password);
+      } else if (c.has_portal_access) {
+        clearPortalCredentials(c.id);
+        setPortalPassword(null);
       }
       setForm(buildClientForm(c));
     } catch (err) {
@@ -219,9 +222,19 @@ export default function ClienteDetailPage() {
 
   useEffect(() => {
     if (!client?.id) return;
-    const stored = loadPortalCredentials(client.id);
-    setPortalPassword(client.portal_temp_password ?? stored?.tempPassword ?? null);
-  }, [client?.id, client?.has_portal_access, client?.portal_temp_password]);
+    if (client.portal_temp_password) {
+      savePortalCredentials(client.id, {
+        email: client.portal_email ?? client.email,
+        tempPassword: client.portal_temp_password,
+        portalLoginUrl: client.portal_login_url ?? undefined,
+      });
+      setPortalPassword(client.portal_temp_password);
+      return;
+    }
+    // Sin temporal en API: el cliente ya cambió la clave o nunca se guardó — no reusar cache viejo
+    clearPortalCredentials(client.id);
+    setPortalPassword(null);
+  }, [client?.id, client?.has_portal_access, client?.portal_temp_password, client?.portal_email, client?.email, client?.portal_login_url]);
 
   const clientName = client ? `${client.first_name} ${client.last_name}` : "";
   const canEdit =

@@ -1,4 +1,4 @@
-/** Paleta ePoint — alineada con globals.css */
+/** Paleta Epoint — alineada con globals.css */
 export const emailTheme = {
   brand: "#3d6b45",
   brandDark: "#2d5234",

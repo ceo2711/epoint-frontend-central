@@ -73,7 +73,7 @@ async function request<T>(
         return request<T>(path, { ...options, token: newToken }, true);
       }
     }
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
       notifyUnauthorized();
     }
     if (!silentHttpErrors) {
@@ -135,7 +135,7 @@ async function requestBlob(
         return requestBlob(path, { ...options, token: newToken }, true);
       }
     }
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
       notifyUnauthorized();
     }
     logClientError("api:http", message, { method: "GET", path, status: response.status });
@@ -187,7 +187,7 @@ async function uploadRequest<T>(
         return uploadRequest<T>(path, formData, newToken, true);
       }
     }
-    if (response.status === 401) {
+    if (response.status === 401 && token) {
       notifyUnauthorized();
     }
     logClientError("api:http", message, { method: "POST", path, status: response.status });

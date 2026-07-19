@@ -28,18 +28,18 @@ export function EmailLayout({ preview, logoUrl, children, footerNote }: EmailLay
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
           <Section style={headerStyle}>
-            <Img src={logoUrl} alt="ePoint" width="48" height="48" style={logoStyle} />
-            <Text style={headerTitleStyle}>ePoint Central</Text>
-            <Text style={headerSubtitleStyle}>ePoint Corporation</Text>
+            <Img src={logoUrl} alt="Epoint" width="48" height="48" style={logoStyle} />
+            <Text style={headerTitleStyle}>Epoint Central</Text>
+            <Text style={headerSubtitleStyle}>Epoint Corporation</Text>
           </Section>
 
           <Section style={contentStyle}>{children}</Section>
 
           <Hr style={hrStyle} />
           <Text style={footerStyle}>
-            {footerNote ?? "Si tenés alguna consulta, respondé a este correo o contactá a tu asesor ePoint."}
+            {footerNote ?? "Si tenés alguna consulta, respondé a este correo o contactá a tu asesor Epoint."}
           </Text>
-          <Text style={footerBrandStyle}>© ePoint Corporation</Text>
+          <Text style={footerBrandStyle}>© Epoint Corporation</Text>
         </Container>
       </Body>
     </Html>

@@ -19,9 +19,9 @@ export function OnboardingReminderEmailEn({
 }: OnboardingReminderEmailEnProps) {
   return (
     <EmailLayout
-      preview={`${firstName}, you have pending onboarding items at ePoint`}
+      preview={`${firstName}, you have pending onboarding items at Epoint`}
       logoUrl={logoUrl}
-      footerNote="If you have any questions, reply to this email or contact your ePoint advisor."
+      footerNote="If you have any questions, reply to this email or contact your Epoint advisor."
     >
       <Heading style={headingStyle}>Complete your onboarding</Heading>
       <Text style={paragraphStyle}>Hi {firstName},</Text>

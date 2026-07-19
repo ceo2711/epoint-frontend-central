@@ -44,7 +44,7 @@ export function MerchantForm({
           required
           value={form.name}
           onChange={(e) => onChange({ ...form, name: e.target.value })}
-          placeholder="ePoint Lab"
+          placeholder="Epoint Lab"
         />
         <div className="sm:col-span-2">
           <Input

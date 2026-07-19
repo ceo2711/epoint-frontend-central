@@ -13,7 +13,7 @@ export function LoginHero() {
         <div className="flex items-center gap-5">
           <AppLogo size="2xl" priority className="rounded-2xl shadow-md" />
           <div className="min-w-0">
-            <p className="text-3xl font-bold tracking-tight text-white xl:text-4xl">ePoint Central</p>
+            <p className="text-3xl font-bold tracking-tight text-white xl:text-4xl">Epoint Central</p>
           </div>
         </div>
       </div>
@@ -35,7 +35,7 @@ export function LoginHero() {
         </ul>
       </div>
 
-      <p className="relative z-10 text-xs text-cream-700">© 2026 ePoint Central</p>
+      <p className="relative z-10 text-xs text-cream-700">© 2026 Epoint Central</p>
     </div>
   );
 }
