@@ -113,18 +113,15 @@ export default function MerchantsPage() {
 
   return (
     <>
-      <Header
-        title={t("merchants.headerContext")}
-        subtitle={t("merchants.subtitle")}
-        actions={
-          hasPermission("merchants:create") ? (
+      <Header title={t("merchants.headerContext")} subtitle={t("merchants.subtitle")} />
+      <PageContent>
+        {hasPermission("merchants:create") ? (
+          <div className="mb-4 flex justify-end">
             <Button size="sm" onClick={openCreate}>
               {t("merchants.add")}
             </Button>
-          ) : undefined
-        }
-      />
-      <PageContent>
+          </div>
+        ) : null}
         {loading && (
           <div className="flex justify-center py-16">
             <LoadingSpinner />

@@ -37,22 +37,22 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
   }
 
   return (
-    <div className="relative z-10 flex flex-1 items-center justify-center p-6 lg:p-12">
-      <div className="card-glass relative z-10 w-full max-w-md p-6 sm:p-8 lg:p-10">
-        <div className="absolute right-6 top-6 lg:right-8 lg:top-8">
-          <LanguageSwitcher />
+    <div className="relative z-10 flex min-w-0 flex-1 items-center justify-center overflow-x-hidden p-4 sm:p-6 lg:p-12">
+      <div className="card-glass relative z-10 w-full min-w-0 max-w-md overflow-hidden p-6 sm:p-8 lg:p-10">
+        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
+          <LanguageSwitcher compact />
         </div>
 
-        <div className="mb-8 lg:hidden">
-          <div className="mb-4 flex items-center gap-4">
-            <AppLogo size="xl" priority className="rounded-2xl" />
-            <div className="min-w-0">
-              <p className="text-2xl font-bold tracking-tight text-slate-900">Epoint Central</p>
-            </div>
+        <div className="mb-8 pr-16 lg:hidden">
+          <div className="flex min-w-0 items-center gap-3">
+            <AppLogo size="xl" priority className="shrink-0 rounded-2xl" />
+            <p className="min-w-0 text-xl font-bold leading-tight tracking-tight text-slate-900 sm:text-2xl">
+              Epoint Corporation
+            </p>
           </div>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-8 lg:pr-24">
           <h1 className="text-2xl font-bold text-slate-900">{t("login.welcome")}</h1>
           <p className="mt-1 text-sm text-slate-500">{t("login.subtitle")}</p>
         </div>

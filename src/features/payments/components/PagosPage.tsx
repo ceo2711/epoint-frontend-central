@@ -197,7 +197,7 @@ export function PagosPage() {
 
   return (
     <>
-      <Header title={t("payments.title")} subtitle={pageSubtitle} />
+      <Header title={t("payments.headerContext")} subtitle={pageSubtitle} />
       <PageContent className="space-y-6">
         {error ? (
           <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>

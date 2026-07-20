@@ -212,7 +212,7 @@ export function ContratosPage() {
 
   return (
     <>
-      <Header title={t("docusign.pageTitle")} subtitle={pageSubtitle} />
+      <Header title={t("docusign.headerContext")} subtitle={pageSubtitle} />
       <PageContent className="space-y-6">
         {loading && !isAdmin ? (
           <div className="flex justify-center py-16">

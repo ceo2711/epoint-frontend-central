@@ -63,7 +63,7 @@ export function ProspectosPage() {
 
   return (
     <>
-      <Header title={t("prospects.title")} subtitle={t("prospects.subtitle")} />
+      <Header title={t("prospects.headerContext")} subtitle={t("prospects.subtitle")} />
       <PageContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[220px] flex-1">

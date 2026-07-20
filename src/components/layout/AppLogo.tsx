@@ -31,7 +31,7 @@ export function AppLogo({ size = "sm", className = "", priority }: AppLogoProps)
         alt="Epoint Corp"
         width={dimension}
         height={dimension}
-        className="h-full w-full object-contain p-0.5"
+        className="h-full w-full object-cover object-center"
         priority={priority}
       />
     </div>

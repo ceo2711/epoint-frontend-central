@@ -245,7 +245,7 @@ export function CalendarioPage() {
   return (
     <>
       <Header
-        title={t("calendly.title")}
+        title={t("calendly.headerContext")}
         subtitle={t(isAdmin ? "calendly.adminSubtitle" : "calendly.salesSubtitle")}
       />
       <PageContent className="space-y-6">

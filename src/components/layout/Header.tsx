@@ -1,38 +1,37 @@
 "use client";
 
-import { ReactNode } from "react";
-
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { AppBrand } from "@/components/layout/AppBrand";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/Button";
 
 export function Header({
   title,
-  subtitle,
-  actions,
   bareTitle = false,
 }: {
   title: string;
   subtitle?: string;
-  actions?: ReactNode;
   bareTitle?: boolean;
 }) {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const { toggleMobile } = useShell();
   const showNotifications = user?.role.code !== "CLIENT";
 
+  const displayName =
+    user?.first_name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "";
+
   return (
     <header className="sticky top-0 z-30 w-full max-w-full shrink-0 border-b border-cream-600 bg-cream-100/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
-      {/* Mobile / tablet: menú · marca · notificaciones */}
-      <div className="grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 px-3 py-2.5 lg:hidden">
+      {/* Mobile / tablet: menú · marca · notificaciones + usuario */}
+      <div className="flex items-center gap-2 px-3 py-2.5 lg:hidden">
         <button
           type="button"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
           aria-label={t("common.openMenu")}
           onClick={toggleMobile}
         >
@@ -41,45 +40,41 @@ export function Header({
           </svg>
         </button>
 
-        <div className="flex min-w-0 justify-center">
+        <div className="flex min-w-0 flex-1 justify-center">
           <AppBrand />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex shrink-0 items-center gap-2">
           {showNotifications ? <NotificationBell /> : null}
+          <UserMenu />
         </div>
       </div>
 
-      {/* Desktop: título + acciones */}
-      <div className="hidden px-6 lg:flex lg:items-start lg:justify-between lg:gap-4 lg:px-0">
+      {/* Desktop: saludo contextual + controles */}
+      <div className="hidden px-6 lg:flex lg:items-center lg:justify-between lg:gap-4 lg:px-0">
         <div className="min-w-0 flex-1">
-          {user && !bareTitle ? (
-            <p className="mb-1 text-sm font-medium text-slate-500">
-              {t("header.hello")},{" "}
-              <span className="font-semibold text-brand">{user.first_name}</span>
+          {user || bareTitle ? (
+            <p className="min-w-0 truncate text-xl font-medium tracking-tight text-slate-600">
+              {!bareTitle && displayName ? (
+                <>
+                  {t("header.hello")},{" "}
+                  <span className="font-bold text-brand">{displayName}</span>
+                  {title ? (
+                    <>
+                      , <span className="text-slate-500">{title}</span>
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                title
+              )}
             </p>
-          ) : null}
-          <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900">
-            <span className="font-semibold text-slate-800">{title}</span>
-          </h1>
-          {subtitle ? (
-            <p className="mt-1 truncate text-sm font-medium text-slate-500">{subtitle}</p>
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
-          {actions}
+        <div className="flex shrink-0 items-center justify-end gap-3">
           {showNotifications ? <NotificationBell /> : null}
-          <LanguageSwitcher compact />
-          {user && (
-            <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 md:flex">
-              <div className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="max-w-[8rem] truncate text-xs font-medium text-slate-600">{user.role.name}</span>
-            </div>
-          )}
-          <Button variant="secondary" size="sm" onClick={logout} className="shrink-0">
-            {t("common.logout")}
-          </Button>
+          <UserMenu />
         </div>
       </div>
     </header>

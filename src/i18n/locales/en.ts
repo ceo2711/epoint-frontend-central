@@ -72,7 +72,8 @@ export const en: Messages = {
   },
   header: {
     hello: "Hello",
-    greetingWithContext: "Hello {name}, {context}",
+    greetingWithContext: "Hello, {name}, {context}",
+    userMenu: "User menu",
   },
   nav: {
     panel: "Dashboard",
@@ -97,14 +98,14 @@ export const en: Messages = {
   },
   login: {
     verifyingSession: "Verifying session...",
-    headline: "Manage your client onboarding in one place",
+    headline: "Run your commercial operation in one place",
     subheadline:
-      "Documents, AI verification, task board, and WhatsApp notifications — all in one secure platform.",
-    feature1: "Automated onboarding",
-    feature2: "AI-verified documents",
-    feature3: "Client portal",
+      "Prospects, clients, contracts, payments, AI-powered onboarding, and a client portal — all in one secure platform.",
+    feature1: "End-to-end commercial CRM",
+    feature2: "Contracts, payments, and calendar",
+    feature3: "Onboarding, AI documents, and portal",
     welcome: "Welcome",
-    subtitle: "Sign in to your account to continue",
+    subtitle: "Sign in to Epoint Corporation to continue",
     emailLabel: "Email address",
     emailPlaceholder: "name@company.com",
     passwordLabel: "Password",
@@ -176,6 +177,7 @@ export const en: Messages = {
   },
   account: {
     title: "My account",
+    headerContext: "this is your account",
     subtitle: "Personal details and account security",
     profileReadOnlyHint: "Only an administrator can change these details. Ask an admin if you need an update.",
     profileTitle: "Personal details",
@@ -184,6 +186,17 @@ export const en: Messages = {
     profileSaving: "Saving...",
     profileSaved: "Personal details updated successfully.",
     profileError: "Could not update your personal details",
+    avatarTitle: "Profile photo",
+    avatarSubtitle: "You can change your avatar anytime. Formats: JPEG, PNG, or WebP (max 5 MB).",
+    avatarView: "View profile photo",
+    avatarFormats: "JPEG, PNG, or WebP · max 5 MB",
+    avatarChange: "Change photo",
+    avatarUploading: "Uploading...",
+    avatarRemove: "Remove photo",
+    avatarRemoving: "Removing...",
+    avatarSaved: "Avatar updated successfully.",
+    avatarRemoved: "Avatar removed.",
+    avatarError: "Could not update the avatar",
     passwordTitle: "Password",
     passwordSubtitle: "Update your sign-in password",
     twoFactor: {
@@ -205,6 +218,7 @@ export const en: Messages = {
   },
   calendly: {
     title: "Meeting calendar",
+    headerContext: "this is your calendar",
     adminSubtitle: "Review each sales rep's schedule and public Calendly link",
     salesSubtitle: "Connect Calendly, view your meetings, and link them to prospects",
     loading: "Loading calendar...",
@@ -290,6 +304,7 @@ export const en: Messages = {
   },
   docusign: {
     pageTitle: "Contracts",
+    headerContext: "these are your contracts",
     pageSubtitle: "Send client contracts with DocuSign from the platform",
     adminPageSubtitle: "Review contracts sent by each sales rep",
     adminRepContractsHint: "Contracts sent by this sales rep from the platform.",
@@ -365,6 +380,7 @@ export const en: Messages = {
   },
   payments: {
     title: "Payments",
+    headerContext: "these are your payments",
     subtitle: "Generate personalized links with Authorize.net or PayPal for prospects and clients",
     stubModeHint:
       "Preparation mode: without active credentials, the link opens the internal page and allows simulating payment.",
@@ -443,6 +459,9 @@ export const en: Messages = {
   },
   prospects: {
     title: "Prospects",
+    headerContext: "these are your prospects",
+    detailHeaderContext: "you're viewing {name}",
+    detailHeaderContextLoading: "loading prospect",
     subtitle: "Manage leads before they become clients pending review",
     searchPlaceholder: "Name or email…",
     empty: "No prospects match these filters.",
@@ -587,7 +606,7 @@ export const en: Messages = {
   },
   dashboard: {
     greeting: "Hello, {name}",
-    headerContext: "Dashboard",
+    headerContext: "this is your dashboard",
     subtitle: "Area metrics, projections, and client status",
     summaryTitle: "System overview",
     summaryBody:
@@ -659,7 +678,7 @@ export const en: Messages = {
   },
   clients: {
     title: "Clients",
-    headerContext: "Clients",
+    headerContext: "these are your clients",
     subtitle: "Registration and onboarding workflow management",
     subtitleAdvisor: "Your assigned clients — data, documents, and boards",
     subtitleOnboarding: "Clients pending approval and in onboarding — manage each profile separately",
@@ -744,8 +763,8 @@ export const en: Messages = {
   },
   clientDetail: {
     title: "Client details",
-    headerContext: "{clientName}",
-    headerContextLoading: "Client",
+    headerContext: "you're viewing {clientName}",
+    headerContextLoading: "loading client",
     loading: "Loading client...",
     notFound: "Could not load the client or you do not have access.",
     overview: "Client information",
@@ -817,7 +836,7 @@ export const en: Messages = {
   },
   users: {
     title: "Users",
-    headerContext: "Users",
+    headerContext: "these are your users",
     subtitle: "Internal team and system access",
     loadError: "Could not load users",
     noPermission: "You don't have permission to view users",
@@ -837,7 +856,7 @@ export const en: Messages = {
   },
   merchants: {
     title: "Merchants",
-    headerContext: "Merchants",
+    headerContext: "these are your merchants",
     subtitle: "Epoint group companies and merchants",
     loadError: "Could not load merchants",
     noPermission: "You don't have permission to view merchants",
@@ -861,21 +880,21 @@ export const en: Messages = {
   },
   areas: {
     title: "Areas",
-    headerContext: "Areas",
+    headerContext: "these are your areas",
     subtitle: "Organization departments and teams",
     loadError: "Could not load areas",
     noPermission: "You don't have permission to view areas",
   },
   roles: {
     title: "Roles & permissions",
-    headerContext: "Roles",
+    headerContext: "these are your roles",
     subtitle: "System access control",
     loadError: "Could not load roles",
     noPermission: "You don't have permission to view roles",
   },
   notifications: {
     title: "Notifications",
-    headerContext: "Notifications",
+    headerContext: "these are your notifications",
     subtitle: "Pending your attention",
     empty: "You have no pending notifications",
     emptyHint: "When something needs your attention, it will show up here.",
@@ -891,7 +910,7 @@ export const en: Messages = {
   },
   portal: {
     greeting: "Hello, {name}",
-    headerContext: "Portal",
+    headerContext: "this is your portal",
     subtitle: "Your Epoint onboarding portal",
     welcomeTitle: "Welcome to your portal",
     welcomeBody:
@@ -905,7 +924,7 @@ export const en: Messages = {
   },
   portalData: {
     title: "My personal data",
-    headerContext: "My data",
+    headerContext: "this is your data",
     subtitle: "Information required for your onboarding",
     profileUpdated: "Profile updated",
     dataSaved: "Data saved successfully",
@@ -952,7 +971,7 @@ export const en: Messages = {
   },
   portalDocs: {
     title: "My documents",
-    headerContext: "Documents",
+    headerContext: "these are your documents",
     subtitle: "Upload required documentation",
     loading: "Loading documents...",
     instructions: "Upload readable PDFs or photos, in color, with no cropped corners. They must be valid.",
@@ -984,7 +1003,7 @@ export const en: Messages = {
   },
   portalBoard: {
     title: "My task board",
-    headerContext: "My board",
+    headerContext: "this is your board",
     subtitle: "Track your onboarding progress",
     loading: "Loading board...",
     unavailable: "Your board is not available yet. Complete your documents first.",

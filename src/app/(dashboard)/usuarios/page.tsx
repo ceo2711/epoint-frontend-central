@@ -72,18 +72,15 @@ export default function UsuariosPage() {
 
   return (
     <>
-      <Header
-        title={t("users.headerContext")}
-        subtitle={t("users.subtitle")}
-        actions={
-          hasPermission("users:create") ? (
+      <Header title={t("users.headerContext")} subtitle={t("users.subtitle")} />
+      <PageContent>
+        {hasPermission("users:create") ? (
+          <div className="mb-4 flex justify-end">
             <Button size="sm" onClick={openCreate}>
               {t("users.add")}
             </Button>
-          ) : undefined
-        }
-      />
-      <PageContent>
+          </div>
+        ) : null}
         {loading && (
           <div className="flex justify-center py-16">
             <LoadingSpinner />

@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { AppBrand } from "@/components/layout/AppBrand";
 import { MerchantSwitcher } from "@/components/layout/MerchantSwitcher";
-import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useShell } from "@/contexts/ShellContext";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -36,10 +35,9 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, hasPermission, logout } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { t } = useTranslation();
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
-  const isClient = user?.role.code === "CLIENT";
   const collapsed = sidebarCollapsed;
   const items = getAccessibleNavItems(user, hasPermission);
 
@@ -130,59 +128,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <div className={`border-t border-white/5 ${collapsed ? "p-4 lg:p-2" : "p-4"}`}>
-        {user && (
-          <>
-            {collapsed && (
-              <Link
-                href={isClient ? "/portal/cuenta" : "/configuracion"}
-                className="hidden justify-center pb-1 lg:flex"
-                title={`${user.first_name} ${user.last_name}`}
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-accent text-xs font-bold text-brown-950">
-                  {user.first_name[0]}
-                  {user.last_name[0]}
-                </div>
-              </Link>
-            )}
-            <Link
-              href={isClient ? "/portal/cuenta" : "/configuracion"}
-              title={collapsed ? `${user.first_name} ${user.last_name}` : undefined}
-              className={`flex items-center gap-3 rounded-xl bg-white/5 p-3 backdrop-blur-sm transition hover:bg-white/10 ${collapsed ? "lg:hidden" : ""}`}
-              onClick={closeMobile}
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-accent text-xs font-bold text-brown-950">
-                {user.first_name[0]}
-                {user.last_name[0]}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">
-                  {user.first_name} {user.last_name}
-                </p>
-                <p className="truncate text-xs text-cream-700">{user.role.name}</p>
-              </div>
-            </Link>
-
-            <div className="mt-3 space-y-3 border-t border-white/10 pt-3 lg:hidden">
-              <LanguageSwitcher
-                compact
-                className="w-full justify-center border-white/15 bg-white/5"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  closeMobile();
-                  logout();
-                }}
-                className="flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-medium text-cream-700 transition hover:bg-white/10 hover:text-white"
-              >
-                {t("common.logout")}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
     </aside>
   );
 }

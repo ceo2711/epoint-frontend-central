@@ -14,6 +14,7 @@ export interface CalendlySalesRep {
   connected: boolean;
   scheduling_url: string | null;
   last_synced_at: string | null;
+  avatar_url?: string | null;
 }
 
 export interface CalendlyLinkedProspect {

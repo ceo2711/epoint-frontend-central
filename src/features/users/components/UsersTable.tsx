@@ -5,6 +5,7 @@ import { HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
 import { ActiveBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { User } from "@/features/users/types";
 
@@ -53,15 +54,29 @@ export function UsersTable({
     );
   }
 
+  function renderName(user: User) {
+    return (
+      <div className="flex min-w-0 items-center gap-3">
+        <UserAvatar
+          firstName={user.first_name}
+          lastName={user.last_name}
+          avatarUrl={user.avatar_url}
+          size="sm"
+        />
+        <span className="truncate font-semibold text-slate-800">
+          {user.first_name} {user.last_name}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="space-y-3 md:hidden">
         {users.map((user) => (
           <Card key={user.id} className="p-4">
-            <p className="font-semibold text-slate-800">
-              {user.first_name} {user.last_name}
-            </p>
-            <p className="mt-1 break-all text-sm text-slate-500">{user.email}</p>
+            {renderName(user)}
+            <p className="mt-2 break-all text-sm text-slate-500">{user.email}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="badge badge-blue">{user.role.name}</span>
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
@@ -89,9 +104,7 @@ export function UsersTable({
           <tbody>
             {users.map((user) => (
               <tr key={user.id}>
-                <td className="font-semibold text-slate-800">
-                  {user.first_name} {user.last_name}
-                </td>
+                <td>{renderName(user)}</td>
                 <td className="text-slate-500">{user.email}</td>
                 <td>
                   <span className="badge badge-blue">{user.role.name}</span>

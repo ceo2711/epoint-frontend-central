@@ -70,7 +70,8 @@ export const es = {
   },
   header: {
     hello: "Hola",
-    greetingWithContext: "Hola {name}, {context}",
+    greetingWithContext: "Hola, {name}, {context}",
+    userMenu: "Menú de usuario",
   },
   nav: {
     panel: "Panel",
@@ -95,14 +96,14 @@ export const es = {
   },
   login: {
     verifyingSession: "Verificando sesión...",
-    headline: "Gestioná el onboarding de tus clientes en un solo lugar",
+    headline: "Gestioná tu operación comercial en un solo lugar",
     subheadline:
-      "Documentos, verificación con IA, tablero de tareas y notificaciones por WhatsApp — todo integrado en una plataforma segura.",
-    feature1: "Onboarding automatizado",
-    feature2: "Documentos verificados con IA",
-    feature3: "Portal del cliente",
+      "Prospectos, clientes, contratos, pagos, onboarding con IA y portal del cliente — todo integrado en una plataforma segura.",
+    feature1: "CRM comercial de punta a punta",
+    feature2: "Contratos, pagos y calendario",
+    feature3: "Onboarding, documentos con IA y portal",
     welcome: "Bienvenido",
-    subtitle: "Ingresá a tu cuenta para continuar",
+    subtitle: "Ingresá a Epoint Corporation para continuar",
     emailLabel: "Correo electrónico",
     emailPlaceholder: "nombre@empresa.com",
     passwordLabel: "Contraseña",
@@ -174,6 +175,7 @@ export const es = {
   },
   account: {
     title: "Mi cuenta",
+    headerContext: "esta es tu cuenta",
     subtitle: "Datos personales y seguridad de tu acceso",
     profileReadOnlyHint: "Solo un administrador puede modificar estos datos. Si necesitás un cambio, pedíselo a un admin.",
     profileTitle: "Datos personales",
@@ -182,6 +184,17 @@ export const es = {
     profileSaving: "Guardando...",
     profileSaved: "Datos personales actualizados correctamente.",
     profileError: "No se pudieron actualizar tus datos personales",
+    avatarTitle: "Foto de perfil",
+    avatarSubtitle: "Podés cambiar tu avatar en cualquier momento. Formatos: JPEG, PNG o WebP (máx. 5 MB).",
+    avatarView: "Ver foto de perfil",
+    avatarFormats: "JPEG, PNG o WebP · máx. 5 MB",
+    avatarChange: "Cambiar foto",
+    avatarUploading: "Subiendo...",
+    avatarRemove: "Quitar foto",
+    avatarRemoving: "Quitando...",
+    avatarSaved: "Avatar actualizado correctamente.",
+    avatarRemoved: "Avatar eliminado.",
+    avatarError: "No se pudo actualizar el avatar",
     passwordTitle: "Contraseña",
     passwordSubtitle: "Actualizá tu contraseña de acceso a la plataforma",
     twoFactor: {
@@ -203,6 +216,7 @@ export const es = {
   },
   calendly: {
     title: "Calendario de reuniones",
+    headerContext: "este es tu calendario",
     adminSubtitle: "Revisá la agenda de cada vendedor y su enlace público de Calendly",
     salesSubtitle: "Conectá tu Calendly, consultá tus reuniones y vinculalas con prospectos",
     loading: "Cargando calendario...",
@@ -288,6 +302,7 @@ export const es = {
   },
   docusign: {
     pageTitle: "Contratos",
+    headerContext: "estos son tus contratos",
     pageSubtitle: "Enviá contratos a clientes con DocuSign desde la plataforma",
     adminPageSubtitle: "Revisá los contratos enviados por cada vendedor",
     adminRepContractsHint: "Contratos enviados por este vendedor desde la plataforma.",
@@ -364,6 +379,7 @@ export const es = {
   },
   payments: {
     title: "Pagos",
+    headerContext: "estos son tus pagos",
     subtitle: "Generá links personalizados con Authorize.net o PayPal para tus prospectos y clientes",
     stubModeHint:
       "Modo preparación: sin credenciales activas, el link abre la página interna y permite simular el pago.",
@@ -442,6 +458,9 @@ export const es = {
   },
   prospects: {
     title: "Prospectos",
+    headerContext: "estos son tus prospectos",
+    detailHeaderContext: "estás viendo a {name}",
+    detailHeaderContextLoading: "cargando el prospecto",
     subtitle: "Gestioná leads antes de que pasen a clientes en revisión",
     searchPlaceholder: "Nombre, apellido o email…",
     empty: "No hay prospectos con estos filtros.",
@@ -586,7 +605,7 @@ export const es = {
   },
   dashboard: {
     greeting: "Hola, {name}",
-    headerContext: "Panel",
+    headerContext: "este es tu panel",
     subtitle: "Métricas por área, proyecciones y estado de clientes",
     summaryTitle: "Resumen del sistema",
     summaryBody:
@@ -658,7 +677,7 @@ export const es = {
   },
   clients: {
     title: "Clientes",
-    headerContext: "Clientes",
+    headerContext: "estos son tus clientes",
     subtitle: "Gestión del flujo de registro y onboarding",
     subtitleAdvisor: "Tus clientes asignados — datos, documentos y tableros",
     subtitleOnboarding: "Clientes pendientes de aprobación y en onboarding — gestioná cada perfil por separado",
@@ -743,8 +762,8 @@ export const es = {
   },
   clientDetail: {
     title: "Detalle del cliente",
-    headerContext: "{clientName}",
-    headerContextLoading: "Cliente",
+    headerContext: "estás viendo a {clientName}",
+    headerContextLoading: "cargando el cliente",
     loading: "Cargando cliente...",
     notFound: "No se pudo cargar el cliente o no tenés acceso.",
     overview: "Información del cliente",
@@ -816,7 +835,7 @@ export const es = {
   },
   users: {
     title: "Usuarios",
-    headerContext: "Usuarios",
+    headerContext: "estos son tus usuarios",
     subtitle: "Equipo interno y accesos al sistema",
     loadError: "No se pudieron cargar los usuarios",
     noPermission: "No tenés permisos para ver usuarios",
@@ -836,7 +855,7 @@ export const es = {
   },
   merchants: {
     title: "Comercios",
-    headerContext: "Comercios",
+    headerContext: "estos son tus comercios",
     subtitle: "Empresas y merchants del grupo Epoint",
     loadError: "No se pudieron cargar los comercios",
     noPermission: "No tenés permisos para ver comercios",
@@ -860,21 +879,21 @@ export const es = {
   },
   areas: {
     title: "Áreas",
-    headerContext: "Áreas",
+    headerContext: "estas son tus áreas",
     subtitle: "Departamentos y equipos de la organización",
     loadError: "No se pudieron cargar las áreas",
     noPermission: "No tenés permisos para ver áreas",
   },
   roles: {
     title: "Roles y permisos",
-    headerContext: "Roles",
+    headerContext: "estos son tus roles",
     subtitle: "Control de acceso del sistema",
     loadError: "No se pudieron cargar los roles",
     noPermission: "No tenés permisos para ver roles",
   },
   notifications: {
     title: "Notificaciones",
-    headerContext: "Notificaciones",
+    headerContext: "estas son tus notificaciones",
     subtitle: "Pendientes de tu atención",
     empty: "No tenés notificaciones pendientes",
     emptyHint: "Cuando haya algo para revisar, aparecerá acá.",
@@ -890,7 +909,7 @@ export const es = {
   },
   portal: {
     greeting: "Hola, {name}",
-    headerContext: "Portal",
+    headerContext: "este es tu portal",
     subtitle: "Tu portal de onboarding Epoint",
     welcomeTitle: "Bienvenido a tu portal",
     welcomeBody:
@@ -904,7 +923,7 @@ export const es = {
   },
   portalData: {
     title: "Mis datos personales",
-    headerContext: "Mis datos",
+    headerContext: "estos son tus datos",
     subtitle: "Información requerida para tu onboarding",
     profileUpdated: "Perfil actualizado",
     dataSaved: "Datos guardados correctamente",
@@ -951,7 +970,7 @@ export const es = {
   },
   portalDocs: {
     title: "Mis documentos",
-    headerContext: "Documentos",
+    headerContext: "estos son tus documentos",
     subtitle: "Subí la documentación requerida",
     loading: "Cargando documentos...",
     instructions:
@@ -984,7 +1003,7 @@ export const es = {
   },
   portalBoard: {
     title: "Mi tablero de tareas",
-    headerContext: "Mi tablero",
+    headerContext: "este es tu tablero",
     subtitle: "Seguí el progreso de tu onboarding",
     loading: "Cargando tablero...",
     unavailable: "Tu tablero aún no está disponible. Completá tus documentos primero.",

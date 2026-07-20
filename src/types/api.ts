@@ -23,6 +23,7 @@ export interface User {
   is_active: boolean;
   last_login_at: string | null;
   created_at: string;
+  avatar_url?: string | null;
   permissions?: string[];
   client_id?: number | null;
   merchants?: MerchantBrief[];

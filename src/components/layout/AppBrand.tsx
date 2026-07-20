@@ -22,7 +22,7 @@ export function AppBrand({ showSubtitle = false, dark = false, logoPriority }: A
       <AppLogo size="sm" priority={logoPriority} />
       <div className="brand-label min-w-0">
         <p className={`truncate text-sm font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>
-          Epoint Central
+          Epoint Corporation
         </p>
         {showSubtitle && isClient && (
           <p className={`truncate text-xs ${dark ? "text-cream-700" : "text-slate-500"}`}>

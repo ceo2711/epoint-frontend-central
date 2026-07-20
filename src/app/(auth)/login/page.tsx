@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import { LoginHero } from "@/features/auth/components/LoginHero";
 import { TwoFactorLoginForm } from "@/features/auth/components/TwoFactorLoginForm";
-import { NightSkyBackground } from "@/features/auth/components/NightSkyBackground";
+import { DesertBackground } from "@/features/auth/components/DesertBackground";
 import { useAuth } from "@/features/auth/AuthContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -34,8 +34,8 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="login-bg relative flex min-h-screen items-center justify-center">
-        <NightSkyBackground />
+      <div className="login-bg relative flex min-h-dvh h-dvh items-center justify-center">
+        <DesertBackground />
         <div className="relative z-10">
           <LoadingSpinner label={t("login.verifyingSession")} />
         </div>
@@ -45,8 +45,8 @@ export default function LoginPage() {
 
   if (step === "twoFactor") {
     return (
-      <div className="login-bg relative flex min-h-screen">
-        <NightSkyBackground />
+      <div className="login-bg relative flex min-h-dvh h-dvh">
+        <DesertBackground />
         <TwoFactorLoginForm
           userName={pendingUserName}
           onSubmit={completeTwoFactorLogin}
@@ -57,8 +57,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-bg relative flex min-h-screen">
-      <NightSkyBackground />
+    <div className="login-bg relative flex min-h-dvh h-dvh min-w-0 overflow-x-hidden">
+      <DesertBackground />
       <LoginHero />
       <LoginForm
         onSubmit={async (email, password) => {

@@ -476,7 +476,7 @@ export default function ProspectoDetailPage() {
   if (!idValid) {
     return (
       <>
-        <Header title={t("prospects.detailTitle")} />
+        <Header title={t("prospects.detailHeaderContextLoading")} />
         <PageContent>
           <p className="text-sm text-slate-500">{t("prospects.notFound")}</p>
           <Link href="/prospectos" className="btn btn-secondary btn-sm mt-4">
@@ -490,7 +490,7 @@ export default function ProspectoDetailPage() {
   if (loading) {
     return (
       <>
-        <Header title={t("prospects.detailTitle")} subtitle={t("common.loading")} />
+        <Header title={t("prospects.detailHeaderContextLoading")} subtitle={t("common.loading")} />
         <div className="flex flex-1 items-center justify-center py-24">
           <LoadingSpinner label={t("common.loading")} />
         </div>
@@ -501,7 +501,7 @@ export default function ProspectoDetailPage() {
   if (!prospect) {
     return (
       <>
-        <Header title={t("prospects.detailTitle")} />
+        <Header title={t("prospects.detailHeaderContextLoading")} />
         <PageContent>
           <p className="text-sm text-slate-500">{t("prospects.notFound")}</p>
           <Link href="/prospectos" className="btn btn-secondary btn-sm mt-4">
@@ -584,8 +584,8 @@ export default function ProspectoDetailPage() {
   return (
     <>
       <Header
-        title={t("prospects.detailTitle")}
-        subtitle={prospect.full_name}
+        title={t("prospects.detailHeaderContext", { name: prospect.full_name })}
+        subtitle={prospect.email}
       />
       <PageContent className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
