@@ -184,7 +184,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user) return false;
       if (user.role.code === "ADMIN") return true;
       if (user.role.code === "BRANCH_MANAGER") {
-        if (permission.startsWith("sedes:") || permission.startsWith("merchants:")) {
+        if (
+          permission.startsWith("sedes:") ||
+          permission.startsWith("merchants:") ||
+          permission === "clients:delete"
+        ) {
           return false;
         }
         return true;
