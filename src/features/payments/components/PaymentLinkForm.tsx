@@ -84,6 +84,18 @@ export function PaymentLinkForm({
     }
   }, [form.customer_email, linkedProspect]);
 
+  function handleProspectChange(prospect: Prospect | null) {
+    setLinkedProspect(prospect);
+    if (!prospect) return;
+    setForm((current) => ({
+      ...current,
+      customer_first_name: prospect.first_name,
+      customer_last_name: prospect.last_name,
+      customer_email: prospect.email,
+      customer_phone: prospect.phone,
+    }));
+  }
+
   const disabled = !config?.payments_enabled || submitting;
 
   async function handleSubmit(e: FormEvent) {
@@ -145,7 +157,7 @@ export function PaymentLinkForm({
           prospect={linkedProspect}
           externalSearch={externalProspectSearch}
           onSearch={onSearchProspects!}
-          onChange={setLinkedProspect}
+          onChange={handleProspectChange}
           disabled={disabled}
           linkedHint={t("payments.form.prospectLinkedHint")}
           changeLabel={t("payments.form.changeProspect")}

@@ -92,6 +92,7 @@ export interface ProspectDetail extends Prospect {
   docusign_envelope: ProspectEnvelopeBrief | null;
   docusign_envelopes: ProspectEnvelopeBrief[];
   payment_link: ProspectPaymentBrief | null;
+  payment_links: ProspectPaymentBrief[];
 }
 
 export interface ProspectPipelineSummary {
@@ -102,6 +103,7 @@ export interface ProspectPipelineSummary {
   calendly_event: ProspectCalendlyBrief | null;
   docusign_envelopes: ProspectEnvelopeBrief[];
   payment_link: ProspectPaymentBrief | null;
+  payment_links: ProspectPaymentBrief[];
 }
 
 export interface ProspectFormData {

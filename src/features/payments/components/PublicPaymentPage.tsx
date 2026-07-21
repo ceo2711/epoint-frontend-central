@@ -26,6 +26,7 @@ export function PublicPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -42,7 +43,21 @@ export function PublicPaymentPage() {
           return;
         }
         const publicData = await fetchPublicPayment(token);
-        if (!cancelled) setData(publicData);
+        if (cancelled) return;
+
+        // Saltar la pantalla intermedia: ir directo al checkout del proveedor.
+        if (
+          publicData.can_pay &&
+          !publicData.stub_mode &&
+          publicData.checkout_url &&
+          publicData.status === "pending"
+        ) {
+          setRedirecting(true);
+          window.location.replace(publicData.checkout_url);
+          return;
+        }
+
+        setData(publicData);
       } catch (err) {
         if (!cancelled) setError(getUserFacingErrorMessage(err, t("payments.public.error")));
       } finally {
@@ -82,9 +97,12 @@ export function PublicPaymentPage() {
           <AppLogo />
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-10">
+        {loading || redirecting ? (
+          <div className="flex flex-col items-center gap-3 py-10">
             <LoadingSpinner />
+            {redirecting ? (
+              <p className="text-sm text-[var(--color-text-muted)]">{t("payments.public.redirecting")}</p>
+            ) : null}
           </div>
         ) : error ? (
           <p className="text-center text-sm text-red-600">{error}</p>

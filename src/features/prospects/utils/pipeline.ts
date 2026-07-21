@@ -22,8 +22,28 @@ export function isContractStepComplete(envelopes: ProspectEnvelopeBrief[]): bool
   return envelopes.some((envelope) => envelope.status.toLowerCase() === "completed");
 }
 
-export function isPaymentStepComplete(payment: ProspectPaymentBrief | null): boolean {
+export function isPaymentStepComplete(
+  payment: ProspectPaymentBrief | null,
+  payments: ProspectPaymentBrief[] = [],
+): boolean {
+  if (payments.some((item) => item.status?.toLowerCase() === "paid")) return true;
   return payment?.status?.toLowerCase() === "paid";
+}
+
+/** Preferí pagado, luego pendiente, luego el principal / más reciente. */
+export function pickPreferredPayment(
+  payment: ProspectPaymentBrief | null,
+  payments: ProspectPaymentBrief[] = [],
+): ProspectPaymentBrief | null {
+  const list = payments.length > 0 ? payments : payment ? [payment] : [];
+  if (list.length === 0) return null;
+  return (
+    list.find((item) => item.status?.toLowerCase() === "paid") ??
+    list.find((item) => item.status?.toLowerCase() === "pending") ??
+    payment ??
+    list[0] ??
+    null
+  );
 }
 
 export function isReadyForClientConversion(
@@ -31,10 +51,11 @@ export function isReadyForClientConversion(
   status: ProspectStatus,
   envelopes: ProspectEnvelopeBrief[],
   payment: ProspectPaymentBrief | null,
+  payments: ProspectPaymentBrief[] = [],
 ): boolean {
   return (
     isMeetingStepComplete(calendly, status) &&
     isContractStepComplete(envelopes) &&
-    isPaymentStepComplete(payment)
+    isPaymentStepComplete(payment, payments)
   );
 }

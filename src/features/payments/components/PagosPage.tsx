@@ -1,6 +1,7 @@
 "use client";
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { copyToClipboard } from "@/lib/clipboard";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -156,7 +157,7 @@ export function PagosPage() {
   async function handleCreate(payload: PaymentLinkCreatePayload) {
     try {
       const result = await createLink(payload);
-      await navigator.clipboard.writeText(result.link.payment_url);
+      await copyToClipboard(result.link.payment_url);
       await modal.alert({
         title: result.email_sent
           ? t("payments.createSuccessEmailTitle")

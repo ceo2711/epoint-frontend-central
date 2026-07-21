@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
+import { copyToClipboard } from "@/lib/clipboard";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { loadPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Client, ClientPortalPassword } from "@/types/api";
@@ -22,7 +23,8 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(value);
+    const ok = await copyToClipboard(value);
+    if (!ok) return;
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }

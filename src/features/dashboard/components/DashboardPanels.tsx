@@ -9,6 +9,7 @@ import {
   TrendLineChart,
 } from "@/features/dashboard/components/DashboardCharts";
 import { MetricReveal } from "@/features/dashboard/components/MetricReveal";
+import { SalesCommissionChart } from "@/features/dashboard/components/SalesCommissionChart";
 import { StatCard } from "@/features/dashboard/components/StatCard";
 import { StatusBreakdownTable } from "@/features/dashboard/components/StatusBreakdownTable";
 import { PipelineStageConversion } from "@/features/dashboard/components/PipelineStageConversion";
@@ -57,6 +58,7 @@ export function AreaMetricsPanel({
   const isSales = area.code === "VENTAS";
   const isPersonal = area.scope === "personal";
   const subtitle = t("dashboard.onboardingMetricsSubtitle");
+  const showCommission = isSales && isPersonal && area.monthly_commission != null;
 
   return (
     <div className="space-y-6">
@@ -76,6 +78,17 @@ export function AreaMetricsPanel({
             {!isSales ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
           </div>
         </div>
+      ) : null}
+
+      {showCommission ? (
+        <MetricReveal delayMs={20}>
+          <SalesCommissionChart
+            commission={area.monthly_commission ?? 0}
+            rate={area.commission_rate ?? 0.15}
+            paidCount={area.monthly_paid_count ?? 0}
+            series={area.commission_series ?? []}
+          />
+        </MetricReveal>
       ) : null}
 
       {isSales ? (

@@ -1,5 +1,6 @@
 "use client";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { copyToClipboard } from "@/lib/clipboard";
 
 import {
   createContext,
@@ -143,8 +144,8 @@ function ModalResultBody({
               variant="secondary"
               className="mt-3"
               onClick={async () => {
-                await navigator.clipboard.writeText(options.copyText!);
-                setCopied(true);
+                const ok = await copyToClipboard(options.copyText!);
+                if (ok) setCopied(true);
               }}
             >
               {copied ? copiedLabel : copyLabel}

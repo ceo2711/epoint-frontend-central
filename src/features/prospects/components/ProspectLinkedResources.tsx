@@ -13,11 +13,13 @@ import type {
   ProspectPaymentBrief,
   ProspectStatus,
 } from "@/features/prospects/types";
+import { copyToClipboard } from "@/lib/clipboard";
 import {
   isContractStepComplete,
   isMeetingStepComplete,
   isPaymentStepComplete,
   isReadyForClientConversion,
+  pickPreferredPayment,
 } from "@/features/prospects/utils/pipeline";
 
 interface ProspectLinkedResourcesProps {
@@ -26,6 +28,7 @@ interface ProspectLinkedResourcesProps {
   calendly: ProspectCalendlyBrief | null;
   envelopes: ProspectEnvelopeBrief[];
   payment: ProspectPaymentBrief | null;
+  payments?: ProspectPaymentBrief[];
   canManage: boolean;
   /** Vista de cliente convertido: sin banner de conversión, sin unirse a reunión, copiar link de pago. */
   clientView?: boolean;
@@ -36,6 +39,7 @@ interface ProspectLinkedResourcesProps {
   onSendContract?: () => void;
   onCreatePayment?: () => void;
   onViewContracts?: () => void;
+  onViewPayments?: () => void;
 }
 
 function formatDateTime(value: string, locale: string) {
@@ -95,6 +99,7 @@ export function ProspectLinkedResources({
   calendly,
   envelopes,
   payment,
+  payments = [],
   canManage,
   clientView = false,
   canMarkContacted = false,
@@ -104,25 +109,34 @@ export function ProspectLinkedResources({
   onSendContract,
   onCreatePayment,
   onViewContracts,
+  onViewPayments,
 }: ProspectLinkedResourcesProps) {
   const { t } = useTranslation();
   const [paymentLinkCopied, setPaymentLinkCopied] = useState(false);
   const latestEnvelope = envelopes[0] ?? null;
+  const paymentLinks = payments.length > 0 ? payments : payment ? [payment] : [];
+  const displayPayment = pickPreferredPayment(payment, paymentLinks);
   const meetingComplete = isMeetingStepComplete(calendly, prospectStatus);
   const contractComplete = isContractStepComplete(envelopes);
-  const paymentComplete = isPaymentStepComplete(payment);
+  const paymentComplete = isPaymentStepComplete(displayPayment, paymentLinks);
   const readyForConversion = isReadyForClientConversion(
     calendly,
     prospectStatus,
     envelopes,
-    payment,
+    displayPayment,
+    paymentLinks,
   );
   const showViewContracts =
     envelopes.length > 0 && onViewContracts && (canManage || clientView);
+  const showViewPayments =
+    paymentLinks.length > 0 && onViewPayments && (canManage || clientView);
+  const createPaymentLabel =
+    paymentLinks.length > 0 ? t("prospects.createAnotherPaymentLink") : t("prospects.createPaymentLink");
 
   async function handleCopyPaymentLink() {
-    if (!payment?.payment_url) return;
-    await navigator.clipboard.writeText(payment.payment_url);
+    if (!displayPayment?.payment_url) return;
+    const ok = await copyToClipboard(displayPayment.payment_url);
+    if (!ok) return;
     setPaymentLinkCopied(true);
     window.setTimeout(() => setPaymentLinkCopied(false), 2000);
   }
@@ -153,7 +167,7 @@ export function ProspectLinkedResources({
               ) : null}
               {calendly.meeting_url && !clientView ? (
                 <Button
-                  size="sm"
+                  size="xs"
                   variant="secondary"
                   onClick={() => window.open(calendly.meeting_url!, "_blank", "noopener,noreferrer")}
                 >
@@ -168,14 +182,14 @@ export function ProspectLinkedResources({
             <p className="mt-3 text-sm text-slate-500">{t("prospects.linked.meetingEmpty")}</p>
           )}
           {canManage ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {canMarkContacted && onMarkContacted ? (
-                <Button size="sm" onClick={onMarkContacted}>
+                <Button size="xs" onClick={onMarkContacted}>
                   {t("prospects.markContacted")}
                 </Button>
               ) : null}
               {onLinkCalendly ? (
-                <Button size="sm" variant="secondary" onClick={onLinkCalendly}>
+                <Button size="xs" variant="secondary" onClick={onLinkCalendly}>
                   {calendly ? t("prospects.scheduleAnotherMeeting") : t("prospects.linkCalendlyAction")}
                 </Button>
               ) : null}
@@ -219,21 +233,21 @@ export function ProspectLinkedResources({
             <p className="mt-3 text-sm text-slate-500">{t("prospects.linked.contractEmpty")}</p>
           )}
           {canManage ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {showViewContracts ? (
-                <Button size="sm" variant="secondary" onClick={onViewContracts}>
+                <Button size="xs" variant="secondary" onClick={onViewContracts}>
                   {t("prospects.viewSentContracts")}
                 </Button>
               ) : null}
               {onSendContract ? (
-                <Button size="sm" onClick={onSendContract}>
+                <Button size="xs" onClick={onSendContract}>
                   {envelopes.length > 0 ? t("prospects.sendAnotherContract") : t("prospects.sendContract")}
                 </Button>
               ) : null}
             </div>
           ) : showViewContracts ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={onViewContracts}>
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <Button size="xs" variant="secondary" onClick={onViewContracts}>
                 {t("prospects.viewSentContracts")}
               </Button>
             </div>
@@ -246,44 +260,60 @@ export function ProspectLinkedResources({
             completed={paymentComplete}
             completedLabel={t("prospects.linked.stepCompleted")}
           />
-          {payment ? (
+          {displayPayment ? (
             <div className="mt-3 space-y-2 text-sm">
               <p className="font-semibold text-slate-900">
-                {payment.currency} {Number(payment.amount).toFixed(2)}
+                {displayPayment.currency} {Number(displayPayment.amount).toFixed(2)}
               </p>
-              <p className="text-slate-600">{t(`payments.status.${payment.status}` as never)}</p>
-              {payment.paid_at ? (
-                <p className="text-slate-500">{formatDateTime(payment.paid_at, locale)}</p>
+              <p className="text-slate-600">{t(`payments.status.${displayPayment.status}` as never)}</p>
+              {displayPayment.paid_at ? (
+                <p className="text-slate-500">{formatDateTime(displayPayment.paid_at, locale)}</p>
+              ) : null}
+              {paymentLinks.length > 1 ? (
+                <p className="text-xs text-slate-500">
+                  {t("prospects.linked.morePayments", { count: paymentLinks.length - 1 })}
+                </p>
               ) : null}
               {clientView ? (
-                <Button size="sm" variant="secondary" onClick={() => void handleCopyPaymentLink()}>
+                <Button size="xs" variant="secondary" onClick={() => void handleCopyPaymentLink()}>
                   {paymentLinkCopied ? t("common.copied") : t("payments.list.copyLink")}
                 </Button>
-              ) : (
+              ) : displayPayment.status.toLowerCase() === "pending" ? (
                 <Link
-                  href={payment.payment_url}
+                  href={displayPayment.payment_url}
                   target="_blank"
                   className="text-sm font-medium text-brand hover:underline"
                 >
                   {t("payments.list.openLink")}
                 </Link>
-              )}
+              ) : null}
             </div>
           ) : (
             <p className="mt-3 text-sm text-slate-500">{t("prospects.linked.paymentEmpty")}</p>
           )}
           {canManage ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {showViewPayments ? (
+                <Button size="xs" variant="secondary" onClick={onViewPayments}>
+                  {t("prospects.viewSentPayments")}
+                </Button>
+              ) : null}
               {onCreatePayment ? (
-                <Button size="sm" onClick={onCreatePayment}>
-                  {t("prospects.createPaymentLink")}
+                <Button size="xs" onClick={onCreatePayment}>
+                  {createPaymentLabel}
                 </Button>
               ) : null}
               {onLinkPayment ? (
-                <Button size="sm" variant="secondary" onClick={onLinkPayment}>
+                <Button size="xs" variant="secondary" onClick={onLinkPayment}>
                   {t("prospects.linkExistingPayment")}
                 </Button>
               ) : null}
+            </div>
+          ) : showViewPayments ? (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <Button size="xs" variant="secondary" onClick={onViewPayments}>
+                {t("prospects.viewSentPayments")}
+              </Button>
             </div>
           ) : null}
         </Card>

@@ -9,6 +9,7 @@ import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { ProspectContractsModal } from "@/features/prospects/components/ProspectContractsModal";
 import { ProspectHistoryTimeline } from "@/features/prospects/components/ProspectHistoryTimeline";
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
+import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectPaymentsModal";
 import type { ProspectPipelineSummary, ProspectStatus } from "@/features/prospects/types";
 
 interface ClientSalesPipelineSectionProps {
@@ -20,11 +21,18 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
   const { t } = useTranslation();
   const { token } = useAuth();
   const [contractsOpen, setContractsOpen] = useState(false);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
   const { downloadSignedDocument, downloadSentDocument } = useDocusign(token, {
     listenRefresh: false,
     autoSync: false,
     loadEnvelopes: false,
   });
+
+  const paymentLinks = pipeline.payment_links?.length
+    ? pipeline.payment_links
+    : pipeline.payment_link
+      ? [pipeline.payment_link]
+      : [];
 
   async function handleViewSigned(envelopeId: number) {
     const blob = await downloadSignedDocument(envelopeId);
@@ -50,11 +58,13 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
         calendly={pipeline.calendly_event}
         envelopes={pipeline.docusign_envelopes}
         payment={pipeline.payment_link}
+        payments={paymentLinks}
         canManage={false}
         clientView
         onViewContracts={
           pipeline.docusign_envelopes.length > 0 ? () => setContractsOpen(true) : undefined
         }
+        onViewPayments={paymentLinks.length > 0 ? () => setPaymentsOpen(true) : undefined}
       />
 
       {pipeline.history.length > 0 ? (
@@ -73,6 +83,14 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
           onClose={() => setContractsOpen(false)}
           onViewSigned={(id) => void handleViewSigned(id)}
           onViewSent={(id) => void handleViewSent(id)}
+        />
+      ) : null}
+
+      {paymentsOpen ? (
+        <ProspectPaymentsModal
+          payments={paymentLinks}
+          locale={locale}
+          onClose={() => setPaymentsOpen(false)}
         />
       ) : null}
     </section>

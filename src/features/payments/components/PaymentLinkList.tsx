@@ -13,6 +13,7 @@ import { IconActionButton, TableActions } from "@/components/ui/IconActionButton
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentLink } from "@/features/payments/types";
 import { getProviderLabel } from "@/features/payments/utils/providers";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface PaymentLinkListProps {
   links: PaymentLink[];
@@ -49,7 +50,7 @@ export function PaymentLinkList({
   }
 
   async function copyLink(url: string) {
-    await navigator.clipboard.writeText(url);
+    await copyToClipboard(url);
   }
 
   return (

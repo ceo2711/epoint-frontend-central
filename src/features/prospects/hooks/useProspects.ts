@@ -93,6 +93,9 @@ function normalizeProspectDetail(data: ProspectDetail): ProspectDetail {
       data.docusign_envelopes ??
       (data.docusign_envelope ? [data.docusign_envelope] : []),
     payment_link: data.payment_link ?? null,
+    payment_links:
+      data.payment_links ??
+      (data.payment_link ? [data.payment_link] : []),
   };
 }
 

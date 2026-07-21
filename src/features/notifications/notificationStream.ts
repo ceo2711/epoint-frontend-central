@@ -108,7 +108,14 @@ export function connectNotificationStream(
       await readNotificationStream(response, handlers, signal);
     } catch (error) {
       if (signal.aborted) return;
-      if (!(error instanceof Error && error.message === "Notification stream failed")) {
+      // Fallos de red / backend caído: el provider reintenta; no spamear la consola.
+      const isExpectedNetworkFailure =
+        error instanceof TypeError ||
+        (error instanceof Error &&
+          (/failed to fetch|network error|load failed|fetch failed/i.test(error.message) ||
+            error.message === "Notification stream failed" ||
+            error.message === "Notification stream closed"));
+      if (!isExpectedNetworkFailure) {
         logClientError("notifications:stream", error, { baseUrl: API_URL });
       }
       handlers.onError?.(error);

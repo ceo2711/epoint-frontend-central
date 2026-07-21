@@ -33,6 +33,13 @@ export interface ProjectionPoint {
   projected: number;
 }
 
+export interface CommissionDayPoint {
+  date: string;
+  daily_paid: number;
+  daily_commission: number;
+  cumulative_commission: number;
+}
+
 export interface AreaMetrics {
   code: string;
   name: string;
@@ -43,6 +50,12 @@ export interface AreaMetrics {
   conversion_rate: number | null;
   by_status: StatusCount[];
   by_source?: SourceCount[];
+  /** Comisión del mes (solo panel personal del vendedor). */
+  monthly_paid_total?: number | null;
+  monthly_commission?: number | null;
+  commission_rate?: number | null;
+  monthly_paid_count?: number | null;
+  commission_series?: CommissionDayPoint[];
 }
 
 export interface DashboardMetrics {

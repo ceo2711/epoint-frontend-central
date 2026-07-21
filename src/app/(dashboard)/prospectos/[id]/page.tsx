@@ -1,6 +1,7 @@
 "use client";
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { copyToClipboard } from "@/lib/clipboard";
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +29,7 @@ import { ProspectContractsModal } from "@/features/prospects/components/Prospect
 import { ProspectExistingPaymentModal } from "@/features/prospects/components/ProspectExistingResourceModals";
 import { ProspectHistoryTimeline } from "@/features/prospects/components/ProspectHistoryTimeline";
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
+import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectPaymentsModal";
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
@@ -95,6 +97,7 @@ export default function ProspectoDetailPage() {
   const [calendlyOpen, setCalendlyOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [contractsListOpen, setContractsListOpen] = useState(false);
+  const [paymentsListOpen, setPaymentsListOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -137,9 +140,14 @@ export default function ProspectoDetailPage() {
 
   const waitingForPayment = useMemo(() => {
     if (!prospect || prospect.converted_client_id) return false;
-    const payment = prospect.payment_link;
-    if (!payment) return false;
-    return payment.status.toLowerCase() !== "paid";
+    const payments = prospect.payment_links?.length
+      ? prospect.payment_links
+      : prospect.payment_link
+        ? [prospect.payment_link]
+        : [];
+    if (payments.length === 0) return false;
+    if (payments.some((item) => item.status.toLowerCase() === "paid")) return false;
+    return payments.some((item) => item.status.toLowerCase() === "pending");
   }, [prospect]);
 
   const pipelineComplete = useMemo(() => {
@@ -149,6 +157,7 @@ export default function ProspectoDetailPage() {
       prospect.status,
       prospect.docusign_envelopes,
       prospect.payment_link,
+      prospect.payment_links ?? [],
     );
   }, [prospect]);
 
@@ -404,6 +413,21 @@ export default function ProspectoDetailPage() {
     setContractOpen(true);
   }
 
+  async function handleCreatePaymentClick() {
+    if (!prospect) return;
+    const existingCount = prospect.payment_links?.length || (prospect.payment_link ? 1 : 0);
+    if (existingCount > 0) {
+      const confirmed = await modal.confirm({
+        title: t("prospects.createAnotherPaymentTitle"),
+        message: t("prospects.createAnotherPaymentConfirm", { name: prospect.full_name }),
+        confirmLabel: t("prospects.createAnotherPaymentLink"),
+        cancelLabel: t("common.cancel"),
+      });
+      if (!confirmed) return;
+    }
+    setPaymentOpen(true);
+  }
+
   async function handleLinkPayment(paymentLinkId: number) {
     if (!token || !prospect) return;
     await api.post(`/prospects/${prospect.id}/link-payment`, { payment_link_id: paymentLinkId }, token);
@@ -452,7 +476,7 @@ export default function ProspectoDetailPage() {
       const result = await createLink(payload);
       setPaymentOpen(false);
       await reload({ silent: true });
-      await navigator.clipboard.writeText(result.link.payment_url);
+      await copyToClipboard(result.link.payment_url);
       await modal.alert({
         title: result.email_sent
           ? t("payments.createSuccessEmailTitle")
@@ -733,6 +757,7 @@ export default function ProspectoDetailPage() {
             calendly={prospect.calendly_event}
             envelopes={prospect.docusign_envelopes}
             payment={prospect.payment_link}
+            payments={prospect.payment_links ?? []}
             canManage={canUpdate}
             canMarkContacted={canMarkContacted}
             onMarkContacted={() => void handleMarkContacted()}
@@ -741,7 +766,12 @@ export default function ProspectoDetailPage() {
             onViewContracts={
               prospect.docusign_envelopes.length > 0 ? () => setContractsListOpen(true) : undefined
             }
-            onCreatePayment={showPaymentAction ? () => setPaymentOpen(true) : undefined}
+            onViewPayments={
+              (prospect.payment_links?.length ?? 0) > 0 || prospect.payment_link
+                ? () => setPaymentsListOpen(true)
+                : undefined
+            }
+            onCreatePayment={showPaymentAction ? () => void handleCreatePaymentClick() : undefined}
             onLinkPayment={() => setPaymentPickerOpen(true)}
           />
         ) : null}
@@ -883,6 +913,20 @@ export default function ProspectoDetailPage() {
           onClose={() => setContractsListOpen(false)}
           onViewSigned={(id) => void handleViewSigned(id)}
           onViewSent={(id) => void handleViewSent(id)}
+        />
+      ) : null}
+
+      {paymentsListOpen ? (
+        <ProspectPaymentsModal
+          payments={
+            prospect.payment_links?.length
+              ? prospect.payment_links
+              : prospect.payment_link
+                ? [prospect.payment_link]
+                : []
+          }
+          locale={locale}
+          onClose={() => setPaymentsListOpen(false)}
         />
       ) : null}
 

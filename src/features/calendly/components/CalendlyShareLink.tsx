@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { CalendlyEventType } from "@/features/calendly/types";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface CalendlyShareLinkProps {
   eventTypes: CalendlyEventType[];
@@ -20,7 +21,8 @@ export function CalendlyShareLink({ eventTypes, profileUrl, loading = false }: C
   const shareableTypes = eventTypes.filter((type) => type.scheduling_url);
 
   async function handleCopy(url: string, uri: string) {
-    await navigator.clipboard.writeText(url);
+    const ok = await copyToClipboard(url);
+    if (!ok) return;
     setCopiedUri(uri);
     window.setTimeout(() => setCopiedUri(null), 2000);
   }

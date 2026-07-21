@@ -257,6 +257,16 @@ body {
   border-radius: 0.625rem;
 }
 
+.btn-xs {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 550;
+  gap: 0.25rem;
+  box-shadow: none;
+}
+
 .btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 0.9375rem;
