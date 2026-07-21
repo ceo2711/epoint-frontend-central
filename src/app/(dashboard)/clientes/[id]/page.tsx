@@ -40,6 +40,7 @@ import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/doc
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
+import { isSedeAdmin } from "@/lib/roles";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 function buildClientForm(client: Client) {
@@ -251,7 +252,7 @@ export default function ClienteDetailPage() {
   const showAdvisorContact =
     !!client?.advisor &&
     !canManageAdvisor &&
-    (user?.role.code === "SALES_REP" || user?.role.code === "ADMIN");
+    (user?.role.code === "SALES_REP" || isSedeAdmin(user?.role.code));
 
   const sourceLabel =
     client?.source && client.source in CLIENT_SOURCE_LABEL_KEYS
@@ -625,7 +626,7 @@ export default function ClienteDetailPage() {
               onUploaded={() => void refreshDocuments()}
               onViewDocument={setViewingDoc}
               onDownloadDocument={
-                user?.role.code === "ADMIN" ? handleDownloadDocument : undefined
+                isSedeAdmin(user?.role.code) ? handleDownloadDocument : undefined
               }
             />
           </Card>

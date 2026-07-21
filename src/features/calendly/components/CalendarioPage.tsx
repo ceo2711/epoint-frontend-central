@@ -8,7 +8,7 @@ import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -23,12 +23,18 @@ import { SalesRepList } from "@/features/calendly/components/SalesRepList";
 import { CALENDLY_WRITE_ENABLED } from "@/features/calendly/config";
 import { useCalendly } from "@/features/calendly/hooks/useCalendly";
 import { onCalendlyRefresh } from "@/lib/calendlyEvents";
-import { ApiError } from "@/lib/api";
+import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
+import { useSedes } from "@/features/sedes/hooks/useSedes";
+import {
+  buildSedeBranchesFromReps,
+  filterRepsBySede,
+} from "@/features/sedes/utils/sedeBranches";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { CalendlyEvent } from "@/features/calendly/types";
 import { api } from "@/lib/api";
+import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
 
-const CALENDAR_ROLES = new Set(["ADMIN", "SALES_REP"]);
+const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
 
 type EventFormState =
   | { mode: "create"; initialDate?: Date }
@@ -39,8 +45,10 @@ export function CalendarioPage() {
   const modal = useModal();
   const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
-  const isAdmin = user?.role.code === "ADMIN";
+  const isAdmin = isSedeAdmin(user?.role.code);
+  const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
+  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendlyEvent | null>(null);
   const [linkProspectEvent, setLinkProspectEvent] = useState<CalendlyEvent | null>(null);
@@ -81,6 +89,33 @@ export function CalendarioPage() {
     enabled: !isAdmin || selectedRepId !== null,
   });
 
+  const { sedes, loading: loadingSedes } = useSedes(
+    token,
+    isGlobal && hasPermission("sedes:read"),
+    t("sedes.loadError"),
+    "",
+    false,
+  );
+
+  const branches = useMemo(
+    () =>
+      buildSedeBranchesFromReps(salesReps, sedes, {
+        includeAllSedes: isGlobal,
+        fallbackName: t("users.sede"),
+      }),
+    [salesReps, sedes, isGlobal, t],
+  );
+
+  const repsForSelectedSede = useMemo(
+    () =>
+      filterRepsBySede(salesReps, selectedSedeId, {
+        filterBySede: isGlobal,
+      }),
+    [salesReps, selectedSedeId, isGlobal],
+  );
+
+  const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
+
   const selectedRep = useMemo(
     () => salesReps.find((rep) => rep.id === selectedRepId) ?? null,
     [salesReps, selectedRepId],
@@ -112,6 +147,13 @@ export function CalendarioPage() {
     }
   }, [formState, isSalesRep, loadEventTypes]);
 
+  function handleSelectSede(id: number) {
+    setSelectedSedeId(id);
+    setSelectedRepId(null);
+    setSelectedEvent(null);
+    setFormState(null);
+  }
+
   function handleSelectRep(id: number) {
     setSelectedRepId(id);
     setSelectedEvent(null);
@@ -119,6 +161,13 @@ export function CalendarioPage() {
   }
 
   function handleBackToRepList() {
+    setSelectedRepId(null);
+    setSelectedEvent(null);
+    setFormState(null);
+  }
+
+  function handleBackToSedes() {
+    setSelectedSedeId(null);
     setSelectedRepId(null);
     setSelectedEvent(null);
     setFormState(null);
@@ -245,20 +294,52 @@ export function CalendarioPage() {
   return (
     <>
       <Header
-        title={t("calendly.headerContext")}
-        subtitle={t(isAdmin ? "calendly.adminSubtitle" : "calendly.salesSubtitle")}
+        title={t(isAdmin ? "calendly.adminHeaderContext" : "calendly.headerContext")}
+        subtitle={t(
+          isAdmin
+            ? isGlobal
+              ? "calendly.adminSubtitleSedes"
+              : "calendly.adminSubtitle"
+            : "calendly.salesSubtitle",
+        )}
       />
+      {isAdmin && !adminViewingRep && (loadingReps || (isGlobal && loadingSedes)) ? (
+        <PageLoader label={t("calendly.loading")} />
+      ) : (
       <PageContent className="space-y-6">
         {error && <div className="alert alert-error">{error}</div>}
 
         {isAdmin && !adminViewingRep && (
           <>
-            {loadingReps ? (
-              <div className="flex justify-center py-12">
-                <LoadingSpinner label={t("calendly.loading")} />
-              </div>
+            {isGlobal && selectedSedeId === null ? (
+              <SedeBranchList
+                branches={branches}
+                onSelect={handleSelectSede}
+                titleKey="calendly.adminSedesTitle"
+                hintKey="calendly.adminSedesSubtitle"
+                emptyKey="calendly.adminSedesEmpty"
+                countLabelKey="calendly.adminSedeRepCount"
+              />
             ) : (
-              <SalesRepList reps={salesReps} onSelect={handleSelectRep} />
+              <>
+                {isGlobal ? (
+                  <button
+                    type="button"
+                    onClick={handleBackToSedes}
+                    className="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-800"
+                  >
+                    <VscArrowLeft className="h-4 w-4" aria-hidden />
+                    {t("calendly.backToSedes")}
+                  </button>
+                ) : null}
+                {selectedSede ? (
+                  <div className="card-flat mb-2 p-4 sm:p-5">
+                    <h2 className="text-lg font-semibold text-slate-900">{selectedSede.name}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{t("calendly.salesRepsHint")}</p>
+                  </div>
+                ) : null}
+                <SalesRepList reps={repsForSelectedSede} onSelect={handleSelectRep} />
+              </>
             )}
           </>
         )}
@@ -298,6 +379,7 @@ export function CalendarioPage() {
 
         {isSalesRep && <div className="space-y-6">{calendarContent}</div>}
       </PageContent>
+      )}
 
       {selectedEvent && (
         <CalendlyEventModal

@@ -13,6 +13,7 @@ import type { Prospect } from "@/features/prospects/types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { isSedeAdmin } from "@/lib/roles";
 
 interface ProspectListProps {
   prospects: Prospect[];
@@ -26,7 +27,7 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
   const { token, user } = useAuth();
   const [emailTarget, setEmailTarget] = useState<Prospect | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const isAdmin = user?.role.code === "ADMIN";
+  const isAdmin = isSedeAdmin(user?.role.code);
 
   async function handleDelete(prospect: Prospect) {
     if (!token || deletingId !== null) return;

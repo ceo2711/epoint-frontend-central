@@ -14,7 +14,9 @@ interface UseProspectsOptions {
   search?: string;
   statusFilter?: string;
   salesRepId?: number | null;
+  sedeId?: number | null;
   allMerchants?: boolean;
+  enabled?: boolean;
 }
 
 export function useProspects(
@@ -28,7 +30,9 @@ export function useProspects(
     search = "",
     statusFilter,
     salesRepId,
+    sedeId,
     allMerchants = false,
+    enabled = true,
   } = options;
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [total, setTotal] = useState(0);
@@ -37,8 +41,10 @@ export function useProspects(
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!token) {
+    if (!token || !enabled) {
       setProspects([]);
+      setTotal(0);
+      setPages(1);
       setLoading(false);
       return;
     }
@@ -51,6 +57,7 @@ export function useProspects(
       if (search) params.set("search", search);
       if (statusFilter) params.set("status_filter", statusFilter);
       if (salesRepId) params.set("sales_rep_id", String(salesRepId));
+      if (sedeId != null) params.set("sede_id", String(sedeId));
       if (allMerchants) params.set("all_merchants", "true");
       const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
       setProspects(data.items);
@@ -62,7 +69,7 @@ export function useProspects(
     } finally {
       setLoading(false);
     }
-  }, [token, page, pageSize, search, statusFilter, salesRepId, allMerchants]);
+  }, [token, enabled, page, pageSize, search, statusFilter, salesRepId, sedeId, allMerchants]);
 
   useEffect(() => {
     if (authLoading) return;

@@ -2,13 +2,13 @@
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -21,14 +21,21 @@ import { RegisterClientFromPaymentModal } from "@/features/payments/components/R
 import { usePayments } from "@/features/payments/hooks/usePayments";
 import { PROSPECT_SEARCH_LIMIT } from "@/features/prospects/components/ProspectSearchSelect";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
+import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
+import { useSedes } from "@/features/sedes/hooks/useSedes";
+import {
+  buildSedeBranchesFromReps,
+  filterRepsBySede,
+} from "@/features/sedes/utils/sedeBranches";
 import type { Prospect } from "@/features/prospects/types";
 import type { PaymentLink, PaymentLinkCreatePayload } from "@/features/payments/types";
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
+import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
 
-const PAYMENT_ROLES = new Set(["ADMIN", "SALES_REP"]);
+const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
 
 export function PagosPage() {
   const router = useRouter();
@@ -39,11 +46,13 @@ export function PagosPage() {
   const [registerLink, setRegisterLink] = useState<PaymentLink | null>(null);
   const [linkPayment, setLinkPayment] = useState<PaymentLink | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const isAdmin = user?.role.code === "ADMIN";
+  const isAdmin = isSedeAdmin(user?.role.code);
+  const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
   const canLinkProspect = hasPermission("prospects:update");
   const canSearchProspects = hasPermission("prospects:read");
@@ -64,6 +73,13 @@ export function PagosPage() {
   });
 
   const { merchants, loading: merchantsLoading } = useMerchantOptions(token, isSalesRep);
+  const { sedes, loading: loadingSedes } = useSedes(
+    token,
+    isGlobal && hasPermission("sedes:read"),
+    t("sedes.loadError"),
+    "",
+    false,
+  );
 
   useEffect(() => {
     if (user && !PAYMENT_ROLES.has(user.role.code)) {
@@ -80,18 +96,51 @@ export function PagosPage() {
       .finally(() => setLoadingReps(false));
   }, [token, isAdmin]);
 
+  const branches = useMemo(
+    () =>
+      buildSedeBranchesFromReps(salesReps, sedes, {
+        includeAllSedes: isGlobal,
+        fallbackName: t("users.sede"),
+      }),
+    [salesReps, sedes, isGlobal, t],
+  );
+
+  const repsForSelectedSede = useMemo(
+    () =>
+      filterRepsBySede(salesReps, selectedSedeId, {
+        filterBySede: isGlobal,
+      }),
+    [salesReps, selectedSedeId, isGlobal],
+  );
+
+  const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
+
   if (!user || !PAYMENT_ROLES.has(user.role.code)) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
   const selectedRepName = selectedRep
     ? `${selectedRep.first_name} ${selectedRep.last_name}`
     : t("common.dash");
+  const adminLoading = loadingReps || (isGlobal && loadingSedes);
+  const pageLoading = isAdmin ? adminLoading : loading;
+
+  function handleSelectSede(id: number) {
+    setSelectedSedeId(id);
+    setSelectedRepId(null);
+  }
+
+  function handleBackFromReps() {
+    setSelectedRepId(null);
+    if (isGlobal) {
+      setSelectedSedeId(null);
+    }
+  }
+
+  function handleBackFromLinks() {
+    setSelectedRepId(null);
+  }
 
   async function searchProspects(query: string) {
     if (!token || !canSearchProspects) return { items: [], total: 0 };
@@ -193,102 +242,141 @@ export function PagosPage() {
     }
   }
 
-  const pageSubtitle = isAdmin ? t("payments.adminPageSubtitle") : t("payments.subtitle");
+  const pageSubtitle = isAdmin
+    ? isGlobal
+      ? t("payments.adminPageSubtitleSedes")
+      : t("payments.adminPageSubtitle")
+    : t("payments.subtitle");
 
-  return (
-    <>
-      <Header title={t("payments.headerContext")} subtitle={pageSubtitle} />
-      <PageContent className="space-y-6">
-        {error ? (
-          <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>
-        ) : null}
+  function renderAdminContent() {
+    // ADMIN global: primero sedes
+    if (isGlobal && selectedSedeId === null) {
+      return (
+        <SedeBranchList
+          branches={branches}
+          onSelect={handleSelectSede}
+          titleKey="payments.adminSedesTitle"
+          hintKey="payments.adminSedesSubtitle"
+          emptyKey="payments.adminSedesEmpty"
+          countLabelKey="payments.adminSedeRepCount"
+        />
+      );
+    }
 
-        {isAdmin ? (
-          selectedRepId === null ? (
-            loadingReps ? (
-              <div className="flex justify-center py-16">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <SalesRepList
-                reps={salesReps}
-                onSelect={setSelectedRepId}
-                titleKey="payments.adminRepsTitle"
-                hintKey="payments.adminRepsSubtitle"
-                showConnectionStatus={false}
-              />
-            )
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setSelectedRepId(null)}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-              >
-                <VscArrowLeft className="h-4 w-4" aria-hidden />
-                {t("payments.backToSalesReps")}
-              </button>
+    // Lista de vendedores (sede seleccionada o gerente de sucursal)
+    if (selectedRepId === null) {
+      return (
+        <>
+          {isGlobal ? (
+            <button
+              type="button"
+              onClick={handleBackFromReps}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+            >
+              <VscArrowLeft className="h-4 w-4" aria-hidden />
+              {t("payments.backToSedes")}
+            </button>
+          ) : null}
+          {selectedSede ? (
+            <div className="card-flat mb-4 p-5">
+              <h2 className="text-lg font-semibold text-slate-900">{selectedSede.name}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t("payments.adminRepsSubtitle")}</p>
+            </div>
+          ) : null}
+          <SalesRepList
+            reps={repsForSelectedSede}
+            onSelect={setSelectedRepId}
+            titleKey="payments.adminRepsTitle"
+            hintKey="payments.adminRepsSubtitle"
+            showConnectionStatus={false}
+          />
+        </>
+      );
+    }
 
-              <div className="card-flat p-5">
-                <h2 className="text-lg font-semibold text-slate-900">{selectedRepName}</h2>
-                <p className="mt-1 text-sm text-slate-500">{t("payments.adminRepLinksHint")}</p>
-              </div>
+    return (
+      <>
+        <button
+          type="button"
+          onClick={handleBackFromLinks}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          <VscArrowLeft className="h-4 w-4" aria-hidden />
+          {t("payments.backToSalesReps")}
+        </button>
 
-              {loadingLinks ? (
-                <div className="flex justify-center py-16">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-                  <h2 className="text-lg font-semibold">
-                    {t("payments.list.titleForRep", { name: selectedRepName })}
-                  </h2>
-                  <div className="mt-4">
-                    <PaymentLinkList
-                      links={links}
-                      onCancel={handleCancel}
-                      onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
-                      cancellingId={cancellingId}
-                    />
-                  </div>
-                </section>
-              )}
-            </>
-          )
-        ) : loading ? (
-          <div className="flex justify-center py-12">
+        <div className="card-flat p-5">
+          <h2 className="text-lg font-semibold text-slate-900">{selectedRepName}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t("payments.adminRepLinksHint")}</p>
+        </div>
+
+        {loadingLinks ? (
+          <div className="flex justify-center py-16">
             <LoadingSpinner />
           </div>
         ) : (
-          <div className="space-y-6">
-            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-              <h2 className="text-lg font-semibold">{t("payments.form.title")}</h2>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t("payments.form.subtitle")}</p>
-              <div className="mt-4">
-                <PaymentLinkForm
-                  config={config}
-                  submitting={isCreating}
-                  onSubmit={handleCreate}
-                  onSearchProspects={canSearchProspects ? searchProspects : undefined}
-                />
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-              <h2 className="text-lg font-semibold">{t("payments.list.title")}</h2>
-              <div className="mt-4">
-                <PaymentLinkList
-                  links={links}
-                  onCancel={handleCancel}
-                  onRegisterClient={setRegisterLink}
-                  onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
-                  cancellingId={cancellingId}
-                />
-              </div>
-            </section>
-          </div>
+          <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+            <h2 className="text-lg font-semibold">
+              {t("payments.list.titleForRep", { name: selectedRepName })}
+            </h2>
+            <div className="mt-4">
+              <PaymentLinkList
+                links={links}
+                onCancel={handleCancel}
+                onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
+                cancellingId={cancellingId}
+              />
+            </div>
+          </section>
         )}
-      </PageContent>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header title={t(isAdmin ? "payments.adminHeaderContext" : "payments.headerContext")} subtitle={pageSubtitle} />
+      {pageLoading ? (
+        <PageLoader label={t("common.loading")} />
+      ) : (
+        <PageContent className="space-y-6">
+          {error ? (
+            <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>
+          ) : null}
+
+          {isAdmin ? (
+            renderAdminContent()
+          ) : (
+            <div className="space-y-6">
+              <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                <h2 className="text-lg font-semibold">{t("payments.form.title")}</h2>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t("payments.form.subtitle")}</p>
+                <div className="mt-4">
+                  <PaymentLinkForm
+                    config={config}
+                    submitting={isCreating}
+                    onSubmit={handleCreate}
+                    onSearchProspects={canSearchProspects ? searchProspects : undefined}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+                <h2 className="text-lg font-semibold">{t("payments.list.title")}</h2>
+                <div className="mt-4">
+                  <PaymentLinkList
+                    links={links}
+                    onCancel={handleCancel}
+                    onRegisterClient={setRegisterLink}
+                    onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
+                    cancellingId={cancellingId}
+                  />
+                </div>
+              </section>
+            </div>
+          )}
+        </PageContent>
+      )}
 
       {isSalesRep ? (
         <RegisterClientFromPaymentModal

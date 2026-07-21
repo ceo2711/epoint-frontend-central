@@ -183,6 +183,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (permission: string) => {
       if (!user) return false;
       if (user.role.code === "ADMIN") return true;
+      if (user.role.code === "BRANCH_MANAGER") {
+        if (permission.startsWith("sedes:") || permission.startsWith("merchants:")) {
+          return false;
+        }
+        return true;
+      }
       return user.permissions?.includes(permission) ?? false;
     },
     [user],

@@ -10,12 +10,15 @@ import { Select } from "@/components/ui/Select";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Area } from "@/features/areas/types";
 import type { Role } from "@/features/roles/types";
-import type { UserFormData } from "@/features/users/types";
+import type { Sede } from "@/features/sedes/types";
+import { SEDE_REQUIRED_ROLE_CODES, type UserFormData } from "@/features/users/types";
 
 interface UserFormProps {
   form: UserFormData;
   roles: Role[];
   areas: Area[];
+  sedes: Sede[];
+  showSedeSelect: boolean;
   onChange: (form: UserFormData) => void;
   onSubmit: (e: FormEvent) => void;
   submitting: boolean;
@@ -28,6 +31,8 @@ export function UserForm({
   form,
   roles,
   areas,
+  sedes,
+  showSedeSelect,
   onChange,
   onSubmit,
   submitting,
@@ -37,6 +42,9 @@ export function UserForm({
 }: UserFormProps) {
   const { t } = useTranslation();
   const internalRoles = roles.filter((r) => r.code !== "CLIENT");
+  const selectedRole = internalRoles.find((r) => String(r.id) === form.role_id);
+  const sedeRequired =
+    !!selectedRole && SEDE_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]);
 
   const formContent = (
       <form id={formId} onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
@@ -110,6 +118,21 @@ export function UserForm({
             </option>
           ))}
         </Select>
+        {showSedeSelect && sedeRequired ? (
+          <Select
+            label={t("users.sede")}
+            required
+            value={form.sede_id}
+            onChange={(e) => onChange({ ...form, sede_id: e.target.value })}
+          >
+            <option value="">{t("users.selectSede")}</option>
+            {sedes.filter((s) => s.is_active).map((sede) => (
+              <option key={sede.id} value={sede.id}>
+                {sede.name}
+              </option>
+            ))}
+          </Select>
+        ) : null}
         {isEdit && (
           <Select
             label={t("common.status")}

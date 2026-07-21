@@ -13,7 +13,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { useModalOverlayOpen } from "@/lib/modalOverlay";
 
-const BOARD_UPLOAD_ROLES = new Set(["ADMIN", "ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_UPLOAD_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER", "ADVISOR"]);
 
 function MessageIcon({ className }: { className?: string }) {
   return (

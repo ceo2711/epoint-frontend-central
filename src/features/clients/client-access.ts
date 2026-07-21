@@ -1,3 +1,4 @@
+import { isSedeAdmin } from "@/lib/roles";
 import type { Client, User } from "@/types/api";
 
 const SALES_REP_EDITABLE_STATUSES = ["PENDIENTE_DE_REVISION", "RECHAZADO"] as const;
@@ -9,7 +10,7 @@ export function canViewClientOnboardingWorkspace(
 ): boolean {
   if (!user) return false;
   const role = user.role.code;
-  if (role === "ADMIN" || role === "ONBOARDING_MANAGER") return true;
+  if (isSedeAdmin(role) || role === "ONBOARDING_MANAGER") return true;
   if (role === "ADVISOR") return true;
   return false;
 }
@@ -30,7 +31,7 @@ export function canEditClientProfile(
 ): boolean {
   if (!hasUpdatePermission || !client || !user) return false;
   const role = user.role.code;
-  if (role === "ONBOARDING_MANAGER" || role === "ADMIN") return true;
+  if (role === "ONBOARDING_MANAGER" || isSedeAdmin(role)) return true;
   return SALES_REP_EDITABLE_STATUSES.includes(
     client.status as (typeof SALES_REP_EDITABLE_STATUSES)[number],
   );

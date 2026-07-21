@@ -16,6 +16,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { isSedeAdmin } from "@/lib/roles";
 import type { TotpSetupResponse, User } from "@/types/api";
 
 function profileFromUser(user: User) {
@@ -29,7 +30,7 @@ function profileFromUser(user: User) {
 export function AccountSettingsPage() {
   const { user, token, refreshUser } = useAuth();
   const { t } = useTranslation();
-  const canEditProfile = user?.role.code === "ADMIN";
+  const canEditProfile = isSedeAdmin(user?.role.code);
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
   const [setupData, setSetupData] = useState<TotpSetupResponse | null>(null);

@@ -2,7 +2,8 @@
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -16,20 +17,29 @@ import { MerchantsTable } from "@/features/merchants/components/MerchantsTable";
 import { useMerchants } from "@/features/merchants/hooks/useMerchants";
 import type { Merchant } from "@/features/merchants/types";
 import { api } from "@/lib/api";
+import { canManageMerchants } from "@/lib/roles";
 
 export default function MerchantsPage() {
-  const { token, hasPermission, refreshUser } = useAuth();
+  const router = useRouter();
+  const { token, hasPermission, refreshUser, user } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
+  const canAccess = canManageMerchants(user?.role.code);
   const { merchants, loading, error, reload } = useMerchants(
     token,
-    hasPermission("merchants:create"),
+    canAccess && hasPermission("merchants:read"),
     t("merchants.loadError"),
     t("merchants.noPermission"),
     true,
   );
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Merchant | null>(null);
+
+  useEffect(() => {
+    if (user && !canAccess) {
+      router.replace("/dashboard");
+    }
+  }, [user, canAccess, router]);
 
   function openCreate() {
     setEditing(null);
@@ -109,6 +119,14 @@ export default function MerchantsPage() {
         variant: "error",
       });
     }
+  }
+
+  if (!canAccess) {
+    return (
+      <div className="flex justify-center py-16">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (

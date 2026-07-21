@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlineTrash } from "react-icons/hi2";
+import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -19,14 +20,23 @@ import { ClientList } from "@/features/clients/components/ClientList";
 import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { CLIENTS_PAGE_SIZE, useClients } from "@/features/clients/hooks/useClients";
+import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
+import { useSedes } from "@/features/sedes/hooks/useSedes";
+import {
+  buildSedeBranchesFromReps,
+  filterRepsBySede,
+} from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
+import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { merchants: workspaceMerchants, activeMerchantId } = useMerchant();
   const { t } = useTranslation();
   const roleCode = user?.role.code;
+  const sedeAdmin = isSedeAdmin(roleCode);
+  const isGlobal = isGlobalAdmin(roleCode);
   const clientsSubtitle =
     roleCode === "ADVISOR"
       ? t("clients.subtitleAdvisor")
@@ -38,23 +48,56 @@ export function ClientesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
   const [salesRepId, setSalesRepId] = useState<number | null>(null);
+  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
+  const [loadingReps, setLoadingReps] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
-  const showSalesRepFilter = roleCode === "ADMIN";
-  const showAdvisorColumn = roleCode === "SALES_REP" || roleCode === "ADMIN";
-  const canBulkDelete = roleCode === "ADMIN" && hasPermission("clients:delete");
+  const showSalesRepFilter = sedeAdmin;
+  const showAdvisorColumn = roleCode === "SALES_REP" || sedeAdmin;
+  const canBulkDelete = sedeAdmin && hasPermission("clients:delete");
+  const showSedePicker = isGlobal && selectedSedeId === null;
+  const listEnabled = !isGlobal || selectedSedeId != null;
+
+  const { sedes, loading: loadingSedes } = useSedes(
+    token,
+    isGlobal && hasPermission("sedes:read"),
+    t("sedes.loadError"),
+    "",
+    false,
+  );
 
   useEffect(() => {
     if (!token || !showSalesRepFilter) {
       setSalesReps([]);
       return;
     }
+    setLoadingReps(true);
     void fetchCalendlySalesReps(token)
       .then(setSalesReps)
-      .catch(() => setSalesReps([]));
+      .catch(() => setSalesReps([]))
+      .finally(() => setLoadingReps(false));
   }, [token, showSalesRepFilter]);
+
+  const branches = useMemo(
+    () =>
+      buildSedeBranchesFromReps(salesReps, sedes, {
+        includeAllSedes: isGlobal,
+        fallbackName: t("users.sede"),
+      }),
+    [salesReps, sedes, isGlobal, t],
+  );
+
+  const repsForSede = useMemo(
+    () =>
+      filterRepsBySede(salesReps, selectedSedeId, {
+        filterBySede: isGlobal,
+      }),
+    [salesReps, selectedSedeId, isGlobal],
+  );
+
+  const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -65,11 +108,15 @@ export function ClientesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, merchantFilter, salesRepId]);
+  }, [debouncedSearch, merchantFilter, salesRepId, selectedSedeId]);
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [page, debouncedSearch, merchantFilter, salesRepId]);
+  }, [page, debouncedSearch, merchantFilter, salesRepId, selectedSedeId]);
+
+  useEffect(() => {
+    setSalesRepId(null);
+  }, [selectedSedeId]);
 
   useEffect(() => {
     return onClientsRefresh((detail) => {
@@ -88,6 +135,8 @@ export function ClientesPage() {
     search: debouncedSearch,
     merchantFilter: showMerchantFilter ? merchantFilter : activeMerchantId ?? undefined,
     salesRepId: showSalesRepFilter ? salesRepId : null,
+    sedeId: isGlobal ? selectedSedeId : null,
+    enabled: listEnabled,
   });
   const { bulkDeleteClients } = useClientWorkflow(token);
 
@@ -123,66 +172,116 @@ export function ClientesPage() {
     document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function handleSelectSede(id: number) {
+    setSelectedSedeId(id);
+  }
+
+  function handleBackToSedes() {
+    setSelectedSedeId(null);
+    setSalesRepId(null);
+    setSearchInput("");
+    setMerchantFilter("all");
+  }
+
   const canRunReminders =
-    roleCode === "ADMIN" || roleCode === "ONBOARDING_MANAGER";
+    roleCode === "ADMIN" || roleCode === "BRANCH_MANAGER" || roleCode === "ONBOARDING_MANAGER";
+
+  const headerTitle = isGlobal ? t("clients.adminHeaderContext") : t("clients.headerContext");
+  const headerSubtitle = isGlobal ? t("clients.adminPageSubtitleSedes") : clientsSubtitle;
+  const adminLoading = isGlobal && (loadingReps || loadingSedes);
 
   return (
     <>
-      <Header title={t("clients.headerContext")} subtitle={clientsSubtitle} />
+      <Header title={headerTitle} subtitle={headerSubtitle} />
       <PageContent>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <ClientListFilters
-            search={searchInput}
-            merchantFilter={merchantFilter}
-            merchants={workspaceMerchants}
-            showMerchantFilter={showMerchantFilter}
-            salesRepId={salesRepId}
-            salesReps={salesReps}
-            showSalesRepFilter={showSalesRepFilter}
-            onSearchChange={setSearchInput}
-            onMerchantFilterChange={setMerchantFilter}
-            onSalesRepFilterChange={setSalesRepId}
-          />
-
-          {canRunReminders ? (
-            <div className="flex shrink-0 items-center gap-1.5 self-end">
-              <OnboardingRemindersButton token={token} />
-            </div>
-          ) : null}
-        </div>
-
-        {canBulkDelete && selectedIds.length > 0 ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3">
-            <p className="text-sm font-medium text-slate-700">
-              {t("clients.selectedCount", { count: selectedIds.length })}
-            </p>
-            <Button variant="danger" size="sm" onClick={() => void handleBulkDelete()}>
-              <HiOutlineTrash className="mr-1.5 inline h-4 w-4" />
-              {t("clients.bulkDelete")}
-            </Button>
-          </div>
-        ) : null}
-
-        {loading ? (
+        {adminLoading ? (
           <div className="flex justify-center py-12">
             <LoadingSpinner label={t("clients.loading")} />
           </div>
-        ) : (
-          <ClientList
-            clients={clients}
-            canBulkDelete={canBulkDelete}
-            selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAllOnPage}
-            showMerchantColumn={merchantFilter === "all"}
-            showSalesRepColumn={showSalesRepFilter}
-            showAdvisorColumn={showAdvisorColumn}
-            page={page}
-            pages={pages}
-            total={total}
-            pageSize={pageSize}
-            onPageChange={handlePageChange}
+        ) : showSedePicker ? (
+          <SedeBranchList
+            branches={branches}
+            onSelect={handleSelectSede}
+            titleKey="clients.adminSedesTitle"
+            hintKey="clients.adminSedesSubtitle"
+            emptyKey="clients.adminSedesEmpty"
+            countLabelKey="clients.adminSedeRepCount"
           />
+        ) : (
+          <>
+            {isGlobal ? (
+              <button
+                type="button"
+                onClick={handleBackToSedes}
+                className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              >
+                <VscArrowLeft className="h-4 w-4" aria-hidden />
+                {t("clients.backToSedes")}
+              </button>
+            ) : null}
+
+            {selectedSede ? (
+              <div className="card-flat mb-4 p-5">
+                <h2 className="text-lg font-semibold text-slate-900">{selectedSede.name}</h2>
+                <p className="mt-1 text-sm text-slate-500">{clientsSubtitle}</p>
+              </div>
+            ) : null}
+
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <ClientListFilters
+                search={searchInput}
+                merchantFilter={merchantFilter}
+                merchants={workspaceMerchants}
+                showMerchantFilter={showMerchantFilter}
+                salesRepId={salesRepId}
+                salesReps={repsForSede}
+                showSalesRepFilter={showSalesRepFilter}
+                onSearchChange={setSearchInput}
+                onMerchantFilterChange={setMerchantFilter}
+                onSalesRepFilterChange={setSalesRepId}
+              />
+
+              {canRunReminders ? (
+                <div className="flex shrink-0 items-center gap-1.5 self-end">
+                  <OnboardingRemindersButton token={token} />
+                </div>
+              ) : null}
+            </div>
+
+            {canBulkDelete && selectedIds.length > 0 ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3">
+                <p className="text-sm font-medium text-slate-700">
+                  {t("clients.selectedCount", { count: selectedIds.length })}
+                </p>
+                <Button variant="danger" size="sm" onClick={() => void handleBulkDelete()}>
+                  <HiOutlineTrash className="mr-1.5 inline h-4 w-4" />
+                  {t("clients.bulkDelete")}
+                </Button>
+              </div>
+            ) : null}
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner label={t("clients.loading")} />
+              </div>
+            ) : (
+              <ClientList
+                clients={clients}
+                canBulkDelete={canBulkDelete}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAllOnPage}
+                showMerchantColumn={merchantFilter === "all"}
+                showSalesRepColumn={showSalesRepFilter}
+                showAdvisorColumn={showAdvisorColumn}
+                page={page}
+                pages={pages}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
         )}
       </PageContent>
     </>

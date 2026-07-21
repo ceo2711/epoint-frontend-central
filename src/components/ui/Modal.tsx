@@ -41,6 +41,7 @@ export function ModalCloseButton({ onClick, className = "" }: ModalCloseButtonPr
 export interface ModalProps {
   title: ReactNode;
   subtitle?: ReactNode;
+  headerActions?: ReactNode;
   onClose?: () => void;
   children: ReactNode;
   footer?: ReactNode;
@@ -59,6 +60,7 @@ const sizeClass: Record<ModalSize, string> = {
 export function Modal({
   title,
   subtitle,
+  headerActions,
   onClose,
   children,
   footer,
@@ -94,7 +96,10 @@ export function Modal({
           <h2 className="modal-title">{title}</h2>
           {subtitle ? <p className="modal-subtitle">{subtitle}</p> : null}
         </div>
-        {canDismiss ? <ModalCloseButton onClick={onClose} /> : null}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {headerActions}
+          {canDismiss ? <ModalCloseButton onClick={onClose} /> : null}
+        </div>
       </div>
       <div className="modal-body">{children}</div>
       {footer ? <div className="modal-footer">{footer}</div> : null}

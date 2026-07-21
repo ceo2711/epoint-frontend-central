@@ -22,6 +22,8 @@ export function useClients(
     search?: string;
     merchantFilter?: ClientMerchantFilter;
     salesRepId?: number | null;
+    sedeId?: number | null;
+    enabled?: boolean;
   },
 ) {
   const queryClient = useQueryClient();
@@ -31,9 +33,19 @@ export function useClients(
   const search = options?.search?.trim() ?? "";
   const merchantFilter = options?.merchantFilter;
   const salesRepId = options?.salesRepId ?? null;
+  const sedeId = options?.sedeId ?? null;
+  const enabled = options?.enabled ?? true;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: queryKeys.clients.list(onboardingOnly, page, pageSize, search, merchantFilter, salesRepId),
+    queryKey: queryKeys.clients.list(
+      onboardingOnly,
+      page,
+      pageSize,
+      search,
+      merchantFilter,
+      salesRepId,
+      sedeId,
+    ),
     queryFn: async () =>
       fetchClientsList(token!, {
         onboardingOnly,
@@ -42,8 +54,9 @@ export function useClients(
         search,
         merchantFilter,
         salesRepId,
+        sedeId,
       }),
-    enabled: !authLoading && !!token,
+    enabled: !authLoading && !!token && enabled,
   });
 
   useEffect(() => {
@@ -56,7 +69,7 @@ export function useClients(
 
   const load = useCallback(
     async (loadOptions?: { bustCache?: boolean }) => {
-      if (authLoading || !token) return;
+      if (authLoading || !token || !enabled) return;
       if (loadOptions?.bustCache) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.clients.list(
@@ -66,6 +79,7 @@ export function useClients(
             search,
             merchantFilter,
             salesRepId,
+            sedeId,
           ),
         });
       }
@@ -80,6 +94,7 @@ export function useClients(
     [
       authLoading,
       token,
+      enabled,
       queryClient,
       onboardingOnly,
       page,
@@ -87,6 +102,7 @@ export function useClients(
       search,
       merchantFilter,
       salesRepId,
+      sedeId,
       refetch,
     ],
   );

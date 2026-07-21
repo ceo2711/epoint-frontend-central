@@ -1,7 +1,19 @@
 export const queryKeys = {
   dashboard: {
-    metrics: (merchantId?: number | null, roleCode?: string | null) =>
-      ["dashboard", "metrics", { merchantId: merchantId ?? null, roleCode: roleCode ?? null }] as const,
+    metrics: (
+      merchantId?: number | null,
+      roleCode?: string | null,
+      sedeId?: number | null,
+    ) =>
+      [
+        "dashboard",
+        "metrics",
+        {
+          merchantId: merchantId ?? null,
+          roleCode: roleCode ?? null,
+          sedeId: sedeId ?? null,
+        },
+      ] as const,
   },
   clients: {
     all: ["clients"] as const,
@@ -12,6 +24,7 @@ export const queryKeys = {
       search?: string,
       merchantFilter?: "all" | number,
       salesRepId?: number | null,
+      sedeId?: number | null,
     ) =>
       [
         "clients",
@@ -23,6 +36,7 @@ export const queryKeys = {
           search: search?.trim() || "",
           merchantFilter: merchantFilter ?? "active",
           salesRepId: salesRepId ?? null,
+          sedeId: sedeId ?? null,
         },
       ] as const,
     detail: (id: number) => ["clients", "detail", id] as const,
@@ -32,13 +46,26 @@ export const queryKeys = {
   },
   users: {
     all: ["users"] as const,
-    list: ["users", "list"] as const,
+    list: (filters?: { search?: string; sedeId?: number | null }) =>
+      [
+        "users",
+        "list",
+        {
+          search: filters?.search ?? "",
+          sedeId: filters?.sedeId ?? null,
+        },
+      ] as const,
   },
   merchants: {
     all: ["merchants"] as const,
     list: (includeInactive?: boolean) =>
       ["merchants", "list", { includeInactive: !!includeInactive }] as const,
     options: ["merchants", "options"] as const,
+  },
+  sedes: {
+    all: ["sedes"] as const,
+    list: (includeInactive?: boolean) =>
+      ["sedes", "list", { includeInactive: !!includeInactive }] as const,
   },
   areas: {
     list: ["areas", "list"] as const,

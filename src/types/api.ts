@@ -10,6 +10,12 @@ export interface AreaBrief {
   name: string;
 }
 
+export interface SedeBrief {
+  id: number;
+  code: string;
+  name: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -18,6 +24,8 @@ export interface User {
   phone: string | null;
   role: RoleBrief;
   area: AreaBrief | null;
+  sede_id?: number | null;
+  sede?: SedeBrief | null;
   must_change_password: boolean;
   totp_enabled: boolean;
   is_active: boolean;
@@ -91,12 +99,24 @@ export interface Merchant {
   description: string | null;
   is_active: boolean;
   created_at: string;
+  sede_id: number;
+}
+
+export interface Sede {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  avatar_url?: string | null;
 }
 
 export interface MerchantBrief {
   id: number;
   code: string;
   name: string;
+  sede_id?: number | null;
 }
 
 export interface AdvisorBrief {

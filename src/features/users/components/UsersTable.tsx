@@ -3,7 +3,6 @@
 import { HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
 
 import { ActiveBadge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -14,6 +13,7 @@ interface UsersTableProps {
   currentUserId?: number;
   canUpdate: boolean;
   canDelete: boolean;
+  onSelect: (user: User) => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
 }
@@ -23,6 +23,7 @@ export function UsersTable({
   currentUserId,
   canUpdate,
   canDelete,
+  onSelect,
   onEdit,
   onDeactivate,
 }: UsersTableProps) {
@@ -39,7 +40,10 @@ export function UsersTable({
           <IconActionButton
             label={t("common.edit")}
             icon={<HiOutlinePencilSquare />}
-            onClick={() => onEdit(user)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(user);
+            }}
           />
         ) : null}
         {canDelete ? (
@@ -47,7 +51,10 @@ export function UsersTable({
             label={t("users.deactivate")}
             icon={<HiOutlineNoSymbol />}
             variant="danger"
-            onClick={() => onDeactivate(user)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeactivate(user);
+            }}
           />
         ) : null}
       </TableActions>
@@ -74,18 +81,33 @@ export function UsersTable({
     <>
       <div className="space-y-3 md:hidden">
         {users.map((user) => (
-          <Card key={user.id} className="p-4">
+          <div
+            key={user.id}
+            className="card-flat cursor-pointer p-4 transition hover:border-brand/30 hover:shadow-md"
+            onClick={() => onSelect(user)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(user);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
             {renderName(user)}
             <p className="mt-2 break-all text-sm text-slate-500">{user.email}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="badge badge-blue">{user.role.name}</span>
+              <span className="text-sm text-slate-600">{user.sede?.name ?? t("common.dash")}</span>
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
               <ActiveBadge active={user.is_active} />
             </div>
             {(canUpdate || canDelete) && user.is_active && user.id !== currentUserId ? (
-              <div className="mt-3">{renderActions(user)}</div>
+              <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                {renderActions(user)}
+              </div>
             ) : null}
-          </Card>
+          </div>
         ))}
       </div>
 
@@ -96,6 +118,7 @@ export function UsersTable({
               <th>{t("common.name")}</th>
               <th>{t("common.email")}</th>
               <th>{t("common.role")}</th>
+              <th>{t("users.sede")}</th>
               <th>{t("common.area")}</th>
               <th>{t("common.status")}</th>
               {(canUpdate || canDelete) && <th>{t("common.actions")}</th>}
@@ -103,15 +126,24 @@ export function UsersTable({
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id}>
+              <tr
+                key={user.id}
+                className="cursor-pointer transition hover:bg-cream-100/80"
+                onClick={() => onSelect(user)}
+              >
                 <td>{renderName(user)}</td>
                 <td className="text-slate-500">{user.email}</td>
                 <td>
                   <span className="badge badge-blue">{user.role.name}</span>
                 </td>
+                <td>{user.sede?.name ?? t("common.dash")}</td>
                 <td>{user.area?.name ?? t("common.dash")}</td>
-                <td><ActiveBadge active={user.is_active} /></td>
-                {(canUpdate || canDelete) && <td>{renderActions(user)}</td>}
+                <td>
+                  <ActiveBadge active={user.is_active} />
+                </td>
+                {(canUpdate || canDelete) && (
+                  <td onClick={(e) => e.stopPropagation()}>{renderActions(user)}</td>
+                )}
               </tr>
             ))}
           </tbody>

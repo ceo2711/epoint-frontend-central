@@ -1,6 +1,6 @@
 import type { User } from "@/types/api";
 
-export type StaffRoleCode = "ADMIN" | "SALES_REP";
+export type StaffRoleCode = "ADMIN" | "BRANCH_MANAGER" | "SALES_REP";
 
 export interface NavItem {
   href: string;
@@ -28,28 +28,28 @@ export const internalNav: NavItem[] = [
     labelKey: "nav.prospects",
     icon: "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z",
     permission: "prospects:read",
-    roles: ["ADMIN", "SALES_REP"],
+    roles: ["ADMIN", "BRANCH_MANAGER", "SALES_REP"],
   },
   {
     href: "/calendario",
     labelKey: "nav.calendar",
     icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
     permission: null,
-    roles: ["ADMIN", "SALES_REP"],
+    roles: ["ADMIN", "BRANCH_MANAGER", "SALES_REP"],
   },
   {
     href: "/contratos",
     labelKey: "nav.contracts",
     icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
     permission: null,
-    roles: ["ADMIN", "SALES_REP"],
+    roles: ["ADMIN", "BRANCH_MANAGER", "SALES_REP"],
   },
   {
     href: "/pagos",
     labelKey: "nav.payments",
     icon: "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z",
     permission: null,
-    roles: ["ADMIN", "SALES_REP"],
+    roles: ["ADMIN", "BRANCH_MANAGER", "SALES_REP"],
   },
   {
     href: "/usuarios",
@@ -58,10 +58,18 @@ export const internalNav: NavItem[] = [
     permission: "users:read",
   },
   {
+    href: "/sedes",
+    labelKey: "nav.sedes",
+    icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z",
+    permission: "sedes:read",
+    roles: ["ADMIN"],
+  },
+  {
     href: "/comercios",
     labelKey: "nav.merchants",
     icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-    permission: "merchants:create",
+    permission: "merchants:read",
+    roles: ["ADMIN"],
   },
   {
     href: "/roles",

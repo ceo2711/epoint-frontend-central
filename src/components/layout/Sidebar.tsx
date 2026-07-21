@@ -118,7 +118,7 @@ export function Sidebar() {
                 collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""
               } ${
                 active
-                  ? "bg-gradient-to-r from-cream-400 to-accent text-brown-950 shadow-md shadow-black/20"
+                  ? "bg-gradient-to-r from-cream-400 to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
                   : "text-cream-700 hover:bg-white/5 hover:text-white"
               }`}
             >

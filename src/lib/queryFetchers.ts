@@ -19,7 +19,7 @@ import type {
 import type { Board } from "@/features/boards/types";
 import type { Merchant } from "@/features/merchants/types";
 import type { Role } from "@/features/roles/types";
-import type { Client, DocumentBrief, MerchantBrief, Paginated, User } from "@/types/api";
+import type { Client, DocumentBrief, MerchantBrief, Paginated, Sede, User } from "@/types/api";
 import { api } from "@/lib/api";
 
 export function calendlyUserQuery(userId?: number | null): string {
@@ -30,8 +30,11 @@ export function fetchClientStats(token: string) {
   return api.get<ClientStats>("/clients/stats", token);
 }
 
-export function fetchDashboardMetrics(token: string) {
-  return api.get<DashboardMetrics>("/dashboard/metrics", token);
+export function fetchDashboardMetrics(token: string, options?: { sedeId?: number | null }) {
+  const params = new URLSearchParams();
+  if (options?.sedeId != null) params.set("sede_id", String(options.sedeId));
+  const query = params.toString();
+  return api.get<DashboardMetrics>(`/dashboard/metrics${query ? `?${query}` : ""}`, token);
 }
 
 export function fetchClientsList(
@@ -43,6 +46,7 @@ export function fetchClientsList(
     search?: string;
     merchantFilter?: "all" | number;
     salesRepId?: number | null;
+    sedeId?: number | null;
   },
 ) {
   const params = new URLSearchParams();
@@ -57,6 +61,7 @@ export function fetchClientsList(
     params.set("merchant_id", String(options.merchantFilter));
   }
   if (options?.salesRepId) params.set("sales_rep_id", String(options.salesRepId));
+  if (options?.sedeId != null) params.set("sede_id", String(options.sedeId));
   const query = params.toString();
   return api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
 }
@@ -70,8 +75,20 @@ export function fetchMerchants(token: string, includeInactive = true) {
   return api.get<Merchant[]>(`/merchants${query}`, token);
 }
 
-export function fetchUsers(token: string) {
-  return api.get<Paginated<User>>("/users", token);
+export function fetchSedes(token: string, includeInactive = true) {
+  const query = includeInactive ? "?include_inactive=true" : "";
+  return api.get<Sede[]>(`/sedes${query}`, token);
+}
+
+export function fetchUsers(
+  token: string,
+  filters?: { search?: string; sedeId?: number | null },
+) {
+  const params = new URLSearchParams();
+  if (filters?.search?.trim()) params.set("search", filters.search.trim());
+  if (filters?.sedeId != null) params.set("sede_id", String(filters.sedeId));
+  const query = params.toString();
+  return api.get<Paginated<User>>(`/users${query ? `?${query}` : ""}`, token);
 }
 
 export function fetchAreas(token: string) {

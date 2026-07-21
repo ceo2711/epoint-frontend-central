@@ -16,6 +16,7 @@ const KNOWN_PATH_PATTERNS: RegExp[] = [
   /^\/pagos$/,
   /^\/pagar\/[^/]+$/,
   /^\/configuracion$/,
+  /^\/sedes$/,
   /^\/comercios$/,
   /^\/usuarios$/,
   /^\/roles$/,

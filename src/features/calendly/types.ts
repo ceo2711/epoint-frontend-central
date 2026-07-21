@@ -15,6 +15,8 @@ export interface CalendlySalesRep {
   scheduling_url: string | null;
   last_synced_at: string | null;
   avatar_url?: string | null;
+  sede_id?: number | null;
+  sede_name?: string | null;
 }
 
 export interface CalendlyLinkedProspect {

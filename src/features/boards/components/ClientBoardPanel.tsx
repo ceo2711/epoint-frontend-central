@@ -27,7 +27,7 @@ function normalizeCard(card: BoardCard): BoardCard {
   };
 }
 
-const BOARD_STAFF_ROLES = new Set(["ADMIN", "ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_STAFF_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER", "ADVISOR"]);
 
 export function ClientBoardPanel({ token, clientId, isClientPortal = false }: ClientBoardPanelProps) {
   const { t } = useTranslation();

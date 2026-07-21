@@ -111,6 +111,8 @@ export interface ProspectFormData {
   phone: string;
   source: string;
   merchant_id: string;
+  sede_id: string;
+  assigned_to_user_id: string;
   is_qualified: boolean;
   notes: string;
 }
@@ -122,6 +124,8 @@ export const EMPTY_PROSPECT_FORM: ProspectFormData = {
   phone: "",
   source: "OTHER",
   merchant_id: "",
+  sede_id: "",
+  assigned_to_user_id: "",
   is_qualified: true,
   notes: "",
 };

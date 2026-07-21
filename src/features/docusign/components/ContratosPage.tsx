@@ -2,13 +2,13 @@
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -20,14 +20,21 @@ import { RegisterClientFromContractModal } from "@/features/docusign/components/
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
+import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
+import { useSedes } from "@/features/sedes/hooks/useSedes";
+import {
+  buildSedeBranchesFromReps,
+  filterRepsBySede,
+} from "@/features/sedes/utils/sedeBranches";
 import type { DocusignEnvelope, DocusignRegisterClientPayload } from "@/features/docusign/types";
 import { PROSPECT_SEARCH_LIMIT } from "@/features/prospects/components/ProspectSearchSelect";
 import type { Prospect } from "@/features/prospects/types";
 import type { Paginated } from "@/types/api";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
+import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
 
-const CONTRACT_ROLES = new Set(["ADMIN", "SALES_REP"]);
+const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
 
 export function ContratosPage() {
   const router = useRouter();
@@ -36,12 +43,14 @@ export function ContratosPage() {
   const { t } = useTranslation();
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [registerEnvelope, setRegisterEnvelope] = useState<DocusignEnvelope | null>(null);
+  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [linkEnvelope, setLinkEnvelope] = useState<DocusignEnvelope | null>(null);
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const isAdmin = user?.role.code === "ADMIN";
+  const isAdmin = isSedeAdmin(user?.role.code);
+  const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
   const canLinkProspect = hasPermission("prospects:update");
 
@@ -65,6 +74,33 @@ export function ContratosPage() {
     listenRefresh: true,
   });
 
+  const { sedes, loading: loadingSedes } = useSedes(
+    token,
+    isGlobal && hasPermission("sedes:read"),
+    t("sedes.loadError"),
+    "",
+    false,
+  );
+
+  const branches = useMemo(
+    () =>
+      buildSedeBranchesFromReps(salesReps, sedes, {
+        includeAllSedes: isGlobal,
+        fallbackName: t("users.sede"),
+      }),
+    [salesReps, sedes, isGlobal, t],
+  );
+
+  const repsForSelectedSede = useMemo(
+    () =>
+      filterRepsBySede(salesReps, selectedSedeId, {
+        filterBySede: isGlobal,
+      }),
+    [salesReps, selectedSedeId, isGlobal],
+  );
+
+  const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
+
   useEffect(() => {
     if (user && !CONTRACT_ROLES.has(user.role.code)) {
       router.replace("/dashboard");
@@ -81,14 +117,25 @@ export function ContratosPage() {
   }, [token, isAdmin]);
 
   if (!user || !CONTRACT_ROLES.has(user.role.code)) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
+  const adminLoading = loadingReps || (isGlobal && loadingSedes);
+  // No incluir loading de envelopes: eso es carga parcial al elegir vendedor
+  const pageLoading = isAdmin
+    ? adminLoading || (loading && !loadingEnvelopes)
+    : loading;
+
+  function handleSelectSede(id: number) {
+    setSelectedSedeId(id);
+    setSelectedRepId(null);
+  }
+
+  function handleBackFromReps() {
+    setSelectedRepId(null);
+    if (isGlobal) setSelectedSedeId(null);
+  }
 
   async function searchProspects(query: string) {
     if (!token || !canLinkProspect) return { items: [], total: 0 };
@@ -208,104 +255,141 @@ export function ContratosPage() {
     }
   }
 
-  const pageSubtitle = isAdmin ? t("docusign.adminPageSubtitle") : t("docusign.pageSubtitle");
+  const pageSubtitle = isAdmin
+    ? isGlobal
+      ? t("docusign.adminPageSubtitleSedes")
+      : t("docusign.adminPageSubtitle")
+    : t("docusign.pageSubtitle");
+
+  function renderAdminContent() {
+    if (!connection?.connected) {
+      return <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>;
+    }
+
+    if (isGlobal && selectedSedeId === null) {
+      return (
+        <SedeBranchList
+          branches={branches}
+          onSelect={handleSelectSede}
+          titleKey="docusign.adminSedesTitle"
+          hintKey="docusign.adminSedesSubtitle"
+          emptyKey="docusign.adminSedesEmpty"
+          countLabelKey="docusign.adminSedeRepCount"
+        />
+      );
+    }
+
+    if (selectedRepId === null) {
+      return (
+        <>
+          {isGlobal ? (
+            <button
+              type="button"
+              onClick={handleBackFromReps}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+            >
+              <VscArrowLeft className="h-4 w-4" aria-hidden />
+              {t("docusign.backToSedes")}
+            </button>
+          ) : null}
+          {selectedSede ? (
+            <div className="card-flat mb-4 p-5">
+              <h2 className="text-lg font-semibold text-slate-900">{selectedSede.name}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t("calendly.contractsSalesRepsHint")}</p>
+            </div>
+          ) : null}
+          <SalesRepList
+            reps={repsForSelectedSede}
+            onSelect={setSelectedRepId}
+            hintKey="calendly.contractsSalesRepsHint"
+            showConnectionStatus={false}
+          />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setSelectedRepId(null)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          <VscArrowLeft className="h-4 w-4" aria-hidden />
+          {t("docusign.backToSalesReps")}
+        </button>
+
+        <div className="card-flat p-5">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {selectedRep
+              ? `${selectedRep.first_name} ${selectedRep.last_name}`
+              : t("common.dash")}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">{t("docusign.adminRepContractsHint")}</p>
+        </div>
+
+        {loadingEnvelopes ? (
+          <div className="flex justify-center py-20">
+            <LoadingSpinner label={t("common.loading")} />
+          </div>
+        ) : (
+          <EnvelopeList
+            envelopes={envelopes}
+            onSync={handleSync}
+            onDownloadSigned={handleDownloadSigned}
+            onDownloadSent={handleDownloadSent}
+            onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
+            syncingId={syncingId}
+            showClientColumn={false}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>
-      <Header title={t("docusign.headerContext")} subtitle={pageSubtitle} />
-      <PageContent className="space-y-6">
-        {loading && !isAdmin ? (
-          <div className="flex justify-center py-16">
-            <LoadingSpinner />
-          </div>
-        ) : (
-          <>
-            {error ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
+      <Header title={t(isAdmin ? "docusign.adminHeaderContext" : "docusign.headerContext")} subtitle={pageSubtitle} />
+      {pageLoading ? (
+        <PageLoader label={t("common.loading")} />
+      ) : (
+        <PageContent className="space-y-6">
+          {error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
 
-            {!connection?.connected ? (
-              <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>
-            ) : isAdmin ? (
-              selectedRepId === null ? (
-                loadingReps ? (
-                  <div className="flex justify-center py-16">
-                    <LoadingSpinner />
-                  </div>
-                ) : (
-                  <SalesRepList
-                    reps={salesReps}
-                    onSelect={setSelectedRepId}
-                    hintKey="calendly.contractsSalesRepsHint"
-                    showConnectionStatus={false}
-                  />
-                )
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRepId(null)}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-                  >
-                    <VscArrowLeft className="h-4 w-4" aria-hidden />
-                    {t("docusign.backToSalesReps")}
-                  </button>
+          {isAdmin ? (
+            renderAdminContent()
+          ) : !connection?.connected ? (
+            <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>
+          ) : (
+            <>
+              <SendContractForm
+                templates={templates}
+                defaultTemplateId={connection.default_template_id}
+                defaultRoleName={connection.default_template_role_name}
+                onSearchClients={searchClients}
+                onSearchProspects={canLinkProspect ? searchProspects : undefined}
+                onLoadTemplateDetail={loadTemplateDetail}
+                onSubmit={handleSend}
+              />
 
-                  <div className="card-flat p-5">
-                    <h2 className="text-lg font-semibold text-slate-900">
-                      {selectedRep
-                        ? `${selectedRep.first_name} ${selectedRep.last_name}`
-                        : t("common.dash")}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">{t("docusign.adminRepContractsHint")}</p>
-                  </div>
-
-                  {loadingEnvelopes ? (
-                    <div className="flex justify-center py-16">
-                      <LoadingSpinner />
-                    </div>
-                  ) : (
-                    <EnvelopeList
-                      envelopes={envelopes}
-                      onSync={handleSync}
-                      onDownloadSigned={handleDownloadSigned}
-                      onDownloadSent={handleDownloadSent}
-                      onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
-                      syncingId={syncingId}
-                      showClientColumn={false}
-                    />
-                  )}
-                </>
-              )
-            ) : (
-              <>
-                <SendContractForm
-                  templates={templates}
-                  defaultTemplateId={connection.default_template_id}
-                  defaultRoleName={connection.default_template_role_name}
-                  onSearchClients={searchClients}
-                  onSearchProspects={canLinkProspect ? searchProspects : undefined}
-                  onLoadTemplateDetail={loadTemplateDetail}
-                  onSubmit={handleSend}
-                />
-
-                <EnvelopeList
-                  envelopes={envelopes}
-                  onSync={handleSync}
-                  onDownloadSigned={handleDownloadSigned}
-                  onDownloadSent={handleDownloadSent}
-                  onRegisterClient={setRegisterEnvelope}
-                  onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
-                  syncingId={syncingId}
-                  showClientColumn={false}
-                />
-              </>
-            )}
-          </>
-        )}
-      </PageContent>
+              <EnvelopeList
+                envelopes={envelopes}
+                onSync={handleSync}
+                onDownloadSigned={handleDownloadSigned}
+                onDownloadSent={handleDownloadSent}
+                onRegisterClient={setRegisterEnvelope}
+                onLinkProspect={canLinkProspect ? setLinkEnvelope : undefined}
+                syncingId={syncingId}
+                showClientColumn={false}
+              />
+            </>
+          )}
+        </PageContent>
+      )}
 
       {registerEnvelope && isSalesRep ? (
         <RegisterClientFromContractModal

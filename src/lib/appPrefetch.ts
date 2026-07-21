@@ -19,6 +19,7 @@ import {
   fetchPortalDocuments,
   fetchPortalMe,
   fetchRoles,
+  fetchSedes,
   fetchUsers,
 } from "@/lib/queryFetchers";
 import { queryKeys } from "@/lib/queryKeys";
@@ -122,7 +123,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
       return;
 
     case "/pagos":
-      if (roleCode !== "ADMIN" && roleCode !== "SALES_REP") return;
+      if (roleCode !== "ADMIN" && roleCode !== "BRANCH_MANAGER" && roleCode !== "SALES_REP") return;
       await queryClient.prefetchQuery({
         queryKey: queryKeys.payments.links,
         queryFn: async () => {
@@ -138,7 +139,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
         await prefetchCalendlyBundle(ctx, user.id);
         return;
       }
-      if (roleCode === "ADMIN") {
+      if (roleCode === "ADMIN" || roleCode === "BRANCH_MANAGER") {
         await queryClient.prefetchQuery({
           queryKey: queryKeys.calendly.salesReps,
           queryFn: () => fetchCalendlySalesReps(token),
@@ -155,7 +156,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
       if (!hasPermission("users:read")) return;
       await Promise.allSettled([
         queryClient.prefetchQuery({
-          queryKey: queryKeys.users.list,
+          queryKey: queryKeys.users.list(),
           queryFn: () => fetchUsers(token),
           staleTime: PREFETCH_STALE_MS,
         }),
@@ -174,6 +175,15 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
             })
           : Promise.resolve(),
       ]);
+      return;
+
+    case "/sedes":
+      if (!hasPermission("sedes:create") && !hasPermission("sedes:read")) return;
+      await queryClient.prefetchQuery({
+        queryKey: queryKeys.sedes.list(true),
+        queryFn: () => fetchSedes(token, true),
+        staleTime: PREFETCH_STALE_MS,
+      });
       return;
 
     case "/comercios":
