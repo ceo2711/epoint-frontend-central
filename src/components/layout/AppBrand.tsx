@@ -19,7 +19,7 @@ export function AppBrand({ showSubtitle = false, dark = false, logoPriority }: A
 
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <AppLogo size="sm" priority={logoPriority} />
+      <AppLogo size="sm" priority={logoPriority} className="shadow-md" />
       <div className="brand-label min-w-0">
         <p className={`truncate text-sm font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>
           Epoint Corporation
