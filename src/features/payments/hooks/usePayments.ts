@@ -75,8 +75,17 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
   const cancelLinkMutation = useMutation({
     mutationFn: (linkId: number) =>
       api.post<PaymentLink>(`/payments/links/${linkId}/cancel`, {}, token!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+    onSuccess: (updated) => {
+      // El cancel ya quedó en el servidor: actualizar la lista ya mismo.
+      // No forzamos un refetch inmediato (si la red falla, no ensuciamos la pantalla con error).
+      queryClient.setQueriesData<PaymentLink[]>(
+        { queryKey: queryKeys.payments.links },
+        (old) => (Array.isArray(old) ? old.map((link) => (link.id === updated.id ? updated : link)) : old),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.payments.links,
+        refetchType: "none",
+      });
     },
   });
 
