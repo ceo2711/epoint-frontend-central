@@ -61,6 +61,11 @@ export function PagosPage() {
   const {
     config,
     links,
+    page,
+    pages,
+    total,
+    pageSize,
+    setPage,
     loading,
     loadingLinks,
     error,
@@ -72,6 +77,10 @@ export function PagosPage() {
     adminView: isAdmin,
     salesRepId: isAdmin ? selectedRepId : undefined,
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedRepId, setPage]);
 
   const { merchants, loading: merchantsLoading } = useMerchantOptions(token, isSalesRep);
   const { sedes, loading: loadingSedes } = useSedes(
@@ -323,6 +332,11 @@ export function PagosPage() {
             <div className="mt-4">
               <PaymentLinkList
                 links={links}
+                page={page}
+                pages={pages}
+                total={total}
+                pageSize={pageSize}
+                onPageChange={setPage}
                 onCancel={handleCancel}
                 onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
                 cancellingId={cancellingId}
@@ -367,6 +381,11 @@ export function PagosPage() {
                 <div className="mt-4">
                   <PaymentLinkList
                     links={links}
+                    page={page}
+                    pages={pages}
+                    total={total}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
                     onCancel={handleCancel}
                     onRegisterClient={setRegisterLink}
                     onLinkProspect={canLinkProspect ? setLinkPayment : undefined}

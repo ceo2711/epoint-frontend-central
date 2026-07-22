@@ -101,7 +101,8 @@ export const queryKeys = {
   payments: {
     all: ["payments"] as const,
     config: ["payments", "config"] as const,
-    links: ["payments", "links"] as const,
-    linksBySalesRep: (salesRepId: number) => ["payments", "links", "salesRep", salesRepId] as const,
+    links: (page = 1, pageSize = 10) => ["payments", "links", { page, pageSize }] as const,
+    linksBySalesRep: (salesRepId: number, page = 1, pageSize = 10) =>
+      ["payments", "links", "salesRep", salesRepId, { page, pageSize }] as const,
   },
 } as const;

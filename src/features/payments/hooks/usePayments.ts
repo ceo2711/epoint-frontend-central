@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import type {
   PaymentConfig,
@@ -13,6 +14,9 @@ import { api } from "@/lib/api";
 import { getApiBaseUrl } from "@/lib/api-config";
 import { logClientError, NETWORK_ERROR_MESSAGE } from "@/lib/user-facing-error";
 import { queryKeys } from "@/lib/queryKeys";
+import type { Paginated } from "@/types/api";
+
+export const PAYMENTS_PAGE_SIZE = 10;
 
 async function publicPaymentFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getApiBaseUrl();
@@ -33,12 +37,16 @@ async function publicPaymentFetch<T>(path: string, init?: RequestInit): Promise<
 type UsePaymentsOptions = {
   adminView?: boolean;
   salesRepId?: number | null;
+  page?: number;
+  pageSize?: number;
 };
 
 export function usePayments(token: string | null, options?: UsePaymentsOptions) {
   const queryClient = useQueryClient();
   const adminView = options?.adminView ?? false;
   const salesRepId = options?.salesRepId ?? null;
+  const pageSize = options?.pageSize ?? PAYMENTS_PAGE_SIZE;
+  const [page, setPage] = useState(options?.page ?? 1);
 
   const configQuery = useQuery({
     queryKey: queryKeys.payments.config,
@@ -48,13 +56,19 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
   });
 
   const linksQueryKey =
-    salesRepId != null ? queryKeys.payments.linksBySalesRep(salesRepId) : queryKeys.payments.links;
+    salesRepId != null
+      ? queryKeys.payments.linksBySalesRep(salesRepId, page, pageSize)
+      : queryKeys.payments.links(page, pageSize);
 
   const linksQuery = useQuery({
     queryKey: linksQueryKey,
     queryFn: () => {
-      const query = salesRepId != null ? `?created_by_user_id=${salesRepId}` : "";
-      return api.get<PaymentLink[]>(`/payments/links${query}`, token!);
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: String(pageSize),
+      });
+      if (salesRepId != null) params.set("created_by_user_id", String(salesRepId));
+      return api.get<Paginated<PaymentLink>>(`/payments/links?${params}`, token!);
     },
     enabled: !!token && (!adminView || salesRepId != null),
     staleTime: 5 * 60_000,
@@ -68,6 +82,7 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
         token!,
       ),
     onSuccess: () => {
+      setPage(1);
       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
     },
   });
@@ -76,14 +91,18 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     mutationFn: (linkId: number) =>
       api.post<PaymentLink>(`/payments/links/${linkId}/cancel`, {}, token!),
     onSuccess: (updated) => {
-      // El cancel ya quedó en el servidor: actualizar la lista ya mismo.
-      // No forzamos un refetch inmediato (si la red falla, no ensuciamos la pantalla con error).
-      queryClient.setQueriesData<PaymentLink[]>(
-        { queryKey: queryKeys.payments.links },
-        (old) => (Array.isArray(old) ? old.map((link) => (link.id === updated.id ? updated : link)) : old),
+      queryClient.setQueriesData<Paginated<PaymentLink>>(
+        { queryKey: ["payments", "links"] },
+        (old) => {
+          if (!old || !Array.isArray(old.items)) return old;
+          return {
+            ...old,
+            items: old.items.map((link) => (link.id === updated.id ? updated : link)),
+          };
+        },
       );
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.payments.links,
+        queryKey: ["payments", "links"],
         refetchType: "none",
       });
     },
@@ -105,9 +124,16 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     ? salesRepId != null && linksQuery.isLoading
     : configQuery.isLoading || linksQuery.isLoading;
 
+  const data = linksQuery.data;
+
   return {
     config: configQuery.data,
-    links: linksQuery.data ?? [],
+    links: data?.items ?? [],
+    page: data?.page ?? page,
+    pages: data?.pages ?? 1,
+    total: data?.total ?? 0,
+    pageSize: data?.page_size ?? pageSize,
+    setPage,
     loading,
     loadingLinks: linksQuery.isLoading,
     error: (configQuery.error ?? linksQuery.error) as ApiError | null,

@@ -453,6 +453,12 @@ export const en: Messages = {
       registerClient: "Register client",
       viewClient: "View client",
       createdBy: "Created by",
+      colCustomer: "Customer",
+      colAmount: "Amount",
+      colProvider: "Provider",
+      colStatus: "Status",
+      colCreatedBy: "Created by",
+      colDate: "Date",
     },
     status: {
       pending: "Pending",

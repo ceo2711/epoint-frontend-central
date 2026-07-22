@@ -452,6 +452,12 @@ export const es = {
       registerClient: "Registrar cliente",
       viewClient: "Ver cliente",
       createdBy: "Creado por",
+      colCustomer: "Cliente",
+      colAmount: "Monto",
+      colProvider: "Proveedor",
+      colStatus: "Estado",
+      colCreatedBy: "Creado por",
+      colDate: "Fecha",
     },
     status: {
       pending: "Pendiente",

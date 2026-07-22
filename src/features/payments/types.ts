@@ -69,6 +69,8 @@ export interface PublicPaymentLink {
   stub_mode: boolean;
   can_pay: boolean;
   checkout_url?: string | null;
+  /** Token Accept Hosted (Authorize): se envía por POST, no en la URL. */
+  hosted_payment_token?: string | null;
   provider_label?: string | null;
 }
 

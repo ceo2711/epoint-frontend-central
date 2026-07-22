@@ -125,10 +125,10 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     case "/pagos":
       if (roleCode !== "ADMIN" && roleCode !== "BRANCH_MANAGER" && roleCode !== "SALES_REP") return;
       await queryClient.prefetchQuery({
-        queryKey: queryKeys.payments.links,
+        queryKey: queryKeys.payments.links(1, 10),
         queryFn: async () => {
           const { api } = await import("@/lib/api");
-          return api.get("/payments/links", token);
+          return api.get("/payments/links?page=1&page_size=10", token);
         },
         staleTime: PREFETCH_STALE_MS,
       });

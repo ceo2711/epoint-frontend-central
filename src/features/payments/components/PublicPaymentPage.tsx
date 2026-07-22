@@ -17,6 +17,21 @@ import {
 import type { PublicPaymentLink } from "@/features/payments/types";
 import { getProviderLabel } from "@/features/payments/utils/providers";
 
+/** Accept Hosted exige POST del token; GET ?token=... falla con "Missing or invalid token". */
+function postAuthorizeHostedCheckout(actionUrl: string, hostedToken: string) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = actionUrl;
+  form.style.display = "none";
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "token";
+  input.value = hostedToken;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+}
+
 export function PublicPaymentPage() {
   const params = useParams<{ token: string }>();
   const searchParams = useSearchParams();
@@ -53,6 +68,10 @@ export function PublicPaymentPage() {
           publicData.status === "pending"
         ) {
           setRedirecting(true);
+          if (publicData.provider === "authorize" && publicData.hosted_payment_token) {
+            postAuthorizeHostedCheckout(publicData.checkout_url, publicData.hosted_payment_token);
+            return;
+          }
           window.location.replace(publicData.checkout_url);
           return;
         }
@@ -74,6 +93,11 @@ export function PublicPaymentPage() {
   async function handlePay() {
     if (!token || !data?.can_pay) return;
     if (data.checkout_url && !data.stub_mode) {
+      if (data.provider === "authorize" && data.hosted_payment_token) {
+        setPaying(true);
+        postAuthorizeHostedCheckout(data.checkout_url, data.hosted_payment_token);
+        return;
+      }
       window.location.href = data.checkout_url;
       return;
     }
