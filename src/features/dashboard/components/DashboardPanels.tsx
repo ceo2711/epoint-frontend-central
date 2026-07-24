@@ -10,6 +10,7 @@ import {
 } from "@/features/dashboard/components/DashboardCharts";
 import { MetricReveal } from "@/features/dashboard/components/MetricReveal";
 import { SalesCommissionChart } from "@/features/dashboard/components/SalesCommissionChart";
+import { InfluencerLeadsRanking } from "@/features/dashboard/components/InfluencerLeadsRanking";
 import { StatCard } from "@/features/dashboard/components/StatCard";
 import { StatusBreakdownTable } from "@/features/dashboard/components/StatusBreakdownTable";
 import { PipelineStageConversion } from "@/features/dashboard/components/PipelineStageConversion";
@@ -48,17 +49,24 @@ export function AreaMetricsPanel({
   metrics,
   onBack,
   showBack = true,
+  showInfluencerRanking = true,
 }: {
   area: AreaMetrics;
   metrics: DashboardMetrics;
   onBack: () => void;
   showBack?: boolean;
+  /** En vista de líder el ranking de influencers vive junto al ranking mensual. */
+  showInfluencerRanking?: boolean;
 }) {
   const { t } = useTranslation();
   const isSales = area.code === "VENTAS";
   const isPersonal = area.scope === "personal";
   const subtitle = t("dashboard.onboardingMetricsSubtitle");
-  const showCommission = isSales && isPersonal && area.monthly_commission != null;
+  const showCommission =
+    isSales &&
+    area.monthly_commission != null &&
+    (isPersonal || (area.commission_series?.length ?? 0) > 0);
+  const showInfluencer = isSales && showInfluencerRanking;
 
   return (
     <div className="space-y-6">
@@ -80,15 +88,30 @@ export function AreaMetricsPanel({
         </div>
       ) : null}
 
-      {showCommission ? (
-        <MetricReveal delayMs={20}>
-          <SalesCommissionChart
-            commission={area.monthly_commission ?? 0}
-            rate={area.commission_rate ?? 0.15}
-            paidCount={area.monthly_paid_count ?? 0}
-            series={area.commission_series ?? []}
-          />
-        </MetricReveal>
+      {showCommission || showInfluencer ? (
+        <div
+          className={
+            showCommission && showInfluencer
+              ? "grid gap-4 xl:grid-cols-2 xl:items-stretch"
+              : undefined
+          }
+        >
+          {showCommission ? (
+            <MetricReveal delayMs={20}>
+              <SalesCommissionChart
+                commission={area.monthly_commission ?? 0}
+                perSale={area.commission_per_sale ?? 500}
+                paidCount={area.monthly_paid_count ?? 0}
+                series={area.commission_series ?? []}
+              />
+            </MetricReveal>
+          ) : null}
+          {showInfluencer ? (
+            <MetricReveal delayMs={40}>
+              <InfluencerLeadsRanking data={area.by_influencer ?? []} />
+            </MetricReveal>
+          ) : null}
+        </div>
       ) : null}
 
       {isSales ? (

@@ -28,7 +28,7 @@ import {
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
@@ -36,6 +36,7 @@ export function ClientesPage() {
   const { t } = useTranslation();
   const roleCode = user?.role.code;
   const sedeAdmin = isSedeAdmin(roleCode);
+  const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(roleCode);
   const clientsSubtitle =
     roleCode === "ADVISOR"
@@ -54,8 +55,8 @@ export function ClientesPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
-  const showSalesRepFilter = sedeAdmin;
-  const showAdvisorColumn = roleCode === "SALES_REP" || sedeAdmin;
+  const showSalesRepFilter = canSupervise;
+  const showAdvisorColumn = roleCode === "SALES_REP" || canSupervise;
   const canBulkDelete = sedeAdmin && hasPermission("clients:delete");
   const showSedePicker = isGlobal && selectedSedeId === null;
   const listEnabled = !isGlobal || selectedSedeId != null;

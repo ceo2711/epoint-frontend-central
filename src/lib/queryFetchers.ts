@@ -18,6 +18,8 @@ import type {
 } from "@/features/docusign/types";
 import type { Board } from "@/features/boards/types";
 import type { Merchant } from "@/features/merchants/types";
+import type { Source, SourceBrief } from "@/features/sources/types";
+import type { Influencer, InfluencerBrief } from "@/features/influencers/types";
 import type { Role } from "@/features/roles/types";
 import type { Client, DocumentBrief, MerchantBrief, Paginated, Sede, User } from "@/types/api";
 import { api } from "@/lib/api";
@@ -30,9 +32,13 @@ export function fetchClientStats(token: string) {
   return api.get<ClientStats>("/clients/stats", token);
 }
 
-export function fetchDashboardMetrics(token: string, options?: { sedeId?: number | null }) {
+export function fetchDashboardMetrics(
+  token: string,
+  options?: { sedeId?: number | null; salesRepId?: number | null },
+) {
   const params = new URLSearchParams();
   if (options?.sedeId != null) params.set("sede_id", String(options.sedeId));
+  if (options?.salesRepId != null) params.set("sales_rep_id", String(options.salesRepId));
   const query = params.toString();
   return api.get<DashboardMetrics>(`/dashboard/metrics${query ? `?${query}` : ""}`, token);
 }
@@ -73,6 +79,27 @@ export function fetchMerchantOptions(token: string) {
 export function fetchMerchants(token: string, includeInactive = true) {
   const query = includeInactive ? "?include_inactive=true" : "";
   return api.get<Merchant[]>(`/merchants${query}`, token);
+}
+
+export function fetchSourceOptions(token: string) {
+  return api.get<SourceBrief[]>("/sources/options", token);
+}
+
+export function fetchSources(token: string, includeInactive = true) {
+  const query = includeInactive ? "?include_inactive=true" : "";
+  return api.get<Source[]>(`/sources${query}`, token);
+}
+
+export function fetchInfluencerOptions(token: string, sedeId?: number | null) {
+  const params = new URLSearchParams();
+  if (sedeId != null) params.set("sede_id", String(sedeId));
+  const query = params.toString() ? `?${params}` : "";
+  return api.get<InfluencerBrief[]>(`/influencers/options${query}`, token);
+}
+
+export function fetchInfluencers(token: string, includeInactive = true) {
+  const query = includeInactive ? "?include_inactive=true" : "";
+  return api.get<Influencer[]>(`/influencers${query}`, token);
 }
 
 export function fetchSedes(token: string, includeInactive = true) {

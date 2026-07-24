@@ -22,8 +22,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
-import { TaskStatusBadge } from "@/components/ui/Badge";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { CardLabelBadge, CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
+import {
+  DEFAULT_BOARD_CARD_LABEL,
+  kanbanCardLabelClass,
+  type BoardCardLabel,
+} from "@/features/boards/constants/cardLabels";
 import type { Board, BoardCard, BoardList } from "@/features/boards/types";
 
 interface TaskBoardProps {
@@ -31,8 +36,10 @@ interface TaskBoardProps {
   onSelectCard: (card: BoardCard) => void;
   onMoveCard?: (cardId: number, listId: number, position: number) => Promise<void>;
   onCreateCard?: (listId: number, title: string, position?: number) => Promise<BoardCard>;
+  onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   canDrag?: boolean;
   canCreateCards?: boolean;
+  canSetLabel?: boolean;
 }
 
 function listContainerId(listId: number) {
@@ -54,10 +61,14 @@ function SortableKanbanCard({
   card,
   onSelect,
   canDrag,
+  canSetLabel,
+  onUpdateLabel,
 }: {
   card: BoardCard;
   onSelect: () => void;
   canDrag: boolean;
+  canSetLabel: boolean;
+  onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
@@ -73,15 +84,26 @@ function SortableKanbanCard({
   return (
     <div ref={setNodeRef} style={style} className="touch-manipulation">
       <div
-        className={`kanban-card w-full text-left ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+        className={`kanban-card w-full text-left ${kanbanCardLabelClass(card.label)} ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
         {...(canDrag ? { ...attributes, ...listeners } : {})}
       >
-        <button type="button" className="w-full text-left" onClick={onSelect}>
-          <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
-          <span className="mt-1.5 inline-block scale-90 origin-left">
-            <TaskStatusBadge status={card.status} />
-          </span>
-        </button>
+        <div className="flex items-start gap-1">
+          <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
+            <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
+            <div className="mt-1.5">
+              <CardLabelBadge label={card.label} />
+            </div>
+          </button>
+          {canSetLabel && onUpdateLabel ? (
+            <CardLabelPicker
+              compact
+              value={card.label}
+              onChange={(label) => {
+                void onUpdateLabel(card.id, label);
+              }}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -93,12 +115,16 @@ function KanbanColumn({
   canDrag,
   onCreateCard,
   canCreateCards,
+  canSetLabel,
+  onUpdateLabel,
 }: {
   list: BoardList;
   onSelectCard: (card: BoardCard) => void;
   canDrag: boolean;
   onCreateCard?: (listId: number, title: string, position?: number) => Promise<BoardCard>;
   canCreateCards: boolean;
+  canSetLabel: boolean;
+  onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: listContainerId(list.id) });
 
@@ -120,6 +146,8 @@ function KanbanColumn({
               key={card.id}
               card={card}
               canDrag={canDrag}
+              canSetLabel={canSetLabel}
+              onUpdateLabel={onUpdateLabel}
               onSelect={() => onSelectCard(card)}
             />
           ))}
@@ -206,11 +234,11 @@ function AddCardForm({
 
 function KanbanCardPreview({ card }: { card: BoardCard }) {
   return (
-    <div className="kanban-card w-48 rotate-1 shadow-lg">
+    <div className={`kanban-card w-48 rotate-1 shadow-lg ${kanbanCardLabelClass(card.label)}`}>
       <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
-      <span className="mt-1.5 inline-block scale-90 origin-left">
-        <TaskStatusBadge status={card.status} />
-      </span>
+      <div className="mt-1.5">
+        <CardLabelBadge label={card.label} />
+      </div>
     </div>
   );
 }
@@ -220,8 +248,10 @@ export function TaskBoard({
   onSelectCard,
   onMoveCard,
   onCreateCard,
+  onUpdateLabel,
   canDrag = true,
   canCreateCards = true,
+  canSetLabel = false,
 }: TaskBoardProps) {
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [localBoard, setLocalBoard] = useState(board);
@@ -328,6 +358,7 @@ export function TaskBoard({
       instructions_md: null,
       external_links: null,
       status: "PENDIENTE",
+      label: DEFAULT_BOARD_CARD_LABEL,
       position,
       requires_credentials: false,
       requires_file_upload: false,
@@ -409,6 +440,8 @@ export function TaskBoard({
               canDrag={canDrag && !!onMoveCard}
               onCreateCard={handleCreateCard}
               canCreateCards={canCreateCards && !!onCreateCard}
+              canSetLabel={canSetLabel && !!onUpdateLabel}
+              onUpdateLabel={onUpdateLabel}
             />
           ))}
       </div>

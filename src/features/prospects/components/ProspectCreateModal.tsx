@@ -12,6 +12,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import type { CalendlySalesRep } from "@/features/calendly/types";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
+import { useInfluencerOptions } from "@/features/influencers/hooks/useInfluencerOptions";
 import {
   formatProspectConflict,
   useProspectAvailabilityCheck,
@@ -20,7 +21,7 @@ import { EMPTY_PROSPECT_FORM, type ProspectFormData } from "@/features/prospects
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import type { MerchantBrief } from "@/types/api";
 import { api } from "@/lib/api";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ProspectCreateModalProps {
@@ -47,8 +48,7 @@ export function ProspectCreateModal({
   const { user, hasPermission } = useAuth();
   const roleCode = user?.role.code;
   const isGlobal = isGlobalAdmin(roleCode);
-  const sedeAdmin = isSedeAdmin(roleCode);
-  const needsSalesRep = isGlobal || sedeAdmin;
+  const needsSalesRep = isGlobal || canSuperviseSalesReps(user);
 
   const [form, setForm] = useState<ProspectFormData>(() => ({
     ...EMPTY_PROSPECT_FORM,
@@ -65,6 +65,13 @@ export function ProspectCreateModal({
   );
 
   const selectedSedeId = form.sede_id ? Number(form.sede_id) : null;
+  const needsInfluencer = form.source === "INFLUENCERS";
+  const influencerSedeId = isGlobal ? selectedSedeId : user?.sede_id ?? null;
+  const { options: influencerOptions, loading: influencersLoading } = useInfluencerOptions(
+    token,
+    needsInfluencer,
+    isGlobal ? influencerSedeId : null,
+  );
 
   const repsForSede = useMemo(() => {
     if (!isGlobal || selectedSedeId == null) return salesReps;
@@ -103,6 +110,18 @@ export function ProspectCreateModal({
     });
   }, [isGlobal, repsForSede, merchantsForSede]);
 
+  useEffect(() => {
+    if (!needsInfluencer) {
+      setForm((current) => (current.influencer_id ? { ...current, influencer_id: "" } : current));
+      return;
+    }
+    setForm((current) => {
+      if (!current.influencer_id) return current;
+      const stillValid = influencerOptions.some((item) => String(item.id) === current.influencer_id);
+      return stillValid ? current : { ...current, influencer_id: "" };
+    });
+  }, [needsInfluencer, influencerOptions]);
+
   const { availability, checking, hasConflict } = useProspectAvailabilityCheck(
     token,
     form.merchant_id,
@@ -120,7 +139,8 @@ export function ProspectCreateModal({
   const formComplete =
     Boolean(form.first_name && form.last_name && form.email && form.phone && form.merchant_id) &&
     (!isGlobal || Boolean(form.sede_id)) &&
-    (!needsSalesRep || Boolean(form.assigned_to_user_id));
+    (!needsSalesRep || Boolean(form.assigned_to_user_id)) &&
+    (!needsInfluencer || Boolean(form.influencer_id));
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -137,6 +157,9 @@ export function ProspectCreateModal({
         is_qualified: form.is_qualified,
         notes: form.notes || undefined,
       };
+      if (needsInfluencer && form.influencer_id) {
+        payload.influencer_id = Number(form.influencer_id);
+      }
       if (needsSalesRep && form.assigned_to_user_id) {
         payload.assigned_to_user_id = Number(form.assigned_to_user_id);
       }
@@ -190,9 +213,35 @@ export function ProspectCreateModal({
         <div className="sm:col-span-2">
           <ClientSourceSelect
             value={form.source}
-            onChange={(source) => setForm({ ...form, source })}
+            onChange={(source) => setForm({ ...form, source, influencer_id: "" })}
           />
         </div>
+
+        {needsInfluencer ? (
+          <div className="sm:col-span-2">
+            <Select
+              label={t("influencers.title")}
+              required
+              disabled={influencersLoading || (isGlobal && !form.sede_id)}
+              value={form.influencer_id}
+              onChange={(e) => setForm({ ...form, influencer_id: e.target.value })}
+            >
+              <option value="">
+                {isGlobal && !form.sede_id
+                  ? t("prospects.selectSedeFirst")
+                  : influencersLoading
+                    ? t("common.loading")
+                    : t("influencers.selectInfluencer")}
+              </option>
+              {influencerOptions.map((influencer) => (
+                <option key={influencer.id} value={influencer.id}>
+                  {influencer.name}
+                  {influencer.handle ? ` (${influencer.handle})` : ""}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : null}
 
         {isGlobal ? (
           <div className="sm:col-span-2">

@@ -8,9 +8,11 @@ import { CardDetailModal } from "@/features/boards/components/CardDetailModal";
 import { TaskBoard } from "@/features/boards/components/TaskBoard";
 import { useBoard } from "@/features/boards/hooks/useBoard";
 import type { BoardCard, CardComment } from "@/features/boards/types";
+import type { BoardCardLabel } from "@/features/boards/constants/cardLabels";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ClientBoardPanelProps {
   token: string | null;
@@ -28,6 +30,8 @@ function normalizeCard(card: BoardCard): BoardCard {
 }
 
 const BOARD_STAFF_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_CARD_DELETE_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_CARD_LABEL_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
 
 export function ClientBoardPanel({ token, clientId, isClientPortal = false }: ClientBoardPanelProps) {
   const { t } = useTranslation();
@@ -35,7 +39,13 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
   const modal = useModal();
   const canManageBoard =
     !isClientPortal && !!user && BOARD_STAFF_ROLES.has(user.role.code);
-  const { board, error, loading, refresh } = useBoard(token, clientId, t("portalBoard.unavailable"));
+  const canCreateCards = canManageBoard || isClientPortal;
+  const canDeleteCard =
+    !isClientPortal && !!user && BOARD_CARD_DELETE_ROLES.has(user.role.code);
+  const canSetLabel =
+    !isClientPortal && !!user && BOARD_CARD_LABEL_ROLES.has(user.role.code);
+  const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
+    useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
 
   useEffect(() => {
@@ -47,6 +57,7 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
         return;
       }
     }
+    setSelected(null);
   }, [board, selected?.id]);
 
   const isVerifyingAttachments = board?.lists.some((list) =>
@@ -78,10 +89,46 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
     return normalizeCard(created);
   }
 
+  async function deleteCard(cardId: number) {
+    if (!token) return;
+    const confirmed = await modal.confirm({
+      title: t("portalBoard.deleteCard"),
+      message: t("portalBoard.deleteCardConfirm"),
+      confirmLabel: t("portalBoard.deleteCard"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    setSelected(null);
+    const previousBoard = removeCardLocally(cardId);
+
+    try {
+      await api.delete(`/boards/cards/${cardId}`, token);
+    } catch (err) {
+      restoreBoard(previousBoard);
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.deleteCardError")),
+        variant: "error",
+      });
+    }
+  }
+
   async function updateDescription(cardId: number, description: string) {
     if (!token) return;
     await api.patch(`/boards/cards/${cardId}`, { description_md: description }, token);
     await refresh();
+  }
+
+  async function updateLabel(cardId: number, label: BoardCardLabel) {
+    if (!token) return;
+    const previous = patchCardLabelLocally(cardId, label);
+    try {
+      await api.patch(`/boards/cards/${cardId}/label`, { label }, token);
+    } catch (err) {
+      restoreBoard(previous);
+      throw err;
+    }
   }
 
   async function uploadAttachment(cardId: number, file: File, commentId?: number) {
@@ -139,9 +186,11 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
         board={board}
         onSelectCard={setSelected}
         onMoveCard={canManageBoard ? moveCard : undefined}
-        onCreateCard={canManageBoard ? createCard : undefined}
+        onCreateCard={canCreateCards ? createCard : undefined}
+        onUpdateLabel={canSetLabel ? updateLabel : undefined}
         canDrag={canManageBoard}
-        canCreateCards={canManageBoard}
+        canCreateCards={canCreateCards}
+        canSetLabel={canSetLabel}
       />
       </div>
 
@@ -152,14 +201,17 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
           token={token}
           onClose={() => setSelected(null)}
           onUpdateDescription={updateDescription}
+          onUpdateLabel={canSetLabel ? updateLabel : undefined}
           onSubmitComment={submitComment}
           onUploadAttachment={async (cardId, file) => {
             await uploadAttachment(cardId, file);
             await refresh();
           }}
           onSubmitCredentials={isClientPortal ? submitCredentials : undefined}
+          onDeleteCard={canDeleteCard ? deleteCard : undefined}
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
+          canSetLabel={canSetLabel}
         />
       )}
     </>

@@ -9,6 +9,9 @@ export const SEDE_REQUIRED_ROLE_CODES = [
   "AREA_LEADER",
 ] as const;
 
+/** Roles que deben tener área asignada al crear/editar. */
+export const AREA_REQUIRED_ROLE_CODES = ["AREA_LEADER"] as const;
+
 export type UserFormData = {
   email: string;
   password: string;

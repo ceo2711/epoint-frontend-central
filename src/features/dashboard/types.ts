@@ -40,6 +40,42 @@ export interface CommissionDayPoint {
   cumulative_commission: number;
 }
 
+export interface WeekdaySalesPoint {
+  weekday: number;
+  paid_count: number;
+  paid_amount: number;
+}
+
+export interface SalesRepLeaderboardItem {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  paid_count: number;
+  paid_amount: number;
+  commission: number;
+}
+
+export interface SalesLeadershipMetrics {
+  active_sales_reps: number;
+  team_monthly_paid_count: number;
+  team_monthly_paid_total: number;
+  team_monthly_commission: number;
+  commission_per_sale: number;
+  weekday_sales: WeekdaySalesPoint[];
+  best_weekday: number | null;
+  best_weekday_paid_count: number;
+  best_weekday_paid_amount: number;
+  leaderboard: SalesRepLeaderboardItem[];
+}
+
+export interface InfluencerLeadCount {
+  influencer_id: number;
+  name: string;
+  handle?: string | null;
+  count: number;
+  converted_count: number;
+}
+
 export interface AreaMetrics {
   code: string;
   name: string;
@@ -50,10 +86,13 @@ export interface AreaMetrics {
   conversion_rate: number | null;
   by_status: StatusCount[];
   by_source?: SourceCount[];
-  /** Comisión del mes (solo panel personal del vendedor). */
+  /** Prospectos con influencer (incluye convertidos a cliente). */
+  by_influencer?: InfluencerLeadCount[];
+  /** Comisión del mes (personal o equipo del líder). */
   monthly_paid_total?: number | null;
   monthly_commission?: number | null;
-  commission_rate?: number | null;
+  /** Monto fijo USD por cada pago concretado. */
+  commission_per_sale?: number | null;
   monthly_paid_count?: number | null;
   commission_series?: CommissionDayPoint[];
 }
@@ -70,6 +109,7 @@ export interface DashboardMetrics {
   registration_projections: ProjectionPoint[];
   prospect_registration_projections: ProjectionPoint[];
   completion_projections: ProjectionPoint[];
+  sales_leadership?: SalesLeadershipMetrics | null;
 }
 
 export type DashboardAreaCode = "ONBOARDING" | "VENTAS";

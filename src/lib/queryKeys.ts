@@ -4,6 +4,7 @@ export const queryKeys = {
       merchantId?: number | null,
       roleCode?: string | null,
       sedeId?: number | null,
+      salesRepId?: number | null,
     ) =>
       [
         "dashboard",
@@ -12,6 +13,7 @@ export const queryKeys = {
           merchantId: merchantId ?? null,
           roleCode: roleCode ?? null,
           sedeId: sedeId ?? null,
+          salesRepId: salesRepId ?? null,
         },
       ] as const,
   },
@@ -61,6 +63,19 @@ export const queryKeys = {
     list: (includeInactive?: boolean) =>
       ["merchants", "list", { includeInactive: !!includeInactive }] as const,
     options: ["merchants", "options"] as const,
+  },
+  sources: {
+    all: ["sources"] as const,
+    list: (includeInactive?: boolean) =>
+      ["sources", "list", { includeInactive: !!includeInactive }] as const,
+    options: ["sources", "options"] as const,
+  },
+  influencers: {
+    all: ["influencers"] as const,
+    list: (includeInactive?: boolean) =>
+      ["influencers", "list", { includeInactive: !!includeInactive }] as const,
+    options: (sedeId?: number | null) =>
+      ["influencers", "options", { sedeId: sedeId ?? null }] as const,
   },
   sedes: {
     all: ["sedes"] as const,

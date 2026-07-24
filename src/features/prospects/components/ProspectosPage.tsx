@@ -23,13 +23,13 @@ import {
   buildSedeBranchesFromReps,
   filterRepsBySede,
 } from "@/features/sedes/utils/sedeBranches";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin } from "@/lib/roles";
 
 export function ProspectosPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t } = useTranslation();
   const roleCode = user?.role.code;
-  const sedeAdmin = isSedeAdmin(roleCode);
+  const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(roleCode);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
@@ -50,7 +50,7 @@ export function ProspectosPage() {
   );
 
   useEffect(() => {
-    if (!token || !sedeAdmin) {
+    if (!token || !canSupervise) {
       setSalesReps([]);
       return;
     }
@@ -59,7 +59,7 @@ export function ProspectosPage() {
       .then(setSalesReps)
       .catch(() => setSalesReps([]))
       .finally(() => setLoadingReps(false));
-  }, [token, sedeAdmin]);
+  }, [token, canSupervise]);
 
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
     token,
@@ -107,7 +107,7 @@ export function ProspectosPage() {
     statusFilter: statusFilter || undefined,
     salesRepId,
     sedeId: isGlobal ? selectedSedeId : null,
-    allMerchants: sedeAdmin,
+    allMerchants: canSupervise,
     enabled: listEnabled,
   });
 
@@ -195,7 +195,7 @@ export function ProspectosPage() {
                   </select>
                 </label>
               </div>
-              {sedeAdmin ? (
+              {canSupervise ? (
                 <div className="min-w-[180px]">
                   <label className="block text-sm font-medium text-slate-700">
                     {t("prospects.columns.salesRep")}
@@ -229,7 +229,11 @@ export function ProspectosPage() {
                 <LoadingSpinner label={t("common.loading")} />
               </div>
             ) : (
-              <ProspectList prospects={prospects} onDeleted={() => void load()} />
+              <ProspectList
+                prospects={prospects}
+                onDeleted={() => void load()}
+                onUpdated={() => void load()}
+              />
             )}
 
             {pages > 1 ? (

@@ -11,7 +11,11 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import type { Area } from "@/features/areas/types";
 import type { Role } from "@/features/roles/types";
 import type { Sede } from "@/features/sedes/types";
-import { SEDE_REQUIRED_ROLE_CODES, type UserFormData } from "@/features/users/types";
+import {
+  AREA_REQUIRED_ROLE_CODES,
+  SEDE_REQUIRED_ROLE_CODES,
+  type UserFormData,
+} from "@/features/users/types";
 
 interface UserFormProps {
   form: UserFormData;
@@ -44,7 +48,11 @@ export function UserForm({
   const internalRoles = roles.filter((r) => r.code !== "CLIENT");
   const selectedRole = internalRoles.find((r) => String(r.id) === form.role_id);
   const sedeRequired =
-    !!selectedRole && SEDE_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]);
+    !!selectedRole &&
+    SEDE_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]);
+  const areaRequired =
+    !!selectedRole &&
+    AREA_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof AREA_REQUIRED_ROLE_CODES)[number]);
 
   const formContent = (
       <form id={formId} onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
@@ -108,10 +116,11 @@ export function UserForm({
         </Select>
         <Select
           label={t("common.area")}
+          required={areaRequired}
           value={form.area_id}
           onChange={(e) => onChange({ ...form, area_id: e.target.value })}
         >
-          <option value="">{t("common.noArea")}</option>
+          <option value="">{areaRequired ? t("users.selectArea") : t("common.noArea")}</option>
           {areas.filter((a) => a.is_active).map((area) => (
             <option key={area.id} value={area.id}>
               {area.name}

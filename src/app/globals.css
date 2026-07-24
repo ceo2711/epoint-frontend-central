@@ -105,7 +105,7 @@
   --color-indigo-600: #b8966e;
   --color-emerald-100: #c4f0b2;
   --color-emerald-700: #3d6b45;
-  --font-sans: var(--font-google-sans);
+  --font-sans: "Google Sans", system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -116,7 +116,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -742,7 +742,7 @@ body {
   border-radius: 0.625rem;
   padding: 0.5rem 0.625rem;
   box-shadow: 0 1px 4px rgba(26, 16, 8, 0.07);
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   cursor: pointer;
 }
 
@@ -752,8 +752,111 @@ body {
   transform: translateY(-1px);
 }
 
+.kanban-card--urgente {
+  background: linear-gradient(160deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #ef4444;
+  border-width: 2px;
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.22);
+}
+
+.kanban-card--urgente:hover {
+  border-color: #dc2626;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.28);
+}
+
+.kanban-card--rechazada {
+  background: linear-gradient(160deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  border-width: 2px;
+}
+
+.kanban-card--rechazada:hover {
+  border-color: #d97706;
+}
+
+.kanban-card--denegada {
+  background: linear-gradient(160deg, #ffe4e6 0%, #fecdd3 100%);
+  border-color: #e11d48;
+  border-width: 2px;
+}
+
+.kanban-card--denegada:hover {
+  border-color: #be123c;
+}
+
+.kanban-card--aprobada {
+  background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #10b981;
+  border-width: 2px;
+}
+
+.kanban-card--aprobada:hover {
+  border-color: #059669;
+}
+
+.kanban-card--pendiente {
+  background: linear-gradient(160deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-color: #64748b;
+  border-width: 2px;
+}
+
+.kanban-card--pendiente:hover {
+  border-color: #475569;
+}
+
 .kanban-card p {
   color: var(--foreground);
+}
+
+/* Modal de card teñido según label */
+.card-modal-theme--urgente {
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 42%);
+  border-color: #fecaca;
+}
+
+.card-modal-theme--urgente .card-modal-header {
+  background: linear-gradient(90deg, #fee2e2, #fecaca);
+  border-bottom-color: #fca5a5;
+}
+
+.card-modal-theme--rechazada {
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 42%);
+  border-color: #fde68a;
+}
+
+.card-modal-theme--rechazada .card-modal-header {
+  background: linear-gradient(90deg, #fef3c7, #fde68a);
+  border-bottom-color: #fcd34d;
+}
+
+.card-modal-theme--denegada {
+  background: linear-gradient(180deg, #fff1f2 0%, #fff 42%);
+  border-color: #fecdd3;
+}
+
+.card-modal-theme--denegada .card-modal-header {
+  background: linear-gradient(90deg, #ffe4e6, #fecdd3);
+  border-bottom-color: #fda4af;
+}
+
+.card-modal-theme--aprobada {
+  background: linear-gradient(180deg, #ecfdf5 0%, #fff 42%);
+  border-color: #a7f3d0;
+}
+
+.card-modal-theme--aprobada .card-modal-header {
+  background: linear-gradient(90deg, #d1fae5, #a7f3d0);
+  border-bottom-color: #6ee7b7;
+}
+
+.card-modal-theme--pendiente {
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 42%);
+  border-color: #cbd5e1;
+}
+
+.card-modal-theme--pendiente .card-modal-header {
+  background: linear-gradient(90deg, #f1f5f9, #e2e8f0);
+  border-bottom-color: #cbd5e1;
 }
 
 /* ── Rich text (Markdown) ─────────────────────────── */

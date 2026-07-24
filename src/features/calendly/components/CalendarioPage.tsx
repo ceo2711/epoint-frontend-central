@@ -32,9 +32,9 @@ import {
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { CalendlyEvent } from "@/features/calendly/types";
 import { api } from "@/lib/api";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
+const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
 
 type EventFormState =
   | { mode: "create"; initialDate?: Date }
@@ -45,7 +45,7 @@ export function CalendarioPage() {
   const modal = useModal();
   const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
-  const isAdmin = isSedeAdmin(user?.role.code);
+  const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
@@ -58,13 +58,13 @@ export function CalendarioPage() {
   const [syncing, setSyncing] = useState(false);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const adminViewingRep = isAdmin && selectedRepId !== null;
+  const adminViewingRep = canSupervise && selectedRepId !== null;
 
   const targetUserId = useMemo(() => {
     if (isSalesRep) return user?.id ?? null;
-    if (isAdmin) return selectedRepId;
+    if (canSupervise) return selectedRepId;
     return null;
-  }, [isAdmin, isSalesRep, selectedRepId, user?.id]);
+  }, [canSupervise, isSalesRep, selectedRepId, user?.id]);
 
   const {
     connection,
@@ -86,7 +86,7 @@ export function CalendarioPage() {
     updateEvent,
     cancelEvent,
   } = useCalendly(token, targetUserId, {
-    enabled: !isAdmin || selectedRepId !== null,
+    enabled: !canSupervise || selectedRepId !== null,
   });
 
   const { sedes, loading: loadingSedes } = useSedes(
@@ -122,24 +122,28 @@ export function CalendarioPage() {
   );
 
   useEffect(() => {
-    if (user && !CALENDAR_ROLES.has(user.role.code)) {
+    if (!user) return;
+    const allowed =
+      CALENDAR_ROLES.has(user.role.code) &&
+      (user.role.code !== "AREA_LEADER" || isSalesAreaLeader(user));
+    if (!allowed) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canSupervise) return;
     setLoadingReps(true);
     void loadSalesReps().finally(() => setLoadingReps(false));
-  }, [isAdmin, loadSalesReps]);
+  }, [canSupervise, loadSalesReps]);
 
   useEffect(() => {
     return onCalendlyRefresh(() => {
-      if (!isAdmin || selectedRepId !== null) {
+      if (!canSupervise || selectedRepId !== null) {
         void sync();
       }
     });
-  }, [sync, isAdmin, selectedRepId]);
+  }, [sync, canSupervise, selectedRepId]);
 
   useEffect(() => {
     if (formState && isSalesRep) {
@@ -234,7 +238,11 @@ export function CalendarioPage() {
     }
   }
 
-  if (!user || !CALENDAR_ROLES.has(user.role.code)) {
+  if (
+    !user ||
+    !CALENDAR_ROLES.has(user.role.code) ||
+    (user.role.code === "AREA_LEADER" && !isSalesAreaLeader(user))
+  ) {
     return null;
   }
 
@@ -245,7 +253,7 @@ export function CalendarioPage() {
 
   const calendarContent = (
     <>
-      {(loading || (isAdmin && adminViewingRep && !selectedRep)) && (
+      {(loading || (canSupervise && adminViewingRep && !selectedRep)) && (
         <div className="flex justify-center py-12">
           <LoadingSpinner label={t("calendly.loading")} />
         </div>
@@ -294,22 +302,22 @@ export function CalendarioPage() {
   return (
     <>
       <Header
-        title={t(isAdmin ? "calendly.adminHeaderContext" : "calendly.headerContext")}
+        title={t(canSupervise ? "calendly.adminHeaderContext" : "calendly.headerContext")}
         subtitle={t(
-          isAdmin
+          canSupervise
             ? isGlobal
               ? "calendly.adminSubtitleSedes"
               : "calendly.adminSubtitle"
             : "calendly.salesSubtitle",
         )}
       />
-      {isAdmin && !adminViewingRep && (loadingReps || (isGlobal && loadingSedes)) ? (
+      {canSupervise && !adminViewingRep && (loadingReps || (isGlobal && loadingSedes)) ? (
         <PageLoader label={t("calendly.loading")} />
       ) : (
       <PageContent className="space-y-6">
         {error && <div className="alert alert-error">{error}</div>}
 
-        {isAdmin && !adminViewingRep && (
+        {canSupervise && !adminViewingRep && (
           <>
             {isGlobal && selectedSedeId === null ? (
               <SedeBranchList
@@ -344,7 +352,7 @@ export function CalendarioPage() {
           </>
         )}
 
-        {isAdmin && adminViewingRep && selectedRep && (
+        {canSupervise && adminViewingRep && selectedRep && (
           <div className="space-y-6">
             <div className="card-flat p-4 sm:p-5">
               <button

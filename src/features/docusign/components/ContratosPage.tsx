@@ -32,9 +32,9 @@ import type { Prospect } from "@/features/prospects/types";
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
+const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
 
 export function ContratosPage() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export function ContratosPage() {
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const isAdmin = isSedeAdmin(user?.role.code);
+  const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
   const canLinkProspect = hasPermission("prospects:update");
@@ -69,8 +69,8 @@ export function ContratosPage() {
     searchClients,
     loadTemplateDetail,
   } = useDocusign(token, {
-    adminView: isAdmin,
-    salesRepId: isAdmin ? selectedRepId : undefined,
+    adminView: canSupervise,
+    salesRepId: canSupervise ? selectedRepId : undefined,
     listenRefresh: true,
   });
 
@@ -102,28 +102,36 @@ export function ContratosPage() {
   const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
 
   useEffect(() => {
-    if (user && !CONTRACT_ROLES.has(user.role.code)) {
+    if (!user) return;
+    const allowed =
+      CONTRACT_ROLES.has(user.role.code) &&
+      (user.role.code !== "AREA_LEADER" || isSalesAreaLeader(user));
+    if (!allowed) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
   useEffect(() => {
-    if (!token || !isAdmin) return;
+    if (!token || !canSupervise) return;
     setLoadingReps(true);
     fetchCalendlySalesReps(token)
       .then(setSalesReps)
       .catch(() => setSalesReps([]))
       .finally(() => setLoadingReps(false));
-  }, [token, isAdmin]);
+  }, [token, canSupervise]);
 
-  if (!user || !CONTRACT_ROLES.has(user.role.code)) {
+  if (
+    !user ||
+    !CONTRACT_ROLES.has(user.role.code) ||
+    (user.role.code === "AREA_LEADER" && !isSalesAreaLeader(user))
+  ) {
     return <PageLoader />;
   }
 
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
   const adminLoading = loadingReps || (isGlobal && loadingSedes);
   // No incluir loading de envelopes: eso es carga parcial al elegir vendedor
-  const pageLoading = isAdmin
+  const pageLoading = canSupervise
     ? adminLoading || (loading && !loadingEnvelopes)
     : loading;
 
@@ -255,7 +263,7 @@ export function ContratosPage() {
     }
   }
 
-  const pageSubtitle = isAdmin
+  const pageSubtitle = canSupervise
     ? isGlobal
       ? t("docusign.adminPageSubtitleSedes")
       : t("docusign.adminPageSubtitle")
@@ -349,7 +357,7 @@ export function ContratosPage() {
 
   return (
     <>
-      <Header title={t(isAdmin ? "docusign.adminHeaderContext" : "docusign.headerContext")} subtitle={pageSubtitle} />
+      <Header title={t(canSupervise ? "docusign.adminHeaderContext" : "docusign.headerContext")} subtitle={pageSubtitle} />
       {pageLoading ? (
         <PageLoader label={t("common.loading")} />
       ) : (
@@ -360,7 +368,7 @@ export function ContratosPage() {
             </div>
           ) : null}
 
-          {isAdmin ? (
+          {canSupervise ? (
             renderAdminContent()
           ) : !connection?.connected ? (
             <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>

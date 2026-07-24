@@ -735,6 +735,12 @@ export default function ProspectoDetailPage() {
                     : (prospect.source ?? "—")
                 }
               />
+              {prospect.source === "INFLUENCERS" ? (
+                <InfoRow
+                  label={t("influencers.title")}
+                  value={prospect.influencer_name ?? "—"}
+                />
+              ) : null}
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <p className="section-label">{t("prospects.qualification")}</p>
                 <div className="mt-1">

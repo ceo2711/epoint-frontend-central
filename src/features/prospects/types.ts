@@ -75,6 +75,8 @@ export interface Prospect {
   email: string;
   phone: string;
   source: string | null;
+  influencer_id: number | null;
+  influencer_name: string | null;
   notes: string | null;
   converted_client_id: number | null;
   calendly_event_id: number | null;
@@ -112,6 +114,7 @@ export interface ProspectFormData {
   email: string;
   phone: string;
   source: string;
+  influencer_id: string;
   merchant_id: string;
   sede_id: string;
   assigned_to_user_id: string;
@@ -125,6 +128,7 @@ export const EMPTY_PROSPECT_FORM: ProspectFormData = {
   email: "",
   phone: "",
   source: "OTHER",
+  influencer_id: "",
   merchant_id: "",
   sede_id: "",
   assigned_to_user_id: "",

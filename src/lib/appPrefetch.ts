@@ -123,7 +123,14 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
       return;
 
     case "/pagos":
-      if (roleCode !== "ADMIN" && roleCode !== "BRANCH_MANAGER" && roleCode !== "SALES_REP") return;
+      if (
+        roleCode !== "ADMIN" &&
+        roleCode !== "BRANCH_MANAGER" &&
+        roleCode !== "SALES_REP" &&
+        !(roleCode === "AREA_LEADER" && user.area?.code === "VENTAS")
+      ) {
+        return;
+      }
       await queryClient.prefetchQuery({
         queryKey: queryKeys.payments.links(1, 10),
         queryFn: async () => {
@@ -139,7 +146,11 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
         await prefetchCalendlyBundle(ctx, user.id);
         return;
       }
-      if (roleCode === "ADMIN" || roleCode === "BRANCH_MANAGER") {
+      if (
+        roleCode === "ADMIN" ||
+        roleCode === "BRANCH_MANAGER" ||
+        (roleCode === "AREA_LEADER" && user.area?.code === "VENTAS")
+      ) {
         await queryClient.prefetchQuery({
           queryKey: queryKeys.calendly.salesReps,
           queryFn: () => fetchCalendlySalesReps(token),

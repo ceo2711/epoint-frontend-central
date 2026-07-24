@@ -34,9 +34,9 @@ import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
-import { isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP"]);
+const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
 
 export function PagosPage() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function PagosPage() {
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const isAdmin = isSedeAdmin(user?.role.code);
+  const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
   const isSalesRep = user?.role.code === "SALES_REP";
   const canLinkProspect = hasPermission("prospects:update");
@@ -74,8 +74,8 @@ export function PagosPage() {
     registerClient,
     isCreating,
   } = usePayments(token, {
-    adminView: isAdmin,
-    salesRepId: isAdmin ? selectedRepId : undefined,
+    adminView: canSupervise,
+    salesRepId: canSupervise ? selectedRepId : undefined,
   });
 
   useEffect(() => {
@@ -92,19 +92,23 @@ export function PagosPage() {
   );
 
   useEffect(() => {
-    if (user && !PAYMENT_ROLES.has(user.role.code)) {
+    if (!user) return;
+    const allowed =
+      PAYMENT_ROLES.has(user.role.code) &&
+      (user.role.code !== "AREA_LEADER" || isSalesAreaLeader(user));
+    if (!allowed) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
   useEffect(() => {
-    if (!token || !isAdmin) return;
+    if (!token || !canSupervise) return;
     setLoadingReps(true);
     fetchCalendlySalesReps(token)
       .then(setSalesReps)
       .catch(() => setSalesReps([]))
       .finally(() => setLoadingReps(false));
-  }, [token, isAdmin]);
+  }, [token, canSupervise]);
 
   const branches = useMemo(
     () =>
@@ -125,7 +129,11 @@ export function PagosPage() {
 
   const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
 
-  if (!user || !PAYMENT_ROLES.has(user.role.code)) {
+  if (
+    !user ||
+    !PAYMENT_ROLES.has(user.role.code) ||
+    (user.role.code === "AREA_LEADER" && !isSalesAreaLeader(user))
+  ) {
     return <PageLoader />;
   }
 
@@ -134,7 +142,7 @@ export function PagosPage() {
     ? `${selectedRep.first_name} ${selectedRep.last_name}`
     : t("common.dash");
   const adminLoading = loadingReps || (isGlobal && loadingSedes);
-  const pageLoading = isAdmin ? adminLoading : loading;
+  const pageLoading = canSupervise ? adminLoading : loading;
 
   function handleSelectSede(id: number) {
     setSelectedSedeId(id);
@@ -252,7 +260,7 @@ export function PagosPage() {
     }
   }
 
-  const pageSubtitle = isAdmin
+  const pageSubtitle = canSupervise
     ? isGlobal
       ? t("payments.adminPageSubtitleSedes")
       : t("payments.adminPageSubtitle")
@@ -350,7 +358,7 @@ export function PagosPage() {
 
   return (
     <>
-      <Header title={t(isAdmin ? "payments.adminHeaderContext" : "payments.headerContext")} subtitle={pageSubtitle} />
+      <Header title={t(canSupervise ? "payments.adminHeaderContext" : "payments.headerContext")} subtitle={pageSubtitle} />
       {pageLoading ? (
         <PageLoader label={t("common.loading")} />
       ) : (
@@ -359,7 +367,7 @@ export function PagosPage() {
             <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>
           ) : null}
 
-          {isAdmin ? (
+          {canSupervise ? (
             renderAdminContent()
           ) : (
             <div className="space-y-6">

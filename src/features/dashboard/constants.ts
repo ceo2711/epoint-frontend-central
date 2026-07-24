@@ -24,5 +24,6 @@ export const SOURCE_CHART_COLORS: Record<string, string> = {
   INSTAGRAM: "#ec4899",
   REFERRAL: "#a855f7",
   PHONE_CALL: "#f59e0b",
+  INFLUENCERS: "#f43f5e",
   OTHER: "#64748b",
 };

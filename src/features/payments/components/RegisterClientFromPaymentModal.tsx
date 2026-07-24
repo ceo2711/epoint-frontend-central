@@ -5,9 +5,9 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import type { PaymentLink } from "@/features/payments/types";
 import type { MerchantBrief } from "@/types/api";
-import { CLIENT_SOURCE_LABEL_KEYS, CLIENT_SOURCE_VALUES } from "@/features/clients/constants";
 
 interface RegisterClientFromPaymentModalProps {
   link: PaymentLink | null;
@@ -75,16 +75,7 @@ export function RegisterClientFromPaymentModal({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t("clients.source")}</label>
-          <select className="input-field w-full" value={source} onChange={(e) => setSource(e.target.value)}>
-            {CLIENT_SOURCE_VALUES.map((value) => (
-              <option key={value} value={value}>
-                {t(CLIENT_SOURCE_LABEL_KEYS[value])}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ClientSourceSelect value={source} onChange={setSource} required />
       </form>
     </Modal>
   );

@@ -43,20 +43,20 @@ const TOOLTIP_STYLE = {
 
 type SalesCommissionChartProps = {
   commission: number;
-  rate: number;
+  perSale: number;
   paidCount: number;
   series: CommissionDayPoint[];
 };
 
 export function SalesCommissionChart({
   commission,
-  rate,
+  perSale,
   paidCount,
   series,
 }: SalesCommissionChartProps) {
   const { t } = useTranslation();
-  const ratePct = Math.round(rate * 100);
   const monthLabel = series[0] ? formatMonthLabel(series[0].date) : "";
+  const perSaleLabel = formatUsd(perSale);
 
   const chartData = useMemo(
     () =>
@@ -67,7 +67,15 @@ export function SalesCommissionChart({
     [series],
   );
 
-  const todayDaily = series.at(-1)?.daily_commission ?? 0;
+  const todayIso = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, []);
+  const todayDaily =
+    series.find((point) => point.date === todayIso)?.daily_commission ?? 0;
 
   return (
     <div className="card-flat overflow-hidden">
@@ -84,7 +92,7 @@ export function SalesCommissionChart({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-lg bg-[#3d6b45]/10 px-2.5 py-1 text-xs font-semibold text-[#3d6b45]">
-              {t("dashboard.commissionRateBadge", { rate: ratePct })}
+              {t("dashboard.commissionPerSaleBadge", { amount: perSaleLabel })}
             </span>
             <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
               {t("dashboard.commissionToday", { amount: formatUsd(todayDaily) })}
@@ -92,7 +100,7 @@ export function SalesCommissionChart({
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          {t("dashboard.monthlyCommissionHint", { rate: ratePct, count: paidCount })}
+          {t("dashboard.monthlyCommissionHint", { amount: perSaleLabel, count: paidCount })}
         </p>
       </div>
 

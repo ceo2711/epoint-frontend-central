@@ -21,7 +21,9 @@ import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import { buildSedeBranchesFromReps } from "@/features/sedes/utils/sedeBranches";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
-import { isGlobalAdmin } from "@/lib/roles";
+import { isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { SalesRepList } from "@/features/calendly/components/SalesRepList";
+import { SalesLeadershipPanel } from "@/features/dashboard/components/SalesLeadershipPanel";
 
 const AREA_CODES = new Set<DashboardAreaCode>(["ONBOARDING", "VENTAS"]);
 
@@ -57,7 +59,9 @@ function DashboardPageContent() {
   const selectedAreaCode = parseAreaCode(searchParams.get("area"));
   const roleCode = user?.role.code ?? null;
   const isGlobal = isGlobalAdmin(roleCode);
+  const salesLeader = isSalesAreaLeader(user);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
+  const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
   const [loadingReps, setLoadingReps] = useState(false);
 
@@ -73,7 +77,7 @@ function DashboardPageContent() {
   );
 
   useEffect(() => {
-    if (!token || !isGlobal) {
+    if (!token || (!isGlobal && !salesLeader)) {
       setSalesReps([]);
       return;
     }
@@ -82,7 +86,7 @@ function DashboardPageContent() {
       .then(setSalesReps)
       .catch(() => setSalesReps([]))
       .finally(() => setLoadingReps(false));
-  }, [token, isGlobal]);
+  }, [token, isGlobal, salesLeader]);
 
   const branches = useMemo(
     () =>
@@ -94,6 +98,7 @@ function DashboardPageContent() {
   );
 
   const selectedSede = branches.find((branch) => branch.id === selectedSedeId) ?? null;
+  const selectedRep = salesReps.find((rep) => rep.id === selectedRepId) ?? null;
 
   const { metrics, loading, error } = useDashboardMetrics(
     token,
@@ -101,6 +106,7 @@ function DashboardPageContent() {
     activeMerchantId,
     roleCode,
     isGlobal ? selectedSedeId : null,
+    salesLeader ? selectedRepId : null,
   );
 
   const allowedAreaCodes = useMemo(
@@ -148,15 +154,25 @@ function DashboardPageContent() {
   const showAreaPanel = metrics && activeArea;
   const showSingleAreaDirect = metrics && singleArea && metrics.areas.length === 1;
 
-  const headerTitle = isGlobal ? t("dashboard.adminHeaderContext") : t("dashboard.headerContext");
+  const headerTitle = isGlobal
+    ? t("dashboard.adminHeaderContext")
+    : salesLeader
+      ? t("dashboard.leadershipHeaderContext")
+      : t("dashboard.headerContext");
   const headerSubtitle = isGlobal
     ? t("dashboard.adminPageSubtitleSedes")
-    : t("dashboard.subtitle");
+    : salesLeader
+      ? selectedRep
+        ? `${selectedRep.first_name} ${selectedRep.last_name}`
+        : t("dashboard.leadershipSubtitle")
+      : t("dashboard.subtitle");
   const adminLoading = isGlobal && (loadingReps || loadingSedes);
+  const leadership = !selectedRepId ? metrics?.sales_leadership ?? null : null;
 
   function handleBackToSedes() {
     setSelectedSedeId(null);
     setSelectedArea(null);
+    setSelectedRepId(null);
   }
 
   return (
@@ -228,16 +244,49 @@ function DashboardPageContent() {
             ) : null}
 
             {activeMerchantId && metrics && !loading ? (
-              showAreaPanel ? (
-                <AreaMetricsPanel
-                  area={activeArea!}
-                  metrics={metrics}
-                  onBack={() => setSelectedArea(null)}
-                  showBack={!showSingleAreaDirect}
-                />
-              ) : showAreaHome ? (
-                <DashboardAreaHome metrics={metrics} onSelectArea={setSelectedArea} />
-              ) : null
+              <>
+                {salesLeader && selectedRep ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRepId(null)}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                  >
+                    <VscArrowLeft className="h-4 w-4" aria-hidden />
+                    {t("users.backToVendors")}
+                  </button>
+                ) : null}
+
+                {salesLeader && !selectedRepId && leadership ? (
+                  <SalesLeadershipPanel
+                    leadership={leadership}
+                    byInfluencer={
+                      metrics.areas.find((area) => area.code === "VENTAS")?.by_influencer ?? []
+                    }
+                  />
+                ) : null}
+
+                {showAreaPanel ? (
+                  <AreaMetricsPanel
+                    area={activeArea!}
+                    metrics={metrics}
+                    onBack={() => setSelectedArea(null)}
+                    showBack={!showSingleAreaDirect && !salesLeader}
+                    showInfluencerRanking={!(salesLeader && !selectedRepId)}
+                  />
+                ) : showAreaHome ? (
+                  <DashboardAreaHome metrics={metrics} onSelectArea={setSelectedArea} />
+                ) : null}
+
+                {salesLeader && !selectedRepId && !loadingReps ? (
+                  <SalesRepList
+                    reps={salesReps}
+                    onSelect={setSelectedRepId}
+                    titleKey="users.vendorsListTitle"
+                    hintKey="users.vendorsListHint"
+                    showConnectionStatus={false}
+                  />
+                ) : null}
+              </>
             ) : null}
           </>
         ) : null}

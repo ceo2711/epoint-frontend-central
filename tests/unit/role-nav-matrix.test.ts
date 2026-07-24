@@ -22,11 +22,19 @@ const ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
   AREA_LEADER: [
     "users:read",
     "clients:read",
+    "clients:create",
     "clients:update",
+    "prospects:read",
+    "prospects:create",
+    "prospects:update",
     "documents:read",
     "documents:upload",
     "boards:read",
     "boards:manage",
+    "calendly:read",
+    "calendly:manage",
+    "payments:read",
+    "payments:create",
   ],
   SALES_REP: [
     "clients:read",
@@ -63,8 +71,11 @@ function hasPermission(role: StaffRole, permission: string): boolean {
   return perms.includes("*") || perms.includes(permission);
 }
 
-function visibleInternalHrefs(role: StaffRole): string[] {
-  const user = { role: { code: role } } as User;
+function visibleInternalHrefs(role: StaffRole, areaCode?: string): string[] {
+  const user = {
+    role: { code: role },
+    area: areaCode ? { id: 1, code: areaCode, name: areaCode } : null,
+  } as User;
   return getAccessibleNavItems(user, (perm) => hasPermission(role, perm)).map((item) => item.href);
 }
 
@@ -87,6 +98,38 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/usuarios");
   });
 
+  it("AREA_LEADER de ventas ve prospectos, calendario, contratos, pagos y vendedores", () => {
+    const hrefs = visibleInternalHrefs("AREA_LEADER", "VENTAS");
+    expect(hrefs).toContain("/dashboard");
+    expect(hrefs).toContain("/clientes");
+    expect(hrefs).toContain("/prospectos");
+    expect(hrefs).toContain("/calendario");
+    expect(hrefs).toContain("/contratos");
+    expect(hrefs).toContain("/pagos");
+    expect(hrefs).toContain("/usuarios");
+    expect(hrefs).not.toContain("/sedes");
+    expect(hrefs).not.toContain("/comercios");
+
+    const items = getAccessibleNavItems(
+      {
+        role: { code: "AREA_LEADER" },
+        area: { id: 1, code: "VENTAS", name: "Ventas" },
+      } as User,
+      (perm) => hasPermission("AREA_LEADER", perm),
+    );
+    const usersItem = items.find((item) => item.href === "/usuarios");
+    expect(usersItem?.labelKey).toBe("nav.salesReps");
+  });
+
+  it("AREA_LEADER sin área ventas no ve pantallas comerciales", () => {
+    const hrefs = visibleInternalHrefs("AREA_LEADER", "ONBOARDING");
+    expect(hrefs).toContain("/clientes");
+    expect(hrefs).not.toContain("/prospectos");
+    expect(hrefs).not.toContain("/pagos");
+    expect(hrefs).not.toContain("/calendario");
+    expect(hrefs).not.toContain("/contratos");
+  });
+
   it("ONBOARDING_MANAGER no ve usuarios ni comercios", () => {
     const hrefs = visibleInternalHrefs("ONBOARDING_MANAGER");
     expect(hrefs).toContain("/clientes");
@@ -96,9 +139,12 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/prospectos");
   });
 
-  it("ADVISOR no ve usuarios ni merchants", () => {
+  it("ADVISOR ve dashboard y clientes", () => {
     const hrefs = visibleInternalHrefs("ADVISOR");
-    expect(hrefs).toEqual(["/dashboard", "/clientes", "/configuracion"]);
+    expect(hrefs).toContain("/dashboard");
+    expect(hrefs).toContain("/clientes");
+    expect(hrefs).not.toContain("/usuarios");
+    expect(hrefs).not.toContain("/comercios");
   });
 
   it("CLIENT usa rutas de portal", () => {

@@ -3,11 +3,7 @@
 import { useMemo } from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-import {
-  CLIENT_SOURCE_LABEL_KEYS,
-  CLIENT_SOURCE_VALUES,
-  type ClientSourceValue,
-} from "@/features/clients/constants";
+import { clientSourceLabelKey } from "@/features/clients/constants";
 import { SOURCE_CHART_COLORS } from "@/features/dashboard/constants";
 import type { SourceCount } from "@/features/dashboard/types";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -18,20 +14,22 @@ const CHART_TOOLTIP_STYLE = {
   boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
 };
 
+const FALLBACK_COLORS = ["#0ea5e9", "#22c55e", "#3b82f6", "#ec4899", "#a855f7", "#f59e0b", "#f43f5e", "#64748b"];
+
 export function SourceOriginBreakdown({ data }: { data: SourceCount[] }) {
   const { t } = useTranslation();
 
   const chartData = useMemo(() => {
-    const counts = new Map(data.map((item) => [item.source, item.count]));
-    return CLIENT_SOURCE_VALUES.map((source) => {
-      const count = counts.get(source) ?? 0;
-      const labelKey = CLIENT_SOURCE_LABEL_KEYS[source as ClientSourceValue];
-      return {
-        source,
-        name: t(labelKey as never),
-        value: count,
-      };
-    }).filter((item) => item.value > 0);
+    return data
+      .filter((item) => item.count > 0)
+      .map((item) => {
+        const labelKey = clientSourceLabelKey(item.source);
+        return {
+          source: item.source,
+          name: labelKey ? t(labelKey as never) : item.source,
+          value: item.count,
+        };
+      });
   }, [data, t]);
 
   const total = chartData.reduce((sum, item) => sum + item.value, 0);
@@ -63,8 +61,11 @@ export function SourceOriginBreakdown({ data }: { data: SourceCount[] }) {
                 outerRadius={96}
                 paddingAngle={2}
               >
-                {chartData.map((entry) => (
-                  <Cell key={entry.source} fill={SOURCE_CHART_COLORS[entry.source] ?? "#64748b"} />
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={entry.source}
+                    fill={SOURCE_CHART_COLORS[entry.source] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip

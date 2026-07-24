@@ -102,6 +102,21 @@ export interface Merchant {
   sede_id: number;
 }
 
+export interface Source {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface SourceBrief {
+  code: string;
+  name: string;
+}
+
 export interface Sede {
   id: number;
   code: string;
@@ -236,6 +251,8 @@ export interface BoardCard {
   instructions_md: string | null;
   external_links: string | null;
   status: string;
+  /** Etiqueta visual (URGENTE, RECHAZADA, etc.). Independiente del status kanban. */
+  label?: string | null;
   position: number;
   requires_credentials: boolean;
   requires_file_upload: boolean;

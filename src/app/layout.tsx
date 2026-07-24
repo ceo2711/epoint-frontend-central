@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
-import { Google_Sans, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/AppProviders";
 import { EPOINT_LOGO_PATH } from "@/components/layout/AppLogo";
 
 import "./globals.css";
-
-const googleSans = Google_Sans({
-  variable: "--font-google-sans",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-  adjustFontFallback: false,
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -33,8 +26,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${googleSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className={`${googleSans.className} h-full w-full overflow-x-hidden bg-cream-400 text-slate-900`}>
+    <html lang="es" className={`${geistMono.variable} h-full antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="h-full w-full overflow-x-hidden bg-cream-400 font-sans text-slate-900">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

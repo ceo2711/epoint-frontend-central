@@ -11,10 +11,15 @@ export function useDashboardMetrics(
   merchantId: number | null,
   roleCode: string | null,
   sedeId?: number | null,
+  salesRepId?: number | null,
 ) {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: queryKeys.dashboard.metrics(merchantId, roleCode, sedeId),
-    queryFn: () => fetchDashboardMetrics(token!, { sedeId }),
+    queryKey: queryKeys.dashboard.metrics(merchantId, roleCode, sedeId, salesRepId),
+    queryFn: () =>
+      fetchDashboardMetrics(token!, {
+        sedeId,
+        salesRepId,
+      }),
     enabled: !!token && enabled && merchantId != null && !!roleCode,
   });
 

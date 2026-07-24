@@ -2,6 +2,8 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
+import { HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2";
+
 import { Button } from "@/components/ui/Button";
 import { VerificationBadge } from "@/components/ui/Badge";
 import { Input, PasswordInput } from "@/components/ui/Input";
@@ -11,8 +13,13 @@ import { RichTextContent } from "@/components/ui/RichTextContent";
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
 import { DocumentVerificationTooltip } from "@/features/documents/components/DocumentVerificationTooltip";
 import { CardAttachmentThumbnail } from "@/features/boards/components/CardAttachmentThumbnail";
+import { CardLabelBadge, CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
 import { CommentBody } from "@/features/boards/components/CommentBody";
 import { CommentMentionTextarea } from "@/features/boards/components/CommentMentionTextarea";
+import {
+  cardModalThemeClass,
+  type BoardCardLabel,
+} from "@/features/boards/constants/cardLabels";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { api } from "@/lib/api";
@@ -31,11 +38,14 @@ interface CardDetailModalProps {
   token: string | null;
   onClose: () => void;
   onUpdateDescription: (cardId: number, description: string) => Promise<void>;
+  onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   onSubmitComment: (cardId: number, body: string, files: File[], isInternal: boolean) => Promise<void>;
   onUploadAttachment: (cardId: number, file: File) => Promise<void>;
   onSubmitCredentials?: (cardId: number, username: string, password: string) => Promise<void>;
+  onDeleteCard?: (cardId: number) => Promise<void>;
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
+  canSetLabel?: boolean;
 }
 
 function formatActivityDate(value: string, locale: string) {
@@ -65,17 +75,22 @@ export function CardDetailModal({
   token,
   onClose,
   onUpdateDescription,
+  onUpdateLabel,
   onSubmitComment,
   onUploadAttachment,
   onSubmitCredentials,
+  onDeleteCard,
   canPostInternalComments = false,
   canEditDescription = false,
+  canSetLabel = false,
 }: CardDetailModalProps) {
   const { t, locale } = useTranslation();
   const modal = useModal();
   const [description, setDescription] = useState(cardDescription(card));
   const [editingDescription, setEditingDescription] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [savingLabel, setSavingLabel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [comment, setComment] = useState("");
   const [internalComment, setInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -190,6 +205,22 @@ export function CardDetailModal({
     }
   }
 
+  async function handleLabelChange(next: BoardCardLabel) {
+    if (!onUpdateLabel) return;
+    setSavingLabel(true);
+    try {
+      await onUpdateLabel(card.id, next);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.cardLabelError")),
+        variant: "error",
+      });
+    } finally {
+      setSavingLabel(false);
+    }
+  }
+
   return (
     <>
       <ModalPortal>
@@ -198,15 +229,29 @@ export function CardDetailModal({
           onClick={onClose}
         >
           <div
-            className="modal-panel modal-panel-xl flex max-h-[92vh] w-full flex-col overflow-hidden p-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] sm:rounded-xl"
+            className={`modal-panel modal-panel-xl flex max-h-[92vh] w-full flex-col overflow-hidden border p-0 transition-[background,border-color] duration-300 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] sm:rounded-xl ${cardModalThemeClass(card.label)}`}
             onClick={(e) => e.stopPropagation()}
           >
           {/* Header */}
-          <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="card-modal-header shrink-0 border-b px-4 py-3 transition-colors duration-300 sm:px-6 sm:py-4">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="min-w-0 flex-1 pr-2 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
-                {card.title}
-              </h2>
+              <div className="min-w-0 flex-1 pr-2">
+                <h2 className="text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+                  {card.title}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <CardLabelBadge label={card.label} />
+                  {canSetLabel && onUpdateLabel ? (
+                    <CardLabelPicker
+                      value={card.label}
+                      disabled={savingLabel}
+                      onChange={(next) => {
+                        void handleLabelChange(next);
+                      }}
+                    />
+                  ) : null}
+                </div>
+              </div>
               <ModalCloseButton onClick={onClose} />
             </div>
           </div>
@@ -218,10 +263,39 @@ export function CardDetailModal({
               <section>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <SectionLabel>{t("portalBoard.description")}</SectionLabel>
-                  {!editingDescription && canEditDescription && (
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditingDescription(true)}>
-                      {t("portalBoard.editDescription")}
-                    </button>
+                  {!editingDescription && (canEditDescription || onDeleteCard) && (
+                    <div className="flex items-center gap-0.5">
+                      {canEditDescription && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm !px-2 text-slate-500 hover:text-slate-800"
+                          title={t("portalBoard.editDescription")}
+                          aria-label={t("portalBoard.editDescription")}
+                          onClick={() => setEditingDescription(true)}
+                        >
+                          <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
+                        </button>
+                      )}
+                      {onDeleteCard && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-lg p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-50"
+                          title={t("portalBoard.deleteCard")}
+                          aria-label={t("portalBoard.deleteCard")}
+                          disabled={deleting}
+                          onClick={async () => {
+                            setDeleting(true);
+                            try {
+                              await onDeleteCard(card.id);
+                            } finally {
+                              setDeleting(false);
+                            }
+                          }}
+                        >
+                          <HiOutlineTrash className="h-4 w-4" aria-hidden />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 {editingDescription ? (

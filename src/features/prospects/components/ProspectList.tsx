@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { HiOutlineEnvelope, HiOutlineTrash } from "react-icons/hi2";
+import { HiOutlineEnvelope, HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2";
 
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useModal } from "@/contexts/ModalContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
+import { ProspectEditModal } from "@/features/prospects/components/ProspectEditModal";
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import type { Prospect } from "@/features/prospects/types";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -18,16 +19,19 @@ import { isSedeAdmin } from "@/lib/roles";
 interface ProspectListProps {
   prospects: Prospect[];
   onDeleted?: () => void;
+  onUpdated?: () => void;
 }
 
-export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
+export function ProspectList({ prospects, onDeleted, onUpdated }: ProspectListProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const modal = useModal();
-  const { token, user } = useAuth();
+  const { token, user, hasPermission } = useAuth();
   const [emailTarget, setEmailTarget] = useState<Prospect | null>(null);
+  const [editTarget, setEditTarget] = useState<Prospect | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const isAdmin = isSedeAdmin(user?.role.code);
+  const canEdit = hasPermission("prospects:update");
 
   async function handleDelete(prospect: Prospect) {
     if (!token || deletingId !== null) return;
@@ -61,6 +65,13 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
 
   const prospectActions = (prospect: Prospect) => (
     <TableActions>
+      {canEdit && !prospect.converted_client_id ? (
+        <IconActionButton
+          label={t("common.edit")}
+          icon={<HiOutlinePencilSquare className="h-4 w-4" />}
+          onClick={() => setEditTarget(prospect)}
+        />
+      ) : null}
       <IconActionButton
         label={t("emailCompose.action")}
         icon={<HiOutlineEnvelope className="h-4 w-4" />}
@@ -80,7 +91,6 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
 
   return (
     <>
-      {/* Mobile: cards */}
       <div className="space-y-3 md:hidden">
         {prospects.map((prospect) => (
           <div
@@ -131,7 +141,6 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
         ))}
       </div>
 
-      {/* Desktop / tablet: table */}
       <div className="table-wrap max-md:hidden">
         <table className="table-modern">
           <thead>
@@ -187,6 +196,15 @@ export function ProspectList({ prospects, onDeleted }: ProspectListProps) {
           recipientEmail={emailTarget.email}
           basePath={`/prospects/${emailTarget.id}`}
           onClose={() => setEmailTarget(null)}
+        />
+      ) : null}
+
+      {editTarget ? (
+        <ProspectEditModal
+          prospect={editTarget}
+          token={token}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => onUpdated?.()}
         />
       ) : null}
     </>

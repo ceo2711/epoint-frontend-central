@@ -14,13 +14,14 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { useAreas } from "@/features/areas/hooks/useAreas";
 import { useRoles } from "@/features/roles/hooks/useRoles";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
+import { SalesLeaderVendorsPage } from "@/features/users/components/SalesLeaderVendorsPage";
 import { UserDetailModal } from "@/features/users/components/UserDetailModal";
 import { UserFormModal } from "@/features/users/components/UserFormModal";
 import { UserListFilters } from "@/features/users/components/UserListFilters";
 import { UsersTable } from "@/features/users/components/UsersTable";
 import { useUsers } from "@/features/users/hooks/useUsers";
 import type { User } from "@/features/users/types";
-import { isGlobalAdmin } from "@/lib/roles";
+import { isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 import { api } from "@/lib/api";
 
 export default function UsuariosPage() {
@@ -40,7 +41,7 @@ export default function UsuariosPage() {
 
   const { users, loading, error, reload } = useUsers(
     token,
-    hasPermission("users:read"),
+    hasPermission("users:read") && !isSalesAreaLeader(currentUser),
     t("users.loadError"),
     t("users.noPermission"),
     {
@@ -60,6 +61,10 @@ export default function UsuariosPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
   const [viewing, setViewing] = useState<User | null>(null);
+
+  if (isSalesAreaLeader(currentUser)) {
+    return <SalesLeaderVendorsPage />;
+  }
 
   function openCreate() {
     setEditing(null);

@@ -17,6 +17,7 @@ import type { Role } from "@/features/roles/types";
 import type { Sede } from "@/features/sedes/types";
 import { UserForm } from "@/features/users/components/UserForm";
 import {
+  AREA_REQUIRED_ROLE_CODES,
   EMPTY_USER_FORM,
   SEDE_REQUIRED_ROLE_CODES,
   type User,
@@ -168,6 +169,9 @@ export function UserFormModal({
     const sedeRequired =
       !!selectedRole &&
       SEDE_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]);
+    const areaRequired =
+      !!selectedRole &&
+      AREA_REQUIRED_ROLE_CODES.includes(selectedRole.code as (typeof AREA_REQUIRED_ROLE_CODES)[number]);
 
     const payload: Record<string, unknown> = {
       email: form.email,
@@ -177,6 +181,10 @@ export function UserFormModal({
       role_id: Number(form.role_id),
       area_id: form.area_id ? Number(form.area_id) : null,
     };
+
+    if (areaRequired && !form.area_id) {
+      throw new Error(t("users.areaRequired"));
+    }
 
     if (showSedeSelect) {
       payload.sede_id = sedeRequired && form.sede_id ? Number(form.sede_id) : null;
