@@ -11,6 +11,8 @@ export interface NavItem {
   roles?: readonly StaffRoleCode[];
   /** Ítems de supervisión comercial: visibles para líder solo si área = VENTAS. */
   salesAreaOnly?: boolean;
+  /** Solo vendedores (no subvendedores). */
+  salesTeamPage?: boolean;
 }
 
 export const internalNav: NavItem[] = [
@@ -57,6 +59,13 @@ export const internalNav: NavItem[] = [
     permission: null,
     roles: ["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"],
     salesAreaOnly: true,
+  },
+  {
+    href: "/equipo",
+    labelKey: "nav.subSellers",
+    icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
+    roles: ["SALES_REP"],
+    salesTeamPage: true,
   },
   {
     href: "/usuarios",
@@ -140,6 +149,9 @@ export function getAccessibleNavItems(
       return false;
     }
     if (item.salesAreaOnly && user.role.code === "AREA_LEADER" && !salesLeader) {
+      return false;
+    }
+    if (item.salesTeamPage && (user.role.code !== "SALES_REP" || user.is_sub_seller)) {
       return false;
     }
     return !item.permission || hasPermission(item.permission);

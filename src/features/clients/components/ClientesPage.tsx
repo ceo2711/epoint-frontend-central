@@ -28,7 +28,7 @@ import {
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
 import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
-import { canSuperviseSalesReps, isGlobalAdmin, isSedeAdmin } from "@/lib/roles";
+import { canFilterClientsBySalesRep, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
@@ -36,12 +36,13 @@ export function ClientesPage() {
   const { t } = useTranslation();
   const roleCode = user?.role.code;
   const sedeAdmin = isSedeAdmin(roleCode);
-  const canSupervise = canSuperviseSalesReps(user);
+  const canFilterBySalesRep = canFilterClientsBySalesRep(user);
+  const onboardingAreaLeader = isOnboardingAreaLeader(user);
   const isGlobal = isGlobalAdmin(roleCode);
   const clientsSubtitle =
     roleCode === "ADVISOR"
       ? t("clients.subtitleAdvisor")
-      : roleCode === "ONBOARDING_MANAGER"
+      : roleCode === "ONBOARDING_MANAGER" || onboardingAreaLeader
         ? t("clients.subtitleOnboarding")
         : t("clients.subtitle");
   const [page, setPage] = useState(1);
@@ -55,11 +56,15 @@ export function ClientesPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
-  const showSalesRepFilter = canSupervise;
-  const showAdvisorColumn = roleCode === "SALES_REP" || canSupervise;
+  const showSalesRepFilter = canFilterBySalesRep;
+  const showAdvisorColumn = roleCode === "SALES_REP" || canFilterBySalesRep;
   const canBulkDelete = sedeAdmin && hasPermission("clients:delete");
   const showSedePicker = isGlobal && selectedSedeId === null;
   const listEnabled = !isGlobal || selectedSedeId != null;
+  const onboardingOnly =
+    roleCode === "ONBOARDING_MANAGER" ||
+    roleCode === "BRANCH_MANAGER" ||
+    onboardingAreaLeader;
 
   const { sedes, loading: loadingSedes } = useSedes(
     token,
@@ -130,7 +135,7 @@ export function ClientesPage() {
   }, [showMerchantFilter]);
 
   const { clients, loading, load, total, pages, pageSize } = useClients(token, authLoading, {
-    onboardingOnly: roleCode === "ONBOARDING_MANAGER",
+    onboardingOnly,
     page,
     pageSize: CLIENTS_PAGE_SIZE,
     search: debouncedSearch,

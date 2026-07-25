@@ -35,8 +35,14 @@ function salesRepLabel(client: Client, dash: string) {
 }
 
 function advisorLabel(client: Client, dash: string) {
-  if (!client.advisor) return dash;
-  return `${client.advisor.first_name} ${client.advisor.last_name}`;
+  const list = client.advisors?.length
+    ? client.advisors
+    : client.advisor
+      ? [client.advisor]
+      : [];
+  if (!list.length) return dash;
+  if (list.length === 1) return `${list[0].first_name} ${list[0].last_name}`;
+  return `${list[0].first_name} ${list[0].last_name} +${list.length - 1}`;
 }
 
 export function ClientList({

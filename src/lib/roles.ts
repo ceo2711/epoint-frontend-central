@@ -34,7 +34,18 @@ export function isSalesAreaLeader(user: User | null | undefined): boolean {
   return user?.role.code === "AREA_LEADER" && user.area?.code === "VENTAS";
 }
 
+export function isOnboardingAreaLeader(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
+  return user?.role.code === "AREA_LEADER" && user.area?.code === "ONBOARDING";
+}
+
 /** Puede ver/filtrar el trabajo de vendedores (gerente/admin o líder de ventas). */
 export function canSuperviseSalesReps(user: User | null | undefined): boolean {
   return isSedeAdmin(user?.role.code) || isSalesAreaLeader(user);
+}
+
+/** Filtro por vendedor en listado de clientes (incluye líder de onboarding). */
+export function canFilterClientsBySalesRep(user: User | null | undefined): boolean {
+  return canSuperviseSalesReps(user) || isOnboardingAreaLeader(user);
 }

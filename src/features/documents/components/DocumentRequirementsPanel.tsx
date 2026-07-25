@@ -107,6 +107,8 @@ function DocumentUploadRow({
                     locale={locale}
                     rejectionTitle={t("portalDocs.rejectionTitle")}
                     approvalTitle={t("portalDocs.approvalTitle")}
+                    expiringTitle={t("portalDocs.expiringTitle")}
+                    expiringAction={t("portalDocs.expiringAction")}
                     viewLabel={t("portalDocs.viewVerificationDetails")}
                   />
                 </div>

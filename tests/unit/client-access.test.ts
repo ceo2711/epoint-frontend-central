@@ -5,33 +5,66 @@ import {
   canViewApprovedClientWorkspace,
   canViewClientOnboardingWorkspace,
 } from "@/features/clients/client-access";
+import type { AreaBrief, RoleBrief } from "@/types/api";
+
+function role(code: string): RoleBrief {
+  return { id: 1, code, name: code };
+}
+
+function area(id: number, code: string, name: string): AreaBrief {
+  return { id, code, name };
+}
 
 describe("canViewClientOnboardingWorkspace", () => {
-  it("permite admin, onboarding y asesor", () => {
-    expect(canViewClientOnboardingWorkspace({ id: 1, role: { code: "ADMIN" } })).toBe(true);
-    expect(canViewClientOnboardingWorkspace({ id: 1, role: { code: "ONBOARDING_MANAGER" } })).toBe(true);
-    expect(canViewClientOnboardingWorkspace({ id: 1, role: { code: "ADVISOR" } })).toBe(true);
+  it("permite admin, gerente, onboarding, líder onboarding y asesor", () => {
+    expect(canViewClientOnboardingWorkspace({ id: 1, role: role("ADMIN"), area: null })).toBe(true);
+    expect(
+      canViewClientOnboardingWorkspace({ id: 1, role: role("BRANCH_MANAGER"), area: null }),
+    ).toBe(true);
+    expect(
+      canViewClientOnboardingWorkspace({ id: 1, role: role("ONBOARDING_MANAGER"), area: null }),
+    ).toBe(true);
+    expect(
+      canViewClientOnboardingWorkspace({
+        id: 1,
+        role: role("AREA_LEADER"),
+        area: area(2, "ONBOARDING", "Onboarding"),
+      }),
+    ).toBe(true);
+    expect(canViewClientOnboardingWorkspace({ id: 1, role: role("ADVISOR"), area: null })).toBe(
+      true,
+    );
   });
 
-  it("niega vendedor y otros roles", () => {
-    expect(canViewClientOnboardingWorkspace({ id: 1, role: { code: "SALES_REP" } })).toBe(false);
-    expect(canViewClientOnboardingWorkspace({ id: 1, role: { code: "AREA_LEADER" } })).toBe(false);
+  it("niega vendedor y líder de ventas", () => {
+    expect(canViewClientOnboardingWorkspace({ id: 1, role: role("SALES_REP"), area: null })).toBe(
+      false,
+    );
+    expect(
+      canViewClientOnboardingWorkspace({
+        id: 1,
+        role: role("AREA_LEADER"),
+        area: area(1, "VENTAS", "Ventas"),
+      }),
+    ).toBe(false);
     expect(canViewClientOnboardingWorkspace(null)).toBe(false);
   });
 });
 
 describe("canViewApprovedClientWorkspace", () => {
-  const onboardingUser = { id: 1, role: { code: "ONBOARDING_MANAGER" as const } };
+  const onboardingUser = { id: 1, role: role("ONBOARDING_MANAGER"), area: null };
 
   it("requiere cliente aprobado", () => {
     expect(canViewApprovedClientWorkspace(onboardingUser, { approved_at: null })).toBe(false);
-    expect(canViewApprovedClientWorkspace(onboardingUser, { approved_at: "2026-07-05T00:00:00Z" })).toBe(true);
+    expect(canViewApprovedClientWorkspace(onboardingUser, { approved_at: "2026-07-05T00:00:00Z" })).toBe(
+      true,
+    );
   });
 });
 
 describe("canEditClientProfile", () => {
-  const onboardingUser = { role: { code: "ONBOARDING_MANAGER" as const } };
-  const salesUser = { role: { code: "SALES_REP" as const } };
+  const onboardingUser = { role: role("ONBOARDING_MANAGER"), area: null };
+  const salesUser = { role: role("SALES_REP"), area: null };
 
   it("onboarding puede editar clientes aprobados", () => {
     expect(canEditClientProfile(onboardingUser, { status: "EN_CARGA_DATOS" }, true)).toBe(true);

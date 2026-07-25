@@ -9,7 +9,7 @@ const statusBadgeClass: Record<string, string> = {
   APROBADO_PARA_ONBOARDING: "badge-green",
   EN_CARGA_DATOS: "badge-blue",
   DOCUMENTOS_EN_REVISION: "badge-blue",
-  LISTO_PARA_TABLERO: "badge-green",
+  LISTO_PARA_TRABAJAR: "badge-green",
   ONBOARDING_EN_PROGRESO: "badge-blue",
   ONBOARDING_COMPLETADO: "badge-green",
   INACTIVO: "badge-slate",

@@ -34,6 +34,10 @@ export interface User {
   avatar_url?: string | null;
   permissions?: string[];
   client_id?: number | null;
+  parent_user_id?: number | null;
+  can_manage_sub_sellers?: boolean;
+  is_sub_seller?: boolean;
+  previous_month_sales?: number | null;
   merchants?: MerchantBrief[];
   active_merchant_id?: number | null;
   active_merchant?: MerchantBrief | null;
@@ -173,6 +177,7 @@ export interface Client {
   portal_login_url?: string | null;
   portal_temp_password?: string | null;
   advisor?: AdvisorBrief | null;
+  advisors?: AdvisorBrief[];
   addresses?: Address[];
   vehicles?: Vehicle[];
   documents?: DocumentBrief[];
@@ -304,7 +309,7 @@ export const CLIENT_STATUS_LABELS: Record<string, string> = {
   APROBADO_PARA_ONBOARDING: "Aprobado",
   EN_CARGA_DATOS: "En carga de datos",
   DOCUMENTOS_EN_REVISION: "Documentos en revisión",
-  LISTO_PARA_TABLERO: "Listo para tablero",
+  LISTO_PARA_TRABAJAR: "Listo para trabajar",
   ONBOARDING_EN_PROGRESO: "Onboarding en progreso",
   ONBOARDING_COMPLETADO: "Completado",
   INACTIVO: "Inactivo",

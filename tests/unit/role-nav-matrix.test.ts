@@ -90,12 +90,25 @@ describe("role navigation matrix", () => {
     expect(hrefs).toContain("/pagos");
   });
 
-  it("SALES_REP ve dashboard, clientes y prospectos", () => {
+  it("SALES_REP ve dashboard, clientes, prospectos y su equipo", () => {
     const hrefs = visibleInternalHrefs("SALES_REP");
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/clientes");
     expect(hrefs).toContain("/prospectos");
+    expect(hrefs).toContain("/equipo");
     expect(hrefs).not.toContain("/usuarios");
+  });
+
+  it("subvendedor no ve la página de equipo", () => {
+    const hrefs = getAccessibleNavItems(
+      {
+        role: { code: "SALES_REP" },
+        area: null,
+        is_sub_seller: true,
+      } as User,
+      (perm) => hasPermission("SALES_REP", perm),
+    ).map((item) => item.href);
+    expect(hrefs).not.toContain("/equipo");
   });
 
   it("AREA_LEADER de ventas ve prospectos, calendario, contratos, pagos y vendedores", () => {

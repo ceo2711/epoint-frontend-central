@@ -1,9 +1,10 @@
 import type { ChatMessage, PendingChatAction } from "@/features/chat/types";
 
-const STORAGE_PREFIX = "epoint_chat_v1";
+const STORAGE_PREFIX = "epoint_chat_v2";
 const MAX_PERSISTED_MESSAGES = 100;
 
 export interface PersistedChatState {
+  conversationId: number | null;
   messages: ChatMessage[];
   pendingAction: PendingChatAction | null;
   chatLocale: "es" | "en";
@@ -47,8 +48,13 @@ function normalizeState(raw: unknown): PersistedChatState | null {
     typeof data.activeClientId === "number" && Number.isFinite(data.activeClientId)
       ? data.activeClientId
       : null;
+  const conversationId =
+    typeof data.conversationId === "number" && Number.isFinite(data.conversationId)
+      ? data.conversationId
+      : null;
 
   return {
+    conversationId,
     messages,
     pendingAction,
     chatLocale,
@@ -74,6 +80,7 @@ export function saveChatState(
 ): void {
   if (typeof window === "undefined") return;
   const payload: PersistedChatState = {
+    conversationId: state.conversationId,
     messages: state.messages.slice(-MAX_PERSISTED_MESSAGES),
     pendingAction: state.pendingAction,
     chatLocale: state.chatLocale,

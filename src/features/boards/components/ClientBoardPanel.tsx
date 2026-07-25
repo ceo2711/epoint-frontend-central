@@ -29,7 +29,13 @@ function normalizeCard(card: BoardCard): BoardCard {
   };
 }
 
-const BOARD_STAFF_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_STAFF_ROLES = new Set([
+  "ADMIN",
+  "BRANCH_MANAGER",
+  "ONBOARDING_MANAGER",
+  "ADVISOR",
+  "AREA_LEADER",
+]);
 const BOARD_CARD_DELETE_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
 const BOARD_CARD_LABEL_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
 

@@ -87,4 +87,28 @@ export interface ChatbotApiResponse {
   calendly_options: ChatCalendlyOptions | null;
   clients_updated?: boolean;
   calendly_updated?: boolean;
+  conversation_id?: number | null;
+}
+
+export interface ChatConversationSummary {
+  id: number;
+  title: string;
+  chat_locale: string;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatConversationDetail {
+  id: number;
+  title: string;
+  chat_locale: string;
+  created_at: string;
+  updated_at: string;
+  messages: Array<{
+    id: number;
+    role: "user" | "assistant";
+    content: string;
+    created_at: string;
+  }>;
 }

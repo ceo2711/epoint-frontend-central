@@ -18,6 +18,8 @@ interface DocumentVerificationTooltipProps {
   locale: Locale;
   rejectionTitle: string;
   approvalTitle: string;
+  expiringTitle: string;
+  expiringAction: string;
   viewLabel: string;
 }
 
@@ -28,6 +30,8 @@ export function DocumentVerificationTooltip({
   locale,
   rejectionTitle,
   approvalTitle,
+  expiringTitle,
+  expiringAction,
   viewLabel,
 }: DocumentVerificationTooltipProps) {
   const [open, setOpen] = useState(false);
@@ -42,12 +46,20 @@ export function DocumentVerificationTooltip({
   const approvalMessages = pickLocalizedMessages(doc.approval_reasons, locale);
 
   const isRejected = doc.verification_status === "RECHAZADO";
-  const isApproved =
-    doc.verification_status === "APROBADO" || doc.verification_status === "PROXIMO_A_VENCER";
+  // Un documento por vencer no habilita el avance del onboarding: se comunica
+  // como acción pendiente, no como aprobación.
+  const isExpiring = doc.verification_status === "PROXIMO_A_VENCER";
+  const isApproved = doc.verification_status === "APROBADO";
 
-  const messages = isRejected ? rejectionMessages : isApproved ? approvalMessages : [];
-  const title = isRejected ? rejectionTitle : approvalTitle;
-  const tone = isRejected ? "red" : "green";
+  const messages = isRejected
+    ? rejectionMessages
+    : isExpiring
+      ? [expiringAction, ...approvalMessages]
+      : isApproved
+        ? approvalMessages
+        : [];
+  const title = isRejected ? rejectionTitle : isExpiring ? expiringTitle : approvalTitle;
+  const tone = isRejected ? "red" : isExpiring ? "amber" : "green";
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -114,12 +126,19 @@ export function DocumentVerificationTooltip({
           title: "text-red-800",
           item: "text-red-700",
         }
-      : {
-          button: "text-emerald-600 hover:bg-emerald-50 focus-visible:ring-emerald-200",
-          panel: "border-emerald-200 bg-white",
-          title: "text-emerald-800",
-          item: "text-emerald-700",
-        };
+      : tone === "amber"
+        ? {
+            button: "text-amber-600 hover:bg-amber-50 focus-visible:ring-amber-200",
+            panel: "border-amber-200 bg-white",
+            title: "text-amber-800",
+            item: "text-amber-700",
+          }
+        : {
+            button: "text-emerald-600 hover:bg-emerald-50 focus-visible:ring-emerald-200",
+            panel: "border-emerald-200 bg-white",
+            title: "text-emerald-800",
+            item: "text-emerald-700",
+          };
 
   const placementStyles =
     placement === "top"

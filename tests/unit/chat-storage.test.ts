@@ -18,6 +18,7 @@ describe("chat-storage", () => {
   it("stores and retrieves conversation per user", () => {
     saveChatState(7, {
       messages: [{ id: "1", role: "user", content: "Hola" }],
+      conversationId: null,
       pendingAction: null,
       chatLocale: "es",
       activeClientId: 103,
@@ -32,12 +33,14 @@ describe("chat-storage", () => {
   it("keeps conversations isolated by user id", () => {
     saveChatState(1, {
       messages: [{ id: "1", role: "user", content: "Usuario 1" }],
+      conversationId: null,
       pendingAction: null,
       chatLocale: "es",
       activeClientId: null,
     });
     saveChatState(2, {
       messages: [{ id: "2", role: "user", content: "Usuario 2" }],
+      conversationId: null,
       pendingAction: null,
       chatLocale: "en",
       activeClientId: null,
@@ -50,6 +53,7 @@ describe("chat-storage", () => {
   it("clears stored conversation for the user", () => {
     saveChatState(9, {
       messages: [{ id: "1", role: "assistant", content: "Hola" }],
+      conversationId: null,
       pendingAction: null,
       chatLocale: "es",
       activeClientId: null,

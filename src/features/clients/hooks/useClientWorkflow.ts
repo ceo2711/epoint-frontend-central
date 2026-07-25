@@ -42,40 +42,17 @@ export function useClientWorkflow(token: string | null) {
   const approveClient = useCallback(
     async (clientId: number, clientName?: string) => {
       if (!token) return false;
-      let list: AdvisorOption[];
-      try {
-        list = advisors.length ? advisors : await loadAdvisors();
-      } catch (err) {
-        await modal.alert({
-          title: t("clients.approve"),
-          message: getUserFacingErrorMessage(err, t("clients.advisorsLoadError")),
-          variant: "error",
-        });
-        return false;
-      }
-      if (!list.length) {
-        await modal.alert({
-          title: t("clients.approve"),
-          message: t("clients.noAdvisors"),
-          variant: "error",
-        });
-        return false;
-      }
 
-      return modal.approveWithAdvisor({
+      return modal.confirm({
         title: t("clients.approveTitle"),
         message: t("clients.approveConfirm", { name: clientName ?? "" }),
-        advisors: list.map((a) => ({
-          id: a.id,
-          label: `${a.first_name} ${a.last_name} (${a.email})`,
-        })),
         confirmLabel: t("clients.approve"),
         loadingMessage: t("clients.approving"),
-        onConfirm: async (advisorId) => {
+        onConfirmAsync: async () => {
           try {
             const res = await api.post<{ client: Client; temp_password: string }>(
               `/clients/${clientId}/approve`,
-              { advisor_user_id: advisorId },
+              {},
               token,
             );
             savePortalCredentials(clientId, {
@@ -100,7 +77,7 @@ export function useClientWorkflow(token: string | null) {
         },
       });
     },
-    [token, advisors, loadAdvisors, modal, t, queryClient],
+    [token, modal, t, queryClient],
   );
 
   const rejectClient = useCallback(

@@ -40,7 +40,7 @@ import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/doc
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
-import { isSedeAdmin } from "@/lib/roles";
+import { isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 function buildClientForm(client: Client) {
@@ -245,12 +245,24 @@ export default function ClienteDetailPage() {
   const canResubmit =
     client?.status === "RECHAZADO" && hasPermission("clients:update");
   const canDelete = hasPermission("clients:delete");
+  const assignedAdvisors = client?.advisors?.length
+    ? client.advisors
+    : client?.advisor
+      ? [client.advisor]
+      : [];
+  const isAssignedAdvisor =
+    user?.role.code === "ADVISOR" &&
+    !!user?.id &&
+    assignedAdvisors.some((item) => item.id === user.id);
   const canManageAdvisor =
     !!client?.approved_at &&
-    user?.role.code === "ONBOARDING_MANAGER" &&
-    hasPermission("clients:approve");
+    ((user?.role.code === "ONBOARDING_MANAGER" && hasPermission("clients:approve")) ||
+      user?.role.code === "ADMIN" ||
+      user?.role.code === "BRANCH_MANAGER" ||
+      isOnboardingAreaLeader(user) ||
+      isAssignedAdvisor);
   const showAdvisorContact =
-    !!client?.advisor &&
+    assignedAdvisors.length > 0 &&
     !canManageAdvisor &&
     (user?.role.code === "SALES_REP" || isSedeAdmin(user?.role.code));
 
@@ -441,44 +453,88 @@ export default function ClienteDetailPage() {
           <ClientSalesPipelineSection pipeline={client.source_prospect} locale={locale} />
         ) : null}
 
-        {showApprovedWorkspace && client.has_portal_access && (
-          <PortalCredentialsCard
-            client={client}
-            tempPassword={portalPassword}
-            token={token}
-            canReset={hasPermission("clients:approve")}
-            onPasswordUpdated={setPortalPassword}
-          />
-        )}
+        {(showApprovedWorkspace && client.has_portal_access) || canManageAdvisor ? (
+          <div
+            className={
+              showApprovedWorkspace && client.has_portal_access && canManageAdvisor
+                ? "grid gap-4 lg:grid-cols-2 lg:items-start"
+                : undefined
+            }
+          >
+            {showApprovedWorkspace && client.has_portal_access ? (
+              <PortalCredentialsCard
+                client={client}
+                tempPassword={portalPassword}
+                token={token}
+                canReset={hasPermission("clients:approve")}
+                onPasswordUpdated={setPortalPassword}
+                className="h-[16rem] max-h-[16rem] sm:h-[17rem] sm:max-h-[17rem]"
+              />
+            ) : null}
 
-        {canManageAdvisor && (
-          <ClientAdvisorPanel
-            clientId={client.id}
-            advisor={client.advisor ?? null}
-            token={token}
-            advisors={advisors}
-            onLoadAdvisors={loadAdvisors}
-            onAdvisorUpdated={(advisor) => {
-              setClient((prev) => (prev ? { ...prev, advisor } : prev));
-            }}
-          />
-        )}
+            {canManageAdvisor ? (
+              <ClientAdvisorPanel
+                clientId={client.id}
+                clientStatus={client.status}
+                advisorsAssigned={assignedAdvisors}
+                token={token}
+                advisors={advisors}
+                onLoadAdvisors={loadAdvisors}
+                onAdvisorsUpdated={(next) => {
+                  setClient((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          advisors: next,
+                          advisor: next[0] ?? null,
+                        }
+                      : prev,
+                  );
+                }}
+                className="h-[16rem] max-h-[16rem] sm:h-[17rem] sm:max-h-[17rem]"
+              />
+            ) : null}
+          </div>
+        ) : null}
 
-        {showAdvisorContact && client.advisor ? (
+        {showAdvisorContact ? (
           <Card className="p-4 sm:p-6">
-            <p className="section-label">{t("clientDetail.assignedAdvisor")}</p>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
-              {client.advisor.first_name} {client.advisor.last_name}
-            </p>
-            <a
-              href={`mailto:${client.advisor.email}`}
-              className="mt-1 inline-block break-all text-sm text-brand hover:underline"
-            >
-              {client.advisor.email}
-            </a>
+            <p className="section-label">{t("clientDetail.assignedAdvisors")}</p>
+            <ul className="mt-2 space-y-2">
+              {assignedAdvisors.map((advisor) => (
+                <li key={advisor.id}>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {advisor.first_name} {advisor.last_name}
+                  </p>
+                  <a
+                    href={`mailto:${advisor.email}`}
+                    className="inline-block break-all text-sm text-brand hover:underline"
+                  >
+                    {advisor.email}
+                  </a>
+                </li>
+              ))}
+            </ul>
             <p className="mt-2 text-sm text-slate-500">{t("clientDetail.advisorContactHint")}</p>
           </Card>
         ) : null}
+
+        {showApprovedWorkspace && (
+          <Card className="p-4 sm:p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
+              {t("docusign.clientContractsTitle")}
+            </h2>
+            <LazyClientContractsPanel
+              clientId={client.id}
+              clientName={clientName}
+              clientEmail={client.email}
+              token={token}
+              onError={(message) =>
+                void modal.alert({ title: t("common.error"), message, variant: "error" })
+              }
+            />
+          </Card>
+        )}
 
         {showApprovedWorkspace && workspaceHint && (
           <p className="text-sm text-slate-500">{workspaceHint}</p>
@@ -627,23 +683,6 @@ export default function ClienteDetailPage() {
               onViewDocument={setViewingDoc}
               onDownloadDocument={
                 isSedeAdmin(user?.role.code) ? handleDownloadDocument : undefined
-              }
-            />
-          </Card>
-        )}
-
-        {showApprovedWorkspace && (
-          <Card className="p-4 sm:p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {t("docusign.clientContractsTitle")}
-            </h2>
-            <LazyClientContractsPanel
-              clientId={client.id}
-              clientName={clientName}
-              clientEmail={client.email}
-              token={token}
-              onError={(message) =>
-                void modal.alert({ title: t("common.error"), message, variant: "error" })
               }
             />
           </Card>

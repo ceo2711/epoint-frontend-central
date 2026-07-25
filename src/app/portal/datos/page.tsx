@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
+import { AddressAutocomplete } from "@/features/portal/components/AddressAutocomplete";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
@@ -221,7 +222,7 @@ export default function PortalDatosPage() {
             <PortalPageLoader label={t("portalData.loading")} />
           ) : (
           <Card className="p-4 sm:p-6">
-            <form id="portal-data-form" onSubmit={saveAll} className="space-y-8">
+            <form id="portal-data-form" onSubmit={saveAll} className="space-y-8" autoComplete="off">
               <section className="space-y-4">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
                   {t("portalData.basicData")}
@@ -304,28 +305,43 @@ export default function PortalDatosPage() {
                 <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
                   {t("portalData.currentAddress")}
                 </h2>
-                <Input
+                <AddressAutocomplete
                   label={t("portalData.street")}
                   value={addr.street}
-                  onChange={(e) => setAddr({ ...addr, street: e.target.value })}
+                  onChange={(street) => setAddr((prev) => ({ ...prev, street }))}
+                  onSelect={(resolved) =>
+                    setAddr((prev) => ({
+                      ...prev,
+                      street: resolved.street,
+                      city: resolved.city || prev.city,
+                      state: resolved.state || prev.state,
+                      zip_code: resolved.zip_code || prev.zip_code,
+                    }))
+                  }
                   placeholder={t("portalData.streetPlaceholder")}
                   required
                 />
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input
                     label={t("portalData.city")}
+                    name="portal-addr-city"
+                    autoComplete="one-time-code"
                     value={addr.city}
                     onChange={(e) => setAddr({ ...addr, city: e.target.value })}
                     required
                   />
                   <Input
                     label={t("portalData.state")}
+                    name="portal-addr-state"
+                    autoComplete="one-time-code"
                     value={addr.state}
                     onChange={(e) => setAddr({ ...addr, state: e.target.value })}
                     required
                   />
                   <Input
                     label={t("portalData.zip")}
+                    name="portal-addr-zip"
+                    autoComplete="one-time-code"
                     value={addr.zip_code}
                     onChange={(e) => setAddr({ ...addr, zip_code: e.target.value })}
                     required

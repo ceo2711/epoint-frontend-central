@@ -363,9 +363,11 @@ export function CardDetailModal({
                                 } as DocumentBrief
                               }
                               locale={locale}
-                              rejectionTitle={t("documents.rejectionTitle")}
-                              approvalTitle={t("documents.approvalTitle")}
-                              viewLabel={t("documents.viewVerificationDetails")}
+                              rejectionTitle={t("portalDocs.rejectionTitle")}
+                              approvalTitle={t("portalDocs.approvalTitle")}
+                              expiringTitle={t("portalDocs.expiringTitle")}
+                              expiringAction={t("portalDocs.expiringAction")}
+                              viewLabel={t("portalDocs.viewVerificationDetails")}
                             />
                           </div>
                         )}
@@ -510,9 +512,11 @@ export function CardDetailModal({
                                         } as DocumentBrief
                                       }
                                       locale={locale}
-                                      rejectionTitle={t("documents.rejectionTitle")}
-                                      approvalTitle={t("documents.approvalTitle")}
-                                      viewLabel={t("documents.viewVerificationDetails")}
+                                      rejectionTitle={t("portalDocs.rejectionTitle")}
+                                      approvalTitle={t("portalDocs.approvalTitle")}
+                                      expiringTitle={t("portalDocs.expiringTitle")}
+                                      expiringAction={t("portalDocs.expiringAction")}
+                                      viewLabel={t("portalDocs.viewVerificationDetails")}
                                     />
                                   </>
                                 )}

@@ -13,7 +13,15 @@ import { emitClientsRefresh } from "@/lib/clientEvents";
 import { invalidateClientsQueries } from "@/lib/invalidateClients";
 import { savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import type { Board, Paginated, Client } from "@/types/api";
-import type { ChatMessage, ChatbotApiResponse, ChatCalendlyOptions, ChatCalendlySelection, PendingChatAction } from "@/features/chat/types";
+import type {
+  ChatConversationDetail,
+  ChatConversationSummary,
+  ChatMessage,
+  ChatbotApiResponse,
+  ChatCalendlyOptions,
+  ChatCalendlySelection,
+  PendingChatAction,
+} from "@/features/chat/types";
 import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/chat/types";
 import { clearChatState, loadChatState, saveChatState } from "@/features/chat/chat-storage";
 import { emitCalendlyRefresh } from "@/lib/calendlyEvents";
@@ -91,7 +99,17 @@ export function useChatbot(
   const stagedUploadRef = useRef<StagedUpload | null>(null);
   const [chatLocale, setChatLocale] = useState<"es" | "en">(createInitialChatLocale(defaultLocale));
   const [chatHydrated, setChatHydrated] = useState(false);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const [conversations, setConversations] = useState<ChatConversationSummary[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [conversationsError, setConversationsError] = useState<string | null>(null);
+  const [conversationLoading, setConversationLoading] = useState(false);
   const loadedUserIdRef = useRef<number | null>(null);
+  const conversationIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   useEffect(() => {
     if (!userId) {
@@ -100,6 +118,9 @@ export function useChatbot(
       setMessages([]);
       setPendingAction(null);
       pendingActionRef.current = null;
+      setConversationId(null);
+      conversationIdRef.current = null;
+      setConversations([]);
       return;
     }
 
@@ -112,18 +133,24 @@ export function useChatbot(
       pendingActionRef.current = saved.pendingAction;
       setChatLocale(saved.chatLocale);
       setActiveClientId(clientIdHint ?? saved.activeClientId);
+      setConversationId(saved.conversationId);
+      conversationIdRef.current = saved.conversationId;
     } else {
       setMessages([]);
       setPendingAction(null);
       pendingActionRef.current = null;
       setChatLocale(createInitialChatLocale(defaultLocale));
       setActiveClientId(clientIdHint ?? null);
+      setConversationId(null);
+      conversationIdRef.current = null;
     }
 
     setError(null);
     setStagedUpload(null);
     setBoardCards([]);
     setClientOptions([]);
+    setConversations([]);
+    setConversationsError(null);
     loadedUserIdRef.current = userId;
     setChatHydrated(true);
   }, [userId, clientIdHint, defaultLocale]);
@@ -131,12 +158,13 @@ export function useChatbot(
   useEffect(() => {
     if (!userId || !chatHydrated) return;
     saveChatState(userId, {
+      conversationId,
       messages,
       pendingAction,
       chatLocale,
       activeClientId,
     });
-  }, [userId, chatHydrated, messages, pendingAction, chatLocale, activeClientId]);
+  }, [userId, chatHydrated, conversationId, messages, pendingAction, chatLocale, activeClientId]);
 
   useEffect(() => {
     pendingActionRef.current = pendingAction;
@@ -277,6 +305,10 @@ export function useChatbot(
 
   const applyChatResponse = useCallback(
     (response: ChatbotApiResponse, currentPendingAction: PendingChatAction | null) => {
+      if (response.conversation_id) {
+        setConversationId(response.conversation_id);
+        conversationIdRef.current = response.conversation_id;
+      }
       if (response.client_id) {
         setActiveClientId(response.client_id);
       }
@@ -386,6 +418,7 @@ export function useChatbot(
             chat_locale: chatLocale,
             pending_action: currentPendingAction,
             calendly_selection: selection,
+            conversation_id: conversationIdRef.current,
           },
           token,
         );
@@ -477,6 +510,7 @@ export function useChatbot(
             locale: uiLocale,
             chat_locale: chatLocale,
             pending_action: currentPendingAction,
+            conversation_id: conversationIdRef.current,
           },
           token,
         );
@@ -754,8 +788,71 @@ export function useChatbot(
     setBoardCards([]);
     setFileUploading(null);
     setClientOptions([]);
+    setConversationId(null);
+    conversationIdRef.current = null;
     setChatLocale(createInitialChatLocale(defaultLocale));
   }, [userId, clientIdHint, defaultLocale]);
+
+  const loadConversations = useCallback(async () => {
+    if (!token) return;
+    setConversationsLoading(true);
+    setConversationsError(null);
+    try {
+      const items = await api.get<ChatConversationSummary[]>(
+        "/chatbot/conversations?limit=5",
+        token,
+      );
+      setConversations(items);
+    } catch (err) {
+      setConversations([]);
+      setConversationsError(getUserFacingErrorMessage(err, t("chat.conversationsError")));
+    } finally {
+      setConversationsLoading(false);
+    }
+  }, [token, t]);
+
+  const startNewConversation = useCallback(() => {
+    resetChat();
+  }, [resetChat]);
+
+  const selectConversation = useCallback(
+    async (id: number) => {
+      if (!token) return false;
+      setConversationLoading(true);
+      setError(null);
+      try {
+        const detail = await api.get<ChatConversationDetail>(
+          `/chatbot/conversations/${id}`,
+          token,
+        );
+        setConversationId(detail.id);
+        conversationIdRef.current = detail.id;
+        setMessages(
+          detail.messages.map((item) => ({
+            id: `srv-${item.id}`,
+            role: item.role,
+            content: item.content,
+          })),
+        );
+        setPendingAction(null);
+        pendingActionRef.current = null;
+        setCalendlyOptions(null);
+        setStagedUpload(null);
+        setBoardCards([]);
+        setClientOptions([]);
+        setFileUploading(null);
+        setChatLocale(normalizeChatLocale(detail.chat_locale));
+        setActiveClientId(clientIdHint ?? null);
+        return true;
+      } catch (err) {
+        setError(getUserFacingErrorMessage(err, t("common.requestError")));
+        return false;
+      } finally {
+        setConversationLoading(false);
+      }
+    },
+    [token, clientIdHint, t],
+  );
 
   const canAttachFile = canUploadDocuments || canUploadToBoard;
 
@@ -772,6 +869,14 @@ export function useChatbot(
     finishBoardUpload,
     cancelStagedUpload,
     resetChat,
+    conversationId,
+    conversations,
+    conversationsLoading,
+    conversationsError,
+    conversationLoading,
+    loadConversations,
+    startNewConversation,
+    selectConversation,
     activeClientId,
     pendingAction,
     calendlyOptions,
