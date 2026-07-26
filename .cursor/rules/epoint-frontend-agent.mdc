@@ -1,0 +1,16 @@
+---
+description: Cargar contexto del agente especializado ePoint CRM Frontend
+alwaysApply: true
+---
+
+# Agente Frontend
+
+Este workspace es el frontend de ePoint CRM (Next.js 16).
+
+Antes de cambios no triviales, seguí:
+- `agent/CONTEXT.md`
+- `agent/RULES.md`
+
+Next 16: no asumir APIs de versiones viejas; ver `node_modules/next/dist/docs/` si hace falta.
+
+Respuestas al usuario en español salvo que pida otro idioma.
