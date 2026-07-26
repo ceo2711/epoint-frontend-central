@@ -70,6 +70,9 @@ export const DOCUMENT_SECTIONS: DocumentSectionDef[] = [
   },
 ];
 
+// Estados que obligan al cliente a volver a subir el documento.
+const REPLACEMENT_STATUSES = new Set(["RECHAZADO", "PROXIMO_A_VENCER"]);
+
 export function collectAllUploadTypes(): DocumentTypeValue[] {
   const types = new Set<DocumentTypeValue>();
   for (const section of DOCUMENT_SECTIONS) {
@@ -90,6 +93,7 @@ export function inferActiveGroupId(
   documents: DocumentBrief[] | undefined,
 ): string {
   const uploaded = new Set((documents ?? []).map((d) => d.type));
+  const byType = new Map((documents ?? []).map((d) => [d.type, d]));
   const groups = getSectionGroups(section);
   const withUploads = groups.filter((group) =>
     group.slots.some((slot) => uploaded.has(slot.type)),
@@ -97,6 +101,15 @@ export function inferActiveGroupId(
 
   if (withUploads.length === 1) return withUploads[0].id;
   if (withUploads.length > 1) {
+    // Una alternativa ya resuelta gana sobre otra rechazada: si la licencia
+    // está aprobada, no mostramos la green card rechazada como pendiente.
+    const resolved = withUploads.find((group) =>
+      group.slots.every((slot) => {
+        const doc = byType.get(slot.type);
+        return doc !== undefined && !REPLACEMENT_STATUSES.has(doc.verification_status);
+      }),
+    );
+    if (resolved) return resolved.id;
     const complete = withUploads.find((group) =>
       group.slots.every((slot) => uploaded.has(slot.type)),
     );
