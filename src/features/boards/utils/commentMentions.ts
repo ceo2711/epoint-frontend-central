@@ -14,11 +14,25 @@ export function formatMentionPlain(user: Pick<MentionableUser, "full_name">) {
   return `@${user.full_name}`;
 }
 
-export function encodeMentionsInBody(body: string, users: MentionableUser[]) {
+export function excludeSelfMentionableUsers(
+  users: MentionableUser[],
+  currentUserId?: number | null,
+) {
+  if (currentUserId == null) return users;
+  return users.filter((user) => user.id !== currentUserId);
+}
+
+export function encodeMentionsInBody(
+  body: string,
+  users: MentionableUser[],
+  excludeUserId?: number | null,
+) {
   if (!body.trim() || users.length === 0) return body;
 
   let result = body;
-  const sorted = [...users].sort((a, b) => b.full_name.length - a.full_name.length);
+  const sorted = [...users]
+    .filter((user) => excludeUserId == null || user.id !== excludeUserId)
+    .sort((a, b) => b.full_name.length - a.full_name.length);
   for (const user of sorted) {
     const token = formatMentionToken(user);
     const plain = formatMentionPlain(user);

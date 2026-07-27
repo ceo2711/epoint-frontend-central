@@ -2,7 +2,6 @@
 
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 
-import { useTranslation } from "@/contexts/LanguageContext";
 import {
   filterMentionableUsers,
   getActiveMentionQuery,
@@ -19,19 +18,6 @@ interface CommentMentionTextareaProps {
   onSubmit?: () => void;
 }
 
-function roleLabel(roleCode: string, t: (key: string) => string) {
-  switch (roleCode) {
-    case "CLIENT":
-      return t("portalBoard.mentionRoleClient");
-    case "ADVISOR":
-      return t("portalBoard.mentionRoleAdvisor");
-    case "ONBOARDING_MANAGER":
-      return t("portalBoard.mentionRoleOnboarding");
-    default:
-      return roleCode;
-  }
-}
-
 export function CommentMentionTextarea({
   value,
   onChange,
@@ -40,7 +26,6 @@ export function CommentMentionTextarea({
   rows = 3,
   onSubmit,
 }: CommentMentionTextareaProps) {
-  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -144,7 +129,7 @@ export function CommentMentionTextarea({
             <li key={user.id}>
               <button
                 type="button"
-                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm ${
+                className={`w-full px-3 py-2 text-left text-sm font-medium ${
                   index === highlightIndex ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"
                 }`}
                 onMouseDown={(e) => {
@@ -152,8 +137,7 @@ export function CommentMentionTextarea({
                   applyMention(user);
                 }}
               >
-                <span className="font-medium">{user.full_name}</span>
-                <span className="text-[11px] text-slate-400">{roleLabel(user.role_code, t)}</span>
+                {user.full_name}
               </button>
             </li>
           ))}

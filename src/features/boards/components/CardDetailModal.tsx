@@ -24,8 +24,12 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { useAuth } from "@/features/auth/AuthContext";
 import type { MentionableUser } from "@/features/boards/utils/commentMentions";
-import { encodeMentionsInBody } from "@/features/boards/utils/commentMentions";
+import {
+  encodeMentionsInBody,
+  excludeSelfMentionableUsers,
+} from "@/features/boards/utils/commentMentions";
 import { useAttachmentContentUrl } from "@/features/boards/hooks/useAttachmentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { prefetchAttachments } from "@/lib/contentBlobCache";
@@ -104,7 +108,12 @@ export function CardDetailModal({
     viewingAttachment?.mime_type,
     viewingAttachment?.original_filename,
   );
+  const { user } = useAuth();
   const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
+  const filteredMentionableUsers = useMemo(
+    () => excludeSelfMentionableUsers(mentionableUsers, user?.id),
+    [mentionableUsers, user?.id],
+  );
 
   useEffect(() => {
     setDescription(cardDescription(card));
@@ -190,7 +199,7 @@ export function CardDetailModal({
     if (!comment.trim()) return;
     setSubmittingComment(true);
     try {
-      const encodedBody = encodeMentionsInBody(comment, mentionableUsers);
+      const encodedBody = encodeMentionsInBody(comment, filteredMentionableUsers, user?.id);
       await onSubmitComment(card.id, encodedBody, [], internalComment);
       setComment("");
       setInternalComment(false);
@@ -225,7 +234,7 @@ export function CardDetailModal({
     <>
       <ModalPortal>
         <div
-          className="modal-overlay fixed inset-0 z-[60] flex max-sm:items-stretch max-sm:justify-stretch max-sm:p-0 sm:items-center sm:justify-center sm:p-4"
+          className="modal-overlay fixed inset-0 z-60 flex max-sm:items-stretch max-sm:justify-stretch max-sm:p-0 sm:items-center sm:justify-center sm:p-4"
           onClick={onClose}
         >
           <div
@@ -417,7 +426,7 @@ export function CardDetailModal({
                   <CommentMentionTextarea
                     value={comment}
                     onChange={setComment}
-                    mentionableUsers={mentionableUsers}
+                    mentionableUsers={filteredMentionableUsers}
                     placeholder={t("portalBoard.commentPlaceholder")}
                     onSubmit={() => {
                       const form = document.getElementById(`comment-form-${card.id}`) as HTMLFormElement | null;
