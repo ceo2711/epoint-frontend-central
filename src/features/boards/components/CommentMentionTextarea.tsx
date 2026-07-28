@@ -108,7 +108,7 @@ export function CommentMentionTextarea({
     <div className="relative">
       <textarea
         ref={textareaRef}
-        className="input-field min-h-[4.5rem] w-full resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus:ring-0"
+        className="input-field min-h-18 w-full resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus:ring-0"
         rows={rows}
         placeholder={placeholder}
         value={value}

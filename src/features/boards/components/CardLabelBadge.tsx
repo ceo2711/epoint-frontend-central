@@ -127,7 +127,7 @@ export function CardLabelPicker({
             id={menuId}
             role="listbox"
             aria-label={t("portalBoard.cardLabel")}
-            className="fixed z-[80] min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            className="fixed z-80 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
             style={{ top: coords.top, left: coords.left }}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}

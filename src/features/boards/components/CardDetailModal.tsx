@@ -238,7 +238,7 @@ export function CardDetailModal({
           onClick={onClose}
         >
           <div
-            className={`modal-panel modal-panel-xl flex max-h-[92vh] w-full flex-col overflow-hidden border p-0 transition-[background,border-color] duration-300 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] sm:rounded-xl ${cardModalThemeClass(card.label)}`}
+            className={`modal-panel modal-panel-xl flex max-h-[92vh] w-full flex-col overflow-hidden border p-0 transition-[background,border-color] duration-300 max-sm:h-dvh max-sm:max-h-dvh max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] sm:rounded-xl ${cardModalThemeClass(card.label)}`}
             onClick={(e) => e.stopPropagation()}
           >
           {/* Header */}
@@ -277,7 +277,7 @@ export function CardDetailModal({
                       {canEditDescription && (
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm !px-2 text-slate-500 hover:text-slate-800"
+                          className="btn btn-ghost btn-sm px-2! text-slate-500 hover:text-slate-800"
                           title={t("portalBoard.editDescription")}
                           aria-label={t("portalBoard.editDescription")}
                           onClick={() => setEditingDescription(true)}
@@ -310,7 +310,7 @@ export function CardDetailModal({
                 {editingDescription ? (
                   <div className="space-y-3">
                     <textarea
-                      className="input-field min-h-[10rem] resize-y font-mono text-sm leading-relaxed"
+                      className="input-field min-h-40 resize-y font-mono text-sm leading-relaxed"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder={t("portalBoard.descriptionPlaceholder")}

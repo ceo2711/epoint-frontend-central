@@ -27,6 +27,14 @@ function markCongratsSeen(clientId: number) {
   }
 }
 
+function hasCongratsSeen(clientId: number) {
+  try {
+    return localStorage.getItem(storageKey(clientId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Poll del perfil portal + modal de felicitaciones al desbloquear el tablero.
  * Mientras board_unlocked sea false, refresca periódicamente para detectar la promoción.
@@ -61,10 +69,12 @@ export function PortalBoardUnlockGate({ children }: { children: React.ReactNode 
     if (prev === true && !boardUnlocked) {
       clearCongratsSeen(clientId);
       setShowCongrats(false);
+      prevUnlockedRef.current = boardUnlocked;
+      return;
     }
 
-    // Transición bloqueado → desbloqueado: mostrar felicitaciones.
-    if (prev === false && boardUnlocked) {
+    // Transición live o cold start ya desbloqueado sin haber visto el modal.
+    if (boardUnlocked && !hasCongratsSeen(clientId) && (prev === false || prev === null)) {
       setShowCongrats(true);
     }
 
