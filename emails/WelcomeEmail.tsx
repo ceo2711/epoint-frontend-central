@@ -1,4 +1,4 @@
-import { Button, Heading, Section, Text } from "@react-email/components";
+import { Button, Heading, Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 
 import { EmailLayout } from "./components/EmailLayout";
@@ -10,6 +10,10 @@ export interface WelcomeEmailProps {
   tempPassword: string;
   portalLoginUrl: string;
   logoUrl: string;
+  androidAppStoreUrl: string;
+  iosAppStoreUrl: string;
+  googlePlayBadgeUrl: string;
+  appStoreBadgeUrl: string;
 }
 
 export function WelcomeEmail({
@@ -18,6 +22,10 @@ export function WelcomeEmail({
   tempPassword,
   portalLoginUrl,
   logoUrl,
+  androidAppStoreUrl,
+  iosAppStoreUrl,
+  googlePlayBadgeUrl,
+  appStoreBadgeUrl,
 }: WelcomeEmailProps) {
   return (
     <EmailLayout
@@ -58,6 +66,31 @@ export function WelcomeEmail({
       <Text style={noteStyle}>
         En tu primer ingreso deberás cambiar la contraseña temporal.
       </Text>
+
+      <Section style={appStoreSectionStyle}>
+        <Text style={appStoreTitleStyle}>Descargá la app móvil</Text>
+        <Text style={appStoreHintStyle}>
+          Usá las mismas credenciales para ingresar desde tu teléfono.
+        </Text>
+        <Link href={androidAppStoreUrl} style={badgeLinkStyle}>
+          <Img
+            src={googlePlayBadgeUrl}
+            alt="Disponible en Google Play"
+            width="180"
+            height="54"
+            style={badgeImgStyle}
+          />
+        </Link>
+        <Link href={iosAppStoreUrl} style={badgeLinkStyle}>
+          <Img
+            src={appStoreBadgeUrl}
+            alt="Download on the App Store"
+            width="180"
+            height="54"
+            style={badgeImgStyle}
+          />
+        </Link>
+      </Section>
     </EmailLayout>
   );
 }
@@ -136,7 +169,47 @@ const noteStyle: React.CSSProperties = {
   color: t.textMuted,
   fontSize: "13px",
   lineHeight: "1.5",
-  margin: 0,
+  margin: "0 0 8px",
+};
+
+const appStoreSectionStyle: React.CSSProperties = {
+  backgroundColor: t.cream400,
+  border: `1px solid ${t.cream600}`,
+  borderRadius: "12px",
+  margin: "28px 0 0",
+  padding: "24px 20px",
+  textAlign: "center" as const,
+};
+
+const appStoreTitleStyle: React.CSSProperties = {
+  color: t.textPrimary,
+  fontSize: "18px",
+  fontWeight: 700,
+  lineHeight: "1.3",
+  margin: "0 0 8px",
+};
+
+const appStoreHintStyle: React.CSSProperties = {
+  color: t.textMuted,
+  fontSize: "13px",
+  lineHeight: "1.5",
+  margin: "0 0 20px",
+};
+
+const badgeLinkStyle: React.CSSProperties = {
+  display: "inline-block",
+  margin: "0 8px 8px",
+  textDecoration: "none",
+};
+
+const badgeImgStyle: React.CSSProperties = {
+  border: "0",
+  display: "block",
+  height: "54px",
+  margin: "0 auto",
+  outline: "none",
+  textDecoration: "none",
+  width: "180px",
 };
 
 export default WelcomeEmail;

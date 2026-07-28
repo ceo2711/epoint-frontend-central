@@ -36,6 +36,10 @@ async function main() {
         tempPassword: "{{TEMP_PASSWORD}}",
         portalLoginUrl: "{{PORTAL_LOGIN_URL}}",
         logoUrl: PLACEHOLDER_LOGO,
+        androidAppStoreUrl: "{{ANDROID_APP_STORE_URL}}",
+        iosAppStoreUrl: "{{IOS_APP_STORE_URL}}",
+        googlePlayBadgeUrl: "{{GOOGLE_PLAY_BADGE_URL}}",
+        appStoreBadgeUrl: "{{APP_STORE_BADGE_URL}}",
       }),
     ),
   });
