@@ -405,6 +405,8 @@ export const en: Messages = {
     subtitle: "Generate personalized links with Authorize.net or PayPal for prospects and clients",
     stubModeHint:
       "Preparation mode: without active credentials, the link opens the internal page and allows simulating payment.",
+    paymentTestHint:
+      "PAYMENT_TEST is on: the prospect will see a Pay button that approves the link without a real charge.",
     createSuccessTitle: "Link created",
     createSuccessMessage: "The link was copied to your clipboard. Share it with the client to collect payment.",
     createSuccessEmailTitle: "Link sent by email",
@@ -481,6 +483,8 @@ export const en: Messages = {
       title: "Epoint payment",
       paid: "Payment received! Thank you. Your sales rep was notified.",
       stubHint: "Test environment: payment is simulated until Authorize.net or PayPal are connected.",
+      testHint: "Test mode (PAYMENT_TEST): paying approves the link without a real charge.",
+      pay: "Pay",
       payStub: "Simulate successful payment",
       payWithProvider: "Pay with {provider}",
       processing: "Processing...",
@@ -1161,6 +1165,18 @@ export const en: Messages = {
     markAllRead: "Dismiss all",
     openRelated: "Open related content",
     clickToOpen: "Click to open →",
+    saleCongrats: {
+      title: "Congratulations!",
+      subtitle: "Sale closed",
+      headline: "{name} is now your client",
+      body:
+        "The prospect paid and became a client. That sale counts toward your commission.",
+      paidLabel: "Payment received",
+      commissionLabel: "Your commission",
+      footerHint: "Keep going: each conversion adds to your monthly total.",
+      viewClient: "View client",
+      customerFallback: "Your prospect",
+    },
   },
   portal: {
     greeting: "Hello, {name}",
@@ -1168,13 +1184,22 @@ export const en: Messages = {
     subtitle: "Your Epoint onboarding portal",
     welcomeTitle: "Welcome to your portal",
     welcomeBody:
-      "Complete your personal data, upload required documentation, and track your onboarding progress on the task board.",
+      "Complete your personal data and upload the required documents. Once everything is verified, we'll unlock your board so you can manage your onboarding process.",
     step1Title: "Personal data",
     step1Desc: "SSN, address, vehicles",
     step2Title: "Documents",
     step2Desc: "SSN, license, utility bill",
     step3Title: "Board",
     step3Desc: "Onboarding tasks",
+    step3LockedDesc: "Unlocks after your data and documents are completed and verified",
+    step3LockedCta: "Pending",
+  },
+  portalBoardUnlock: {
+    title: "Congratulations!",
+    subtitle: "Your initial process is complete",
+    headline: "You successfully submitted your data and documents",
+    body: "An advisor has been assigned and your board is now unlocked so you can manage the entire process in one place.",
+    goToBoard: "Go to my board",
   },
   portalData: {
     title: "My personal data",

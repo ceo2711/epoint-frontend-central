@@ -404,6 +404,8 @@ export const es = {
     subtitle: "Generá links personalizados con Authorize.net o PayPal para tus prospectos y clientes",
     stubModeHint:
       "Modo preparación: sin credenciales activas, el link abre la página interna y permite simular el pago.",
+    paymentTestHint:
+      "PAYMENT_TEST activo: el prospecto verá un botón Pagar que aprueba el link sin cobro real.",
     createSuccessTitle: "Link generado",
     createSuccessMessage: "El link se copió al portapapeles. Compartilo con el cliente para que pague.",
     createSuccessEmailTitle: "Link enviado por email",
@@ -480,6 +482,8 @@ export const es = {
       title: "Pago Epoint",
       paid: "¡Pago recibido! Gracias. Tu vendedor fue notificado.",
       stubHint: "Entorno de prueba: el pago se simula hasta conectar Authorize.net o PayPal.",
+      testHint: "Modo de prueba (PAYMENT_TEST): al pagar se aprueba el link sin cobro real.",
+      pay: "Pagar",
       payStub: "Simular pago exitoso",
       payWithProvider: "Pagar con {provider}",
       processing: "Procesando...",
@@ -1160,6 +1164,18 @@ export const es = {
     markAllRead: "Descartar todas",
     openRelated: "Ir al contenido",
     clickToOpen: "Clic para abrir →",
+    saleCongrats: {
+      title: "¡Felicitaciones!",
+      subtitle: "Venta concretada",
+      headline: "{name} ya es tu cliente",
+      body:
+        "El prospecto pagó y pasó a cliente. Esa venta queda registrada para tu comisión.",
+      paidLabel: "Pago recibido",
+      commissionLabel: "Tu comisión",
+      footerHint: "Seguí así: cada conversión suma a tu acumulado del mes.",
+      viewClient: "Ver cliente",
+      customerFallback: "Tu prospecto",
+    },
   },
   portal: {
     greeting: "Hola, {name}",
@@ -1167,13 +1183,22 @@ export const es = {
     subtitle: "Tu portal de onboarding Epoint",
     welcomeTitle: "Bienvenido a tu portal",
     welcomeBody:
-      "Completá tus datos personales, subí la documentación requerida y seguí el progreso de tu onboarding en el tablero de tareas.",
+      "Completá tus datos personales y subí la documentación requerida. Cuando todo esté verificado, te habilitamos el tablero para gestionar tu proceso.",
     step1Title: "Datos personales",
     step1Desc: "SSN, dirección, vehículos",
     step2Title: "Documentos",
     step2Desc: "SSN, licencia, utility bill",
     step3Title: "Tablero",
     step3Desc: "Tareas de onboarding",
+    step3LockedDesc: "Se habilita al completar y verificar tus datos y documentos",
+    step3LockedCta: "Pendiente",
+  },
+  portalBoardUnlock: {
+    title: "¡Felicitaciones!",
+    subtitle: "Tu proceso inicial está completo",
+    headline: "Cargaste tus datos y documentos con éxito",
+    body: "Ya tenés asignado un asesor y habilitamos tu tablero para que gestiones todo el proceso desde un solo lugar.",
+    goToBoard: "Ir a mi tablero",
   },
   portalData: {
     title: "Mis datos personales",

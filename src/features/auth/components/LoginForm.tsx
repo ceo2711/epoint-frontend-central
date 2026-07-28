@@ -5,7 +5,6 @@ import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { AppLogo } from "@/components/layout/AppLogo";
-import { api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
@@ -13,9 +12,19 @@ import { EmailIcon, Input, PasswordInput } from "@/components/ui/Input";
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
+  /** Solo la tarjeta, sin el wrapper de centrado de página. */
+  embedded?: boolean;
+  /** Clase para desvanecer textos/campos al animar. */
+  contentClassName?: string;
+  className?: string;
 }
 
-export function LoginForm({ onSubmit }: LoginFormProps) {
+export function LoginForm({
+  onSubmit,
+  embedded = false,
+  contentClassName = "",
+  className = "",
+}: LoginFormProps) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,18 +45,22 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
     }
   }
 
-  return (
-    <div className="relative z-10 flex min-w-0 flex-1 items-center justify-center overflow-x-hidden p-4 sm:p-6 lg:p-12">
-      <div className="card-glass relative z-10 w-full min-w-0 max-w-md overflow-hidden p-6 sm:p-8 lg:p-10">
-        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
-          <LanguageSwitcher compact />
-        </div>
+  const card = (
+    <div
+      className={`card-glass relative z-10 w-full min-w-0 max-w-md overflow-hidden p-6 sm:p-8 lg:p-10 ${className}`.trim()}
+    >
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
+        <LanguageSwitcher compact />
+      </div>
 
+      <div className={`transition-opacity duration-500 ease-out ${contentClassName}`.trim()}>
         <div className="mb-8 pr-16 lg:hidden">
           <div className="flex min-w-0 items-center gap-3">
             <AppLogo size="xl" priority className="shrink-0 rounded-2xl" />
             <p className="min-w-0 text-xl font-bold leading-tight tracking-tight text-slate-900 sm:text-2xl">
-              Epoint Corporation
+              Epoint
+              <br />
+              Corporation
             </p>
           </div>
         </div>
@@ -107,6 +120,14 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
           </Button>
         </form>
       </div>
+    </div>
+  );
+
+  if (embedded) return card;
+
+  return (
+    <div className="relative z-10 flex min-w-0 flex-1 items-center justify-center overflow-x-hidden p-4 sm:p-6 lg:p-12">
+      {card}
     </div>
   );
 }

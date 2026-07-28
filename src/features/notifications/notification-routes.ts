@@ -19,9 +19,17 @@ export function getNotificationHref(
   }
 
   if (notification.event_type === "PAYMENT_LINK_COMPLETED" && !isClient) {
+    if (typeof clientId === "number") return `/clientes/${clientId}`;
     const prospectId = payload?.prospect_id;
     if (typeof prospectId === "number") return `/prospectos/${prospectId}`;
     return "/pagos";
+  }
+
+  if (notification.event_type === "PROSPECT_CONVERTED" && !isClient) {
+    if (typeof clientId === "number") return `/clientes/${clientId}`;
+    const prospectId = payload?.prospect_id;
+    if (typeof prospectId === "number") return `/prospectos/${prospectId}`;
+    return "/prospectos";
   }
 
   if (clientId) {

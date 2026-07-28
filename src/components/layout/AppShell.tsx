@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AppDataPrefetcher } from "@/components/providers/AppDataPrefetcher";
 import { MandatoryTwoFactorModal } from "@/features/auth/components/MandatoryTwoFactorModal";
+import { consumeAuthEnterTransition } from "@/features/auth/auth-enter-transition";
 import { LazyFloatingChatWidget } from "@/lib/lazyPanels";
 import { NotificationsProvider } from "@/features/notifications/NotificationsContext";
 import { useShell } from "@/contexts/ShellContext";
@@ -20,9 +21,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showChatWidgetForRole = Boolean(user);
   const [mounted, setMounted] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);
+  const [enterFromAuth, setEnterFromAuth] = useState(false);
+  const [enterVisible, setEnterVisible] = useState(true);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduceMotion(mq.matches);
+
+    const shouldAnimate = consumeAuthEnterTransition();
+    if (!shouldAnimate || mq.matches) {
+      setEnterFromAuth(false);
+      setEnterVisible(true);
+      return;
+    }
+
+    setEnterFromAuth(true);
+    setEnterVisible(false);
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setEnterVisible(true));
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -37,7 +57,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <NotificationsProvider enabled={showStaffNotifications}>
       <AppDataPrefetcher />
-      <div className="app-shell-bg fixed inset-0 z-0 flex min-h-0 overflow-hidden">
+      <div
+        className={[
+          "app-shell-bg fixed inset-0 z-0 flex min-h-0 overflow-hidden",
+          enterFromAuth && !reduceMotion
+            ? "transition-[opacity,transform] duration-700 ease-out"
+            : "",
+          enterVisible
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-3 scale-[0.99] opacity-0",
+        ].join(" ")}
+      >
         <button
           type="button"
           className={`fixed inset-0 z-40 bg-brown-950/60 backdrop-blur-sm transition-opacity duration-300 ease-out lg:hidden ${

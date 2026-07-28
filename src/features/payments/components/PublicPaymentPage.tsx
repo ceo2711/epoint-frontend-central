@@ -150,9 +150,17 @@ export function PublicPaymentPage() {
               </p>
             ) : data.can_pay && data.stub_mode ? (
               <>
-                <p className="text-sm text-amber-800">{t("payments.public.stubHint")}</p>
+                <p className="text-sm text-amber-800">
+                  {data.payment_test
+                    ? t("payments.public.testHint")
+                    : t("payments.public.stubHint")}
+                </p>
                 <Button fullWidth onClick={handlePay} disabled={paying}>
-                  {paying ? t("payments.public.processing") : t("payments.public.payStub")}
+                  {paying
+                    ? t("payments.public.processing")
+                    : data.payment_test
+                      ? t("payments.public.pay")
+                      : t("payments.public.payStub")}
                 </Button>
               </>
             ) : data.can_pay && data.checkout_url ? (

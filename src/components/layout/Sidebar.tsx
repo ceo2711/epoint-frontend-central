@@ -11,6 +11,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { resolveActiveHref } from "@/components/layout/sidebarNav";
 import { getAccessibleNavItems } from "@/lib/appNavigation";
 import { prefetchRouteModule } from "@/lib/lazyPanels";
+import { usePortalBoardUnlocked } from "@/features/portal/components/PortalBoardUnlockGate";
 
 function NavIcon({ d }: { d: string }) {
   return (
@@ -39,7 +40,10 @@ export function Sidebar() {
   const { t } = useTranslation();
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
   const collapsed = sidebarCollapsed;
-  const items = getAccessibleNavItems(user, hasPermission);
+  const boardUnlocked = usePortalBoardUnlocked();
+  const items = getAccessibleNavItems(user, hasPermission, {
+    boardUnlocked: user?.role.code === "CLIENT" ? boardUnlocked : true,
+  });
 
   const activeHref = resolveActiveHref(
     pathname,

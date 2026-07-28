@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
-import { ApiError } from "@/lib/api";
+import { AppLogo } from "@/components/layout/AppLogo";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
@@ -13,9 +13,21 @@ interface TwoFactorLoginFormProps {
   userName?: string;
   onSubmit: (code: string) => Promise<void>;
   onBack: () => void;
+  /** Solo la tarjeta, sin el wrapper de centrado de página. */
+  embedded?: boolean;
+  /** Clase para desvanecer / aparecer textos. */
+  contentClassName?: string;
+  className?: string;
 }
 
-export function TwoFactorLoginForm({ userName, onSubmit, onBack }: TwoFactorLoginFormProps) {
+export function TwoFactorLoginForm({
+  userName,
+  onSubmit,
+  onBack,
+  embedded = false,
+  contentClassName = "",
+  className = "",
+}: TwoFactorLoginFormProps) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -34,11 +46,24 @@ export function TwoFactorLoginForm({ userName, onSubmit, onBack }: TwoFactorLogi
     }
   }
 
-  return (
-    <div className="relative z-10 flex min-h-screen w-full flex-1 items-center justify-center p-6 lg:p-12">
-      <div className="card-glass relative w-full max-w-md p-6 sm:p-8 lg:p-10">
-        <div className="absolute right-6 top-6 lg:right-8 lg:top-8">
-          <LanguageSwitcher />
+  const card = (
+    <div
+      className={`card-glass relative z-10 w-full min-w-0 max-w-md overflow-hidden p-6 sm:p-8 lg:p-10 ${className}`.trim()}
+    >
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
+        <LanguageSwitcher compact />
+      </div>
+
+      <div className={`transition-opacity duration-500 ease-out ${contentClassName}`.trim()}>
+        <div className="mb-8 pr-16 lg:hidden">
+          <div className="flex min-w-0 items-center gap-3">
+            <AppLogo size="xl" priority className="shrink-0 rounded-2xl" />
+            <p className="min-w-0 text-xl font-bold leading-tight tracking-tight text-slate-900 sm:text-2xl">
+              Epoint
+              <br />
+              Corporation
+            </p>
+          </div>
         </div>
 
         <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-white shadow-lg shadow-brand/30">
@@ -48,16 +73,14 @@ export function TwoFactorLoginForm({ userName, onSubmit, onBack }: TwoFactorLogi
           </svg>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("twoFactor.verifyTitle")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 lg:pr-24">
+          {t("twoFactor.verifyTitle")}
+        </h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-500">
           {userName
             ? t("twoFactor.verifySubtitleNamed", { name: userName })
             : t("twoFactor.verifySubtitle")}
         </p>
-
-        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
-          {t("login.twoFactorStepHint")}
-        </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           {error && <div className="alert alert-error">{error}</div>}
@@ -90,6 +113,14 @@ export function TwoFactorLoginForm({ userName, onSubmit, onBack }: TwoFactorLogi
           {t("login.twoFactorBack")}
         </button>
       </div>
+    </div>
+  );
+
+  if (embedded) return card;
+
+  return (
+    <div className="relative z-10 flex w-full min-w-0 items-center justify-center overflow-x-hidden p-4 sm:p-6 lg:p-12">
+      {card}
     </div>
   );
 }

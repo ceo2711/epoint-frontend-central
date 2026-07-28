@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePortalBoardUnlocked } from "@/features/portal/components/PortalBoardUnlockGate";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import { useTranslation } from "@/contexts/LanguageContext";
 
@@ -13,6 +14,7 @@ export default function PortalHomePage() {
   const { token } = useAuth();
   const { t } = useTranslation();
   const { data: client } = usePortalMe(token);
+  const boardUnlocked = usePortalBoardUnlocked();
 
   return (
     <>
@@ -32,9 +34,28 @@ export default function PortalHomePage() {
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <StepCard step="1" title={t("portal.step1Title")} href="/portal/datos" desc={t("portal.step1Desc")} goLabel={t("common.go")} />
-          <StepCard step="2" title={t("portal.step2Title")} href="/portal/documentos" desc={t("portal.step2Desc")} goLabel={t("common.go")} />
-          <StepCard step="3" title={t("portal.step3Title")} href="/portal/tablero" desc={t("portal.step3Desc")} goLabel={t("common.go")} />
+          <StepCard
+            step="1"
+            title={t("portal.step1Title")}
+            href="/portal/datos"
+            desc={t("portal.step1Desc")}
+            goLabel={t("common.go")}
+          />
+          <StepCard
+            step="2"
+            title={t("portal.step2Title")}
+            href="/portal/documentos"
+            desc={t("portal.step2Desc")}
+            goLabel={t("common.go")}
+          />
+          <StepCard
+            step="3"
+            title={t("portal.step3Title")}
+            href="/portal/tablero"
+            desc={boardUnlocked ? t("portal.step3Desc") : t("portal.step3LockedDesc")}
+            goLabel={boardUnlocked ? t("common.go") : t("portal.step3LockedCta")}
+            locked={!boardUnlocked}
+          />
         </div>
       </PageContent>
     </>
@@ -47,13 +68,34 @@ function StepCard({
   href,
   desc,
   goLabel,
+  locked = false,
 }: {
   step: string;
   title: string;
   href: string;
   desc: string;
   goLabel: string;
+  locked?: boolean;
 }) {
+  if (locked) {
+    return (
+      <div
+        className="step-card cursor-not-allowed opacity-70"
+        aria-disabled="true"
+        title={desc}
+      >
+        <span className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-400 text-sm font-bold text-white shadow-md">
+          {step}
+        </span>
+        <h3 className="font-bold text-slate-900">{title}</h3>
+        <p className="mt-1.5 text-sm text-slate-500">{desc}</p>
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-slate-400">
+          {goLabel}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Link href={href} className="step-card group">
       <span className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white shadow-md shadow-blue-600/25 transition group-hover:scale-105">

@@ -11,6 +11,7 @@ export interface PaymentConfig {
   payments_enabled: boolean;
   default_provider: PaymentProvider;
   stub_mode: boolean;
+  payment_test?: boolean;
   providers: PaymentProviderStatus[];
   webhook_base_url?: string | null;
 }
@@ -67,6 +68,7 @@ export interface PublicPaymentLink {
   status: PaymentLinkStatus;
   description: string | null;
   stub_mode: boolean;
+  payment_test?: boolean;
   can_pay: boolean;
   checkout_url?: string | null;
   /** Token Accept Hosted (Authorize): se envía por POST, no en la URL. */

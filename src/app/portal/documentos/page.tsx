@@ -62,7 +62,7 @@ export default function PortalDocumentosPage() {
 
   useEffect(() => {
     if (!token || !isVerifying) return;
-    const interval = window.setInterval(() => reload({ silent: true }), 5000);
+    const interval = window.setInterval(() => reload({ silent: true }), 4000);
     return () => window.clearInterval(interval);
   }, [token, isVerifying]);
 

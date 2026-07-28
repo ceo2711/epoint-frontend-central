@@ -31,6 +31,23 @@ function throwNetworkError(method: string, path: string, cause: unknown): never 
   throw new ApiError(0, NETWORK_ERROR_MESSAGE);
 }
 
+/** 4xx de formularios de auth: la UI ya muestra el mensaje; no spamear la consola. */
+const SILENT_AUTH_CLIENT_PATHS = new Set([
+  "/auth/login",
+  "/auth/2fa/verify",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/change-password",
+]);
+
+function shouldLogHttpError(path: string, status: number, silentHttpErrors?: boolean): boolean {
+  if (silentHttpErrors) return false;
+  if (status >= 400 && status < 500 && SILENT_AUTH_CLIENT_PATHS.has(path)) {
+    return false;
+  }
+  return true;
+}
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
@@ -76,7 +93,7 @@ async function request<T>(
     if (response.status === 401 && token) {
       notifyUnauthorized();
     }
-    if (!silentHttpErrors) {
+    if (shouldLogHttpError(path, response.status, silentHttpErrors)) {
       logClientError("api:http", message, { method, path, status: response.status });
     }
     throw new ApiError(response.status, message);

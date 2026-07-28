@@ -6,11 +6,21 @@ import { fetchPortalDocuments, fetchPortalMe } from "@/lib/queryFetchers";
 import { queryKeys } from "@/lib/queryKeys";
 import type { Client, DocumentBrief } from "@/types/api";
 
-export function usePortalMe(token: string | null) {
+export function usePortalMe(
+  token: string | null,
+  options?: {
+    enabled?: boolean;
+    refetchInterval?:
+      | number
+      | false
+      | ((query: { state: { data: Client | undefined } }) => number | false);
+  },
+) {
   return useQuery({
     queryKey: queryKeys.portal.me,
     queryFn: () => fetchPortalMe(token!),
-    enabled: !!token,
+    enabled: options?.enabled ?? !!token,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

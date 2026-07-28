@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
 import { NotificationDetailModal } from "@/features/notifications/components/NotificationDetailModal";
+import {
+  isSaleCongratsNotification,
+  SaleCongratsModal,
+} from "@/features/notifications/components/SaleCongratsModal";
 import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useNotificationNavigation } from "@/features/notifications/hooks/useNotificationNavigation";
@@ -148,14 +152,22 @@ export function NotificationBell() {
         )}
       </div>
 
-      {selected && (
-        <NotificationDetailModal
-          notification={selected}
-          canNavigate={!!getHref(selected)}
-          onNavigate={handleNavigateFromModal}
-          onClose={handleCloseModal}
-        />
-      )}
+      {selected &&
+        (isSaleCongratsNotification(selected) ? (
+          <SaleCongratsModal
+            notification={selected}
+            canNavigate={!!getHref(selected)}
+            onNavigate={handleNavigateFromModal}
+            onClose={handleCloseModal}
+          />
+        ) : (
+          <NotificationDetailModal
+            notification={selected}
+            canNavigate={!!getHref(selected)}
+            onNavigate={handleNavigateFromModal}
+            onClose={handleCloseModal}
+          />
+        ))}
     </>
   );
 }

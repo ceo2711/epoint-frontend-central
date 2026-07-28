@@ -147,6 +147,14 @@ export function NotificationsProvider({
           prospectId: typeof prospectId === "number" ? prospectId : null,
         });
       }
+      if (notification.event_type === "PROSPECT_CONVERTED") {
+        const paymentLinkId = notification.payload?.payment_link_id;
+        const prospectId = notification.payload?.prospect_id;
+        dispatchPaymentCompleted({
+          paymentLinkId: typeof paymentLinkId === "number" ? paymentLinkId : undefined,
+          prospectId: typeof prospectId === "number" ? prospectId : null,
+        });
+      }
 
       const prev = recentRef.current;
       const isNew = !isDuplicateNotification(prev, notification);

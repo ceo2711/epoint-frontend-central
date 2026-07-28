@@ -55,6 +55,28 @@ describe("getNotificationHref", () => {
     expect(href).toBe("/pagos");
   });
 
+  it("routes staff payment+conversion events to client detail", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        event_type: "PAYMENT_LINK_COMPLETED",
+        payload: { payment_link_id: 3, prospect_id: 9, client_id: 42 },
+      }),
+      "SALES_REP",
+    );
+    expect(href).toBe("/clientes/42");
+  });
+
+  it("routes prospect conversion events to client detail", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        event_type: "PROSPECT_CONVERTED",
+        payload: { prospect_id: 9, client_id: 42 },
+      }),
+      "SALES_REP",
+    );
+    expect(href).toBe("/clientes/42");
+  });
+
   it("returns null for staff when no client_id", () => {
     const href = getNotificationHref(
       makeNotification({ payload: {} }),

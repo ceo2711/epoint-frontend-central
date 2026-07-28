@@ -160,9 +160,23 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/comercios");
   });
 
-  it("CLIENT usa rutas de portal", () => {
-    expect(clientNav).toContain("/portal");
-    expect(clientNav).toContain("/portal/tablero");
-    expect(clientNav).not.toContain("/dashboard");
+  it("CLIENT usa rutas de portal y oculta tablero hasta desbloquear", () => {
+    const locked = getAccessibleNavItems(
+      { role: { code: "CLIENT" } } as never,
+      () => false,
+      { boardUnlocked: false },
+    ).map((item) => item.href);
+    expect(locked).toContain("/portal");
+    expect(locked).toContain("/portal/datos");
+    expect(locked).toContain("/portal/documentos");
+    expect(locked).not.toContain("/portal/tablero");
+    expect(locked).not.toContain("/dashboard");
+
+    const unlocked = getAccessibleNavItems(
+      { role: { code: "CLIENT" } } as never,
+      () => false,
+      { boardUnlocked: true },
+    ).map((item) => item.href);
+    expect(unlocked).toEqual(clientNav);
   });
 });
