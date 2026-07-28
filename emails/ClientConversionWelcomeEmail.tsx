@@ -2,7 +2,7 @@ import { Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
 
 import { EmailLayout } from "./components/EmailLayout";
-import { emailTheme as t } from "./theme";
+import { BRAND_NAME, emailTheme as t } from "./theme";
 
 export interface ClientConversionWelcomeEmailProps {
   firstName: string;
@@ -45,7 +45,7 @@ export function ClientConversionWelcomeEmail({
       <Text style={closingStyle}>
         Gracias por elegirnos.
         <br />
-        Equipo Epoint
+        <span translate="no">{BRAND_NAME}</span>
       </Text>
     </EmailLayout>
   );
