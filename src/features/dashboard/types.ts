@@ -37,6 +37,8 @@ export interface CommissionDayPoint {
   date: string;
   daily_paid: number;
   daily_commission: number;
+  daily_own_commission?: number;
+  daily_override_commission?: number;
   cumulative_commission: number;
 }
 
@@ -93,7 +95,12 @@ export interface AreaMetrics {
   monthly_commission?: number | null;
   /** Monto fijo USD por cada pago concretado. */
   commission_per_sale?: number | null;
+  /** Override del vendedor padre por cada venta de un subvendedor. */
+  parent_override_per_sale?: number | null;
   monthly_paid_count?: number | null;
+  override_paid_count?: number | null;
+  own_commission?: number | null;
+  override_commission?: number | null;
   commission_series?: CommissionDayPoint[];
 }
 

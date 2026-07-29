@@ -109,6 +109,12 @@ describe("role navigation matrix", () => {
       (perm) => hasPermission("SALES_REP", perm),
     ).map((item) => item.href);
     expect(hrefs).not.toContain("/equipo");
+    expect(hrefs).toContain("/dashboard");
+    expect(hrefs).toContain("/clientes");
+    expect(hrefs).toContain("/prospectos");
+    expect(hrefs).toContain("/calendario");
+    expect(hrefs).toContain("/contratos");
+    expect(hrefs).toContain("/pagos");
   });
 
   it("AREA_LEADER de ventas ve prospectos, calendario, contratos, pagos y vendedores", () => {

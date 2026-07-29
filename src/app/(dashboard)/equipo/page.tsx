@@ -3,6 +3,16 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -196,6 +206,46 @@ export default function SubSellersPage() {
                     value={data?.totals.prospects_open ?? 0}
                   />
                 </div>
+                {(data?.members.length ?? 0) > 0 && (
+                  <div className="h-72 w-full rounded-xl border border-slate-100 bg-white p-3">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={(data?.members ?? []).map((row) => ({
+                          name: row.is_self
+                            ? t("subSellers.you")
+                            : `${row.user.first_name} ${row.user.last_name}`,
+                          current: row.sales_current_month,
+                          previous: row.sales_previous_month,
+                        }))}
+                        margin={{ top: 8, right: 12, left: -16, bottom: 24 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 11, fill: "#64748b" }}
+                          angle={-18}
+                          textAnchor="end"
+                          interval={0}
+                        />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#64748b" }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar
+                          dataKey="current"
+                          name={t("subSellers.salesCurrentMonth")}
+                          fill="#3d6b45"
+                          radius={[5, 5, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="previous"
+                          name={t("subSellers.salesPreviousMonth")}
+                          fill="#c4a574"
+                          radius={[5, 5, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead className="text-xs uppercase tracking-wide text-slate-400">

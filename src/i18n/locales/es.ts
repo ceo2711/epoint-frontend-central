@@ -701,12 +701,15 @@ export const es = {
     monthlyCommissionTitle: "Comisión del mes",
     monthlyPaidTotal: "Total cobrado este mes",
     commissionPerSaleBadge: "{amount} por venta",
+    overridePerSaleBadge: "{amount} por venta de subvendedor",
     commissionToday: "Hoy: {amount}",
     commissionCumulative: "Acumulado",
     commissionDaily: "Por día",
     commissionEmpty: "Todavía no hay pagos este mes",
     monthlyCommissionHint:
       "Basado en {count} venta(s) concretada(s). {amount} de comisión fija por cada pago de prospecto.",
+    monthlyCommissionWithOverrideHint:
+      "Comisión propia: {own} por {ownCount} venta(s). Comisión de equipo: {override} por {overrideCount} venta(s) de subvendedores.",
     influencerRankingTitle: "Leads por influencer",
     influencerRankingSubtitle: "Prospectos atribuidos a influencers",
     influencerRankingConverted: "{count} ya convertidos a cliente",
@@ -1094,14 +1097,14 @@ export const es = {
     title: "Mi equipo",
     headerContext: "estos son tus subvendedores",
     subtitle:
-      "Si superaste más de 5 ventas concretadas el mes pasado, podés registrar subvendedores y seguir sus métricas.",
+      "Si alcanzaste al menos 5 ventas concretadas el mes pasado, podés registrar subvendedores y seguir sus métricas.",
     loadError: "No se pudo cargar el equipo",
     noPermission:
-      "Todavía no podés gestionar subvendedores. Necesitás más de 5 ventas concretadas (prospecto → cliente) en el mes anterior.",
+      "Todavía no podés gestionar subvendedores. Necesitás al menos 5 ventas concretadas (prospecto → cliente) en el mes anterior.",
     eligibilityTitle: "Elegibilidad",
     previousMonthSales: "Ventas del mes anterior",
     requiredSales: "Umbral",
-    requiredSalesHint: "Más de {count} ventas concretadas en el mes anterior",
+    requiredSalesHint: "Al menos {count} ventas concretadas en el mes anterior",
     eligibleBadge: "Habilitado",
     notEligibleBadge: "Aún no habilitado",
     metricsTitle: "Métricas del equipo",

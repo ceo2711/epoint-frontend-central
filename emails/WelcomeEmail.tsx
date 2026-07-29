@@ -1,4 +1,4 @@
-import { Button, Heading, Img, Link, Section, Text } from "@react-email/components";
+import { Button, Heading, Hr, Img, Link, Section, Text } from "@react-email/components";
 import * as React from "react";
 
 import { EmailLayout } from "./components/EmailLayout";
@@ -40,7 +40,7 @@ export function WelcomeEmail({
         personales y subir la documentación requerida.
       </Text>
 
-      <Section style={credentialsBoxStyle}>
+      <Section style={unifiedBoxStyle}>
         <Text style={credentialsTitleStyle}>Credenciales de acceso</Text>
         <Text style={credentialRowStyle}>
           <strong>Portal:</strong>{" "}
@@ -51,23 +51,23 @@ export function WelcomeEmail({
         <Text style={credentialRowStyle}>
           <strong>Usuario (email):</strong> {email}
         </Text>
-        <Text style={credentialRowStyle}>
+        <Text style={credentialRowLastStyle}>
           <strong>Contraseña temporal:</strong>{" "}
           <span style={passwordStyle}>{tempPassword}</span>
         </Text>
-      </Section>
 
-      <Section style={ctaSectionStyle}>
-        <Button href={portalLoginUrl} style={buttonStyle}>
-          Ingresar al portal
-        </Button>
-      </Section>
+        <Section style={ctaSectionStyle}>
+          <Button href={portalLoginUrl} style={buttonStyle}>
+            Ingresar al portal
+          </Button>
+        </Section>
 
-      <Text style={noteStyle}>
-        En tu primer ingreso deberás cambiar la contraseña temporal.
-      </Text>
+        <Text style={noteStyle}>
+          En tu primer ingreso deberás cambiar la contraseña temporal.
+        </Text>
 
-      <Section style={appStoreSectionStyle}>
+        <Hr style={dividerStyle} />
+
         <Text style={appStoreTitleStyle}>Descargá la app móvil</Text>
         <Text style={appStoreHintStyle}>
           Usá las mismas credenciales para ingresar desde tu teléfono.
@@ -110,12 +110,13 @@ const paragraphStyle: React.CSSProperties = {
   margin: "0 0 16px",
 };
 
-const credentialsBoxStyle: React.CSSProperties = {
+const unifiedBoxStyle: React.CSSProperties = {
   backgroundColor: t.cream400,
   border: `1px solid ${t.cream600}`,
   borderRadius: "12px",
-  margin: "24px 0",
-  padding: "20px 24px",
+  margin: "24px 0 0",
+  padding: "24px 20px",
+  textAlign: "center" as const,
 };
 
 const credentialsTitleStyle: React.CSSProperties = {
@@ -124,6 +125,7 @@ const credentialsTitleStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: "0.04em",
   margin: "0 0 12px",
+  textAlign: "left" as const,
   textTransform: "uppercase" as const,
 };
 
@@ -132,6 +134,12 @@ const credentialRowStyle: React.CSSProperties = {
   fontSize: "14px",
   lineHeight: "1.6",
   margin: "0 0 8px",
+  textAlign: "left" as const,
+};
+
+const credentialRowLastStyle: React.CSSProperties = {
+  ...credentialRowStyle,
+  margin: "0 0 20px",
 };
 
 const passwordStyle: React.CSSProperties = {
@@ -150,7 +158,7 @@ const linkStyle: React.CSSProperties = {
 };
 
 const ctaSectionStyle: React.CSSProperties = {
-  margin: "28px 0 16px",
+  margin: "0 0 12px",
   textAlign: "center" as const,
 };
 
@@ -169,16 +177,14 @@ const noteStyle: React.CSSProperties = {
   color: t.textMuted,
   fontSize: "13px",
   lineHeight: "1.5",
-  margin: "0 0 8px",
+  margin: "0 0 4px",
+  textAlign: "center" as const,
 };
 
-const appStoreSectionStyle: React.CSSProperties = {
-  backgroundColor: t.cream400,
-  border: `1px solid ${t.cream600}`,
-  borderRadius: "12px",
-  margin: "28px 0 0",
-  padding: "24px 20px",
-  textAlign: "center" as const,
+const dividerStyle: React.CSSProperties = {
+  borderColor: t.cream600,
+  borderTop: `1px solid ${t.cream600}`,
+  margin: "20px 0",
 };
 
 const appStoreTitleStyle: React.CSSProperties = {
@@ -187,13 +193,15 @@ const appStoreTitleStyle: React.CSSProperties = {
   fontWeight: 700,
   lineHeight: "1.3",
   margin: "0 0 8px",
+  textAlign: "center" as const,
 };
 
 const appStoreHintStyle: React.CSSProperties = {
   color: t.textMuted,
   fontSize: "13px",
   lineHeight: "1.5",
-  margin: "0 0 20px",
+  margin: "0 0 16px",
+  textAlign: "center" as const,
 };
 
 const badgeLinkStyle: React.CSSProperties = {

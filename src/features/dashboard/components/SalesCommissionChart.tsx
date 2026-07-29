@@ -45,6 +45,10 @@ type SalesCommissionChartProps = {
   commission: number;
   perSale: number;
   paidCount: number;
+  ownCommission?: number;
+  overrideCommission?: number;
+  overridePerSale?: number;
+  overridePaidCount?: number;
   series: CommissionDayPoint[];
 };
 
@@ -52,6 +56,10 @@ export function SalesCommissionChart({
   commission,
   perSale,
   paidCount,
+  ownCommission = commission,
+  overrideCommission = 0,
+  overridePerSale = 250,
+  overridePaidCount = 0,
   series,
 }: SalesCommissionChartProps) {
   const { t } = useTranslation();
@@ -94,13 +102,25 @@ export function SalesCommissionChart({
             <span className="rounded-lg bg-[#3d6b45]/10 px-2.5 py-1 text-xs font-semibold text-[#3d6b45]">
               {t("dashboard.commissionPerSaleBadge", { amount: perSaleLabel })}
             </span>
+            {overridePaidCount > 0 && (
+              <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                {t("dashboard.overridePerSaleBadge", { amount: formatUsd(overridePerSale) })}
+              </span>
+            )}
             <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
               {t("dashboard.commissionToday", { amount: formatUsd(todayDaily) })}
             </span>
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          {t("dashboard.monthlyCommissionHint", { amount: perSaleLabel, count: paidCount })}
+          {overridePaidCount > 0
+            ? t("dashboard.monthlyCommissionWithOverrideHint", {
+                own: formatUsd(ownCommission),
+                ownCount: paidCount,
+                override: formatUsd(overrideCommission),
+                overrideCount: overridePaidCount,
+              })
+            : t("dashboard.monthlyCommissionHint", { amount: perSaleLabel, count: paidCount })}
         </p>
       </div>
 

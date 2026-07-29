@@ -702,12 +702,15 @@ export const en: Messages = {
     monthlyCommissionTitle: "Month commission",
     monthlyPaidTotal: "Collected this month",
     commissionPerSaleBadge: "{amount} per sale",
+    overridePerSaleBadge: "{amount} per sub-seller sale",
     commissionToday: "Today: {amount}",
     commissionCumulative: "Cumulative",
     commissionDaily: "Per day",
     commissionEmpty: "No payments yet this month",
     monthlyCommissionHint:
       "Based on {count} completed sale(s). Fixed {amount} commission per prospect payment.",
+    monthlyCommissionWithOverrideHint:
+      "Own commission: {own} from {ownCount} sale(s). Team override: {override} from {overrideCount} sub-seller sale(s).",
     influencerRankingTitle: "Leads by influencer",
     influencerRankingSubtitle: "Prospects attributed to influencers",
     influencerRankingConverted: "{count} already converted to client",
@@ -1095,14 +1098,14 @@ export const en: Messages = {
     title: "My team",
     headerContext: "these are your sub-sellers",
     subtitle:
-      "If you closed more than 5 concretized sales last month, you can register sub-sellers and track their metrics.",
+      "If you closed at least 5 concretized sales last month, you can register sub-sellers and track their metrics.",
     loadError: "Could not load your team",
     noPermission:
-      "You can't manage sub-sellers yet. You need more than 5 concretized sales (prospect → client) in the previous month.",
+      "You can't manage sub-sellers yet. You need at least 5 concretized sales (prospect → client) in the previous month.",
     eligibilityTitle: "Eligibility",
     previousMonthSales: "Previous month sales",
     requiredSales: "Threshold",
-    requiredSalesHint: "More than {count} concretized sales in the previous month",
+    requiredSalesHint: "At least {count} concretized sales in the previous month",
     eligibleBadge: "Enabled",
     notEligibleBadge: "Not enabled yet",
     metricsTitle: "Team metrics",

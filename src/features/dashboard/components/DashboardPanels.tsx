@@ -102,6 +102,10 @@ export function AreaMetricsPanel({
                 commission={area.monthly_commission ?? 0}
                 perSale={area.commission_per_sale ?? 500}
                 paidCount={area.monthly_paid_count ?? 0}
+                ownCommission={area.own_commission ?? area.monthly_commission ?? 0}
+                overrideCommission={area.override_commission ?? 0}
+                overridePerSale={area.parent_override_per_sale ?? 250}
+                overridePaidCount={area.override_paid_count ?? 0}
                 series={area.commission_series ?? []}
               />
             </MetricReveal>
