@@ -18,6 +18,7 @@ import type {
 } from "@/features/docusign/types";
 import type { Board } from "@/features/boards/types";
 import type { Merchant } from "@/features/merchants/types";
+import type { Prospect } from "@/features/prospects/types";
 import type { Source, SourceBrief } from "@/features/sources/types";
 import type { Influencer, InfluencerBrief } from "@/features/influencers/types";
 import type { Role } from "@/features/roles/types";
@@ -70,6 +71,40 @@ export function fetchClientsList(
   if (options?.sedeId != null) params.set("sede_id", String(options.sedeId));
   const query = params.toString();
   return api.get<Paginated<Client>>(`/clients${query ? `?${query}` : ""}`, token);
+}
+
+export function fetchProspectsList(
+  token: string,
+  options?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    statusFilter?: string | null;
+    salesRepId?: number | null;
+    sedeId?: number | null;
+    allMerchants?: boolean;
+  },
+) {
+  const params = new URLSearchParams();
+  params.set("page", String(options?.page ?? 1));
+  params.set("page_size", String(options?.pageSize ?? 10));
+  const search = options?.search?.trim();
+  if (search) params.set("search", search);
+  if (options?.statusFilter) params.set("status_filter", options.statusFilter);
+  if (options?.salesRepId) params.set("sales_rep_id", String(options.salesRepId));
+  if (options?.sedeId != null) params.set("sede_id", String(options.sedeId));
+  if (options?.allMerchants) params.set("all_merchants", "true");
+  return api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
+}
+
+export function fetchSubSellerMetrics(token: string) {
+  return api.get<unknown>("/sub-sellers/metrics", token);
+}
+
+export function syncCalendlyEvents(token: string, userId?: number | null) {
+  return api.post(`/calendly/sync${calendlyUserQuery(userId)}`, {}, token, {
+    silentHttpErrors: true,
+  });
 }
 
 export function fetchMerchantOptions(token: string) {

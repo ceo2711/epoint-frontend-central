@@ -8,6 +8,7 @@ import { Card, PageContent } from "@/components/ui/Card";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { AddressAutocomplete } from "@/features/portal/components/AddressAutocomplete";
+import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
@@ -35,6 +36,7 @@ function currentYear() {
 export default function PortalDatosPage() {
   const { token } = useAuth();
   const { t } = useTranslation();
+  const profileQuery = usePortalMe(token);
   const [client, setClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function PortalDatosPage() {
   const [profileErrors, setProfileErrors] = useState<{ ssn?: string; dob?: string }>({});
   const [storedSsn, setStoredSsn] = useState<string | null>(null);
   const [ssnVisible, setSsnVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function loadStoredSsn(hasSsn: boolean) {
@@ -71,30 +73,29 @@ export default function PortalDatosPage() {
   }
 
   useEffect(() => {
-    if (!token) return;
-    setLoading(true);
-    api
-      .get<Client>("/portal/me", token)
-      .then(async (c) => {
-        setClient(c);
-        if (c.date_of_birth) setDob(c.date_of_birth);
-        const a = c.addresses?.find((x) => x.type === "CURRENT");
-        if (a) {
-          setAddr({
-            street: a.street,
-            city: a.city,
-            state: a.state,
-            zip_code: a.zip_code,
-            residence_since_month: String(a.residence_since_month ?? ""),
-            residence_since_year: String(a.residence_since_year ?? ""),
-          });
-        }
-        const v = c.vehicles?.find((x) => x.order === 1);
-        if (v) setVehicle({ model: v.model, year: String(v.year), color: v.color });
-        await loadStoredSsn(c.has_ssn);
-      })
-      .finally(() => setLoading(false));
-  }, [token]);
+    const c = profileQuery.data;
+    if (!c || hydrated) return;
+    setClient(c);
+    if (c.date_of_birth) setDob(c.date_of_birth);
+    const a = c.addresses?.find((x) => x.type === "CURRENT");
+    if (a) {
+      setAddr({
+        street: a.street,
+        city: a.city,
+        state: a.state,
+        zip_code: a.zip_code,
+        residence_since_month: String(a.residence_since_month ?? ""),
+        residence_since_year: String(a.residence_since_year ?? ""),
+      });
+    }
+    const v = c.vehicles?.find((x) => x.order === 1);
+    if (v) setVehicle({ model: v.model, year: String(v.year), color: v.color });
+    void loadStoredSsn(c.has_ssn).finally(() => setHydrated(true));
+    // loadStoredSsn cierra sobre token; no hace falta re-hidratar en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileQuery.data, hydrated]);
+
+  const loading = profileQuery.isLoading || (!!profileQuery.data && !hydrated);
 
   function clearFeedback() {
     setMessage("");

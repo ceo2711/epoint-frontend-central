@@ -9,19 +9,24 @@ import { getAccessibleHrefs } from "@/lib/appNavigation";
 import { prefetchAppData, prefetchCurrentRouteData } from "@/lib/appPrefetch";
 import { prefetchAccessibleRouteModules } from "@/lib/lazyPanels";
 
-/** Esperar a que la ruta actual pinte antes de prefetch de datos. */
-const CURRENT_ROUTE_PREFETCH_MS = 2_500;
-/** Calentar bundles JS de las rutas del menú en idle. */
-const ROUTE_MODULE_PREFETCH_MS = 1_500;
-const ROUTE_BUNDLE_PREFETCH_MS = 3_000;
-const DEFERRED_PREFETCH_MS = 12_000;
+/** Un tick corto para no competir con el paint de la ruta actual. */
+const DEFERRED_DATA_PREFETCH_MS = 150;
+/** Warm de bundles JS: menos crítico que los datos. */
+const ROUTE_MODULE_PREFETCH_MS = 600;
+const ROUTE_BUNDLE_PREFETCH_MS = 1_200;
 
-function scheduleIdle(task: () => void, fallbackMs = 250) {
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(() => task(), { timeout: 2_000 });
-    return;
-  }
-  window.setTimeout(task, fallbackMs);
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function whenIdle(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => resolve(), { timeout: 1_000 });
+      return;
+    }
+    window.setTimeout(() => resolve(), 100);
+  });
 }
 
 export function AppDataPrefetcher() {
@@ -29,53 +34,58 @@ export function AppDataPrefetcher() {
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const { user, token, hasPermission } = useAuth();
-  const prefetchedKeyRef = useRef<string | null>(null);
+  const prefetchedUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!user || !token) {
-      prefetchedKeyRef.current = null;
+      prefetchedUserIdRef.current = null;
       return;
     }
 
-    const sessionKey = `${user.id}:${token.slice(-12)}`;
-    if (prefetchedKeyRef.current === sessionKey) return;
-    prefetchedKeyRef.current = sessionKey;
+    // Se corta por usuario, no por token: el access token se renueva solo
+    // (ACCESS_TOKEN_REFRESHED_EVENT) y si eso contara como sesión nueva
+    // volveríamos a prefetchear todo cada vez que rota.
+    if (prefetchedUserIdRef.current === user.id) return;
+    prefetchedUserIdRef.current = user.id;
 
     const hrefs = getAccessibleHrefs(user, hasPermission);
+    const initialPath = pathname;
+    const currentHref = hrefs.find(
+      (item) => initialPath === item || initialPath.startsWith(`${item}/`),
+    );
 
-    const moduleTimer = window.setTimeout(() => {
-      scheduleIdle(() => {
-        prefetchAccessibleRouteModules(hrefs);
-      }, 300);
-    }, ROUTE_MODULE_PREFETCH_MS);
+    // No se cancela en el cleanup a propósito: en dev StrictMode desmonta y
+    // remonta el efecto, y el segundo pase corta por el ref. Si esto se
+    // cancelara, el prefetch nunca llegaría a ejecutarse.
+    void (async () => {
+      await prefetchCurrentRouteData(
+        queryClient,
+        token,
+        user,
+        hasPermission,
+        initialPath,
+      ).catch(() => undefined);
 
-    const routeBundleTimer = window.setTimeout(() => {
-      scheduleIdle(() => {
-        for (const href of hrefs) {
-          router.prefetch(href);
-        }
-      }, 500);
-    }, ROUTE_BUNDLE_PREFETCH_MS);
+      await sleep(DEFERRED_DATA_PREFETCH_MS);
+      await whenIdle();
+      await prefetchAppData(queryClient, token, user, hasPermission, {
+        skipHref: currentHref,
+        currentPathname: initialPath,
+      }).catch(() => undefined);
 
-    const currentRouteTimer = window.setTimeout(() => {
-      scheduleIdle(() => {
-        void prefetchCurrentRouteData(queryClient, token, user, hasPermission, pathname);
-      });
-    }, CURRENT_ROUTE_PREFETCH_MS);
+      await sleep(ROUTE_MODULE_PREFETCH_MS);
+      await whenIdle();
+      prefetchAccessibleRouteModules(hrefs);
 
-    const deferredTimer = window.setTimeout(() => {
-      scheduleIdle(() => {
-        void prefetchAppData(queryClient, token, user, hasPermission, { skipHref: pathname });
-      }, 500);
-    }, DEFERRED_PREFETCH_MS);
-
-    return () => {
-      window.clearTimeout(moduleTimer);
-      window.clearTimeout(routeBundleTimer);
-      window.clearTimeout(currentRouteTimer);
-      window.clearTimeout(deferredTimer);
-    };
-  }, [user, token, hasPermission, queryClient, router, pathname]);
+      await sleep(ROUTE_BUNDLE_PREFETCH_MS);
+      await whenIdle();
+      for (const href of hrefs) {
+        router.prefetch(href);
+      }
+    })();
+    // pathname es solo el snapshot inicial de la sesión; no re-disparar al navegar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, token, hasPermission, queryClient, router]);
 
   return null;
 }

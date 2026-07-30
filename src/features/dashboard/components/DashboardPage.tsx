@@ -16,13 +16,12 @@ import {
 import { useDashboardMetrics } from "@/features/dashboard/hooks/useDashboardMetrics";
 import type { DashboardAreaCode } from "@/features/dashboard/types";
 import { useTranslation } from "@/contexts/LanguageContext";
-import type { CalendlySalesRep } from "@/features/calendly/types";
 import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import { buildSedeBranchesFromReps } from "@/features/sedes/utils/sedeBranches";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
 import { isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { SalesLeadershipPanel } from "@/features/dashboard/components/SalesLeadershipPanel";
 
 const AREA_CODES = new Set<DashboardAreaCode>(["ONBOARDING", "VENTAS"]);
@@ -62,8 +61,6 @@ function DashboardPageContent() {
   const salesLeader = isSalesAreaLeader(user);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
 
   const showSedePicker = isGlobal && selectedSedeId === null;
   const metricsEnabled = canViewClients && (!isGlobal || selectedSedeId != null);
@@ -76,17 +73,10 @@ function DashboardPageContent() {
     false,
   );
 
-  useEffect(() => {
-    if (!token || (!isGlobal && !salesLeader)) {
-      setSalesReps([]);
-      return;
-    }
-    setLoadingReps(true);
-    void fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token, isGlobal, salesLeader]);
+  const { salesReps, loading: loadingReps } = useSalesReps(
+    token,
+    !!token && (isGlobal || salesLeader),
+  );
 
   const branches = useMemo(
     () =>

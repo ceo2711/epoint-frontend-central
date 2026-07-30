@@ -120,4 +120,34 @@ export const queryKeys = {
     linksBySalesRep: (salesRepId: number, page = 1, pageSize = 10) =>
       ["payments", "links", "salesRep", salesRepId, { page, pageSize }] as const,
   },
+  prospects: {
+    all: ["prospects"] as const,
+    list: (
+      page?: number,
+      pageSize?: number,
+      search?: string,
+      statusFilter?: string | null,
+      salesRepId?: number | null,
+      sedeId?: number | null,
+      allMerchants?: boolean,
+    ) =>
+      [
+        "prospects",
+        "list",
+        {
+          page: page ?? 1,
+          pageSize: pageSize ?? 10,
+          search: search?.trim() || "",
+          statusFilter: statusFilter ?? null,
+          salesRepId: salesRepId ?? null,
+          sedeId: sedeId ?? null,
+          allMerchants: !!allMerchants,
+        },
+      ] as const,
+  },
+  subSellers: {
+    all: ["sub-sellers"] as const,
+    metrics: (userId?: number | null) =>
+      ["sub-sellers", "metrics", userId ?? null] as const,
+  },
 } as const;

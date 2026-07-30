@@ -10,8 +10,7 @@ import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import type { CalendlySalesRep } from "@/features/calendly/types";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
 import { ProspectCreateModal } from "@/features/prospects/components/ProspectCreateModal";
 import { ProspectList } from "@/features/prospects/components/ProspectList";
@@ -38,8 +37,6 @@ export function ProspectosPage() {
   const [salesRepId, setSalesRepId] = useState<number | null>(null);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
 
   const { sedes, loading: loadingSedes } = useSedes(
     token,
@@ -49,17 +46,7 @@ export function ProspectosPage() {
     false,
   );
 
-  useEffect(() => {
-    if (!token || !canSupervise) {
-      setSalesReps([]);
-      return;
-    }
-    setLoadingReps(true);
-    void fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token, canSupervise]);
+  const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
 
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
     token,

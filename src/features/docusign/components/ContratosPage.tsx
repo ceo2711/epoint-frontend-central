@@ -13,8 +13,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
-import type { CalendlySalesRep } from "@/features/calendly/types";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { EnvelopeList } from "@/features/docusign/components/EnvelopeList";
 import { RegisterClientFromContractModal } from "@/features/docusign/components/RegisterClientFromContractModal";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
@@ -46,8 +45,6 @@ export function ContratosPage() {
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [linkEnvelope, setLinkEnvelope] = useState<DocusignEnvelope | null>(null);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
 
   const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
@@ -82,6 +79,8 @@ export function ContratosPage() {
     false,
   );
 
+  const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
+
   const branches = useMemo(
     () =>
       buildSedeBranchesFromReps(salesReps, sedes, {
@@ -110,15 +109,6 @@ export function ContratosPage() {
       router.replace("/dashboard");
     }
   }, [user, router]);
-
-  useEffect(() => {
-    if (!token || !canSupervise) return;
-    setLoadingReps(true);
-    fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token, canSupervise]);
 
   if (
     !user ||

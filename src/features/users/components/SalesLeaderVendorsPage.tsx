@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { VscArrowLeft } from "react-icons/vsc";
 
 import { Header } from "@/components/layout/Header";
@@ -10,34 +10,21 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useMerchant } from "@/contexts/MerchantContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
-import type { CalendlySalesRep } from "@/features/calendly/types";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { AreaMetricsPanel } from "@/features/dashboard/components/DashboardPanels";
 import { SalesLeadershipPanel } from "@/features/dashboard/components/SalesLeadershipPanel";
 import { useDashboardMetrics } from "@/features/dashboard/hooks/useDashboardMetrics";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
 
 export function SalesLeaderVendorsPage() {
   const { token, user, hasPermission } = useAuth();
   const { activeMerchantId } = useMerchant();
   const { t } = useTranslation();
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
 
   const canViewMetrics = hasPermission("clients:read");
   const roleCode = user?.role.code ?? null;
 
-  useEffect(() => {
-    if (!token) {
-      setSalesReps([]);
-      return;
-    }
-    setLoadingReps(true);
-    void fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token]);
+  const { salesReps, loading: loadingReps } = useSalesReps(token, !!token);
 
   const selectedRep = useMemo(
     () => salesReps.find((rep) => rep.id === selectedRepId) ?? null,

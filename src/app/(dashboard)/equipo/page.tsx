@@ -23,6 +23,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
 
@@ -74,7 +75,7 @@ export default function SubSellersPage() {
   const canAccess = Boolean(user?.role.code === "SALES_REP" && !user.is_sub_seller);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["sub-sellers", "metrics", user?.id],
+    queryKey: queryKeys.subSellers.metrics(user?.id),
     queryFn: () => api.get<TeamMetrics>("/sub-sellers/metrics", token),
     enabled: !!token && canAccess,
   });
@@ -102,7 +103,7 @@ export default function SubSellersPage() {
       setFormSuccess(t("subSellers.createSuccess"));
       await refetch();
       await refreshUser();
-      await queryClient.invalidateQueries({ queryKey: ["sub-sellers"] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.subSellers.all });
     } catch (err) {
       setFormError(getUserFacingErrorMessage(err, t("subSellers.createError")));
     } finally {

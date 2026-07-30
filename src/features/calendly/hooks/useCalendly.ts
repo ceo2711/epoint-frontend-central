@@ -22,7 +22,11 @@ import type {
   CalendlySalesRep,
 } from "@/features/calendly/types";
 import { getAvailableTimesRange } from "@/features/calendly/utils/dateRange";
-import { EVENTS_AUTO_SYNC_MS } from "@/features/calendly/utils/eventTypesCache";
+import { EVENTS_AUTO_SYNC_MS, isCalendlyEventsFresh } from "@/features/calendly/utils/eventTypesCache";
+import {
+  markCalendlySync,
+  shouldSyncCalendly,
+} from "@/features/calendly/utils/syncRegistry";
 
 export function useCalendly(
   token: string | null,
@@ -34,7 +38,8 @@ export function useCalendly(
   const queryClient = useQueryClient();
   const connectionRef = useRef<CalendlyConnection | null>(null);
   const syncPromiseRef = useRef<Promise<void> | null>(null);
-  const lastSyncAttemptRef = useRef(0);
+  const mountSyncDoneRef = useRef(false);
+  const eventsUpdatedAtRef = useRef(0);
   const userQuery = calendlyUserQuery(selectedUserId);
 
   const connectionQuery = useQuery({
@@ -76,19 +81,19 @@ export function useCalendly(
 
       const silent = options?.silent ?? true;
       const force = options?.force ?? false;
-      const now = Date.now();
-      const minIntervalMs = 60_000;
 
       syncPromiseRef.current = (async () => {
-        const shouldCallRemoteSync = force || now - lastSyncAttemptRef.current >= minIntervalMs;
+        // El registro es compartido con el prefetch post-login para no repetir
+        // el sync (ni la invalidación) cuando la vista se abre recién logueado.
+        const shouldCallRemoteSync = force || shouldSyncCalendly(selectedUserId);
 
-        if (shouldCallRemoteSync) {
-          lastSyncAttemptRef.current = now;
-          try {
-            await api.post(`/calendly/sync${userQuery}`, {}, token, { silentHttpErrors: silent });
-          } catch {
-            // Si falla la sync, igual refrescamos eventos locales.
-          }
+        if (!shouldCallRemoteSync) return;
+
+        markCalendlySync(selectedUserId);
+        try {
+          await api.post(`/calendly/sync${userQuery}`, {}, token, { silentHttpErrors: silent });
+        } catch {
+          // Si falla la sync, igual refrescamos eventos locales.
         }
 
         await Promise.all([
@@ -107,9 +112,25 @@ export function useCalendly(
   );
 
   useEffect(() => {
+    mountSyncDoneRef.current = false;
+  }, [selectedUserId]);
+
+  // Se lee por ref para que el intervalo de abajo no se reinicie con cada
+  // actualización de eventos (si no, casi nunca llegaría a los 90s).
+  useEffect(() => {
+    eventsUpdatedAtRef.current = eventsQuery.dataUpdatedAt;
+  }, [eventsQuery.dataUpdatedAt]);
+
+  useEffect(() => {
     if (!token || !connected || !enabled) return;
 
-    void syncAndRefreshEvents({ silent: true });
+    // Si el prefetch post-login ya dejó eventos frescos, no invalidar al abrir la vista.
+    if (!mountSyncDoneRef.current) {
+      mountSyncDoneRef.current = true;
+      if (!isCalendlyEventsFresh(eventsUpdatedAtRef.current)) {
+        void syncAndRefreshEvents({ silent: true });
+      }
+    }
 
     const intervalId = window.setInterval(
       () => void syncAndRefreshEvents({ silent: true }),

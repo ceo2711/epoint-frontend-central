@@ -11,7 +11,6 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useMerchant } from "@/contexts/MerchantContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import type { CalendlySalesRep } from "@/features/calendly/types";
 import {
   ClientListFilters,
   type ClientMerchantFilter,
@@ -20,6 +19,7 @@ import { ClientList } from "@/features/clients/components/ClientList";
 import { OnboardingRemindersButton } from "@/features/clients/components/OnboardingRemindersButton";
 import { useClientWorkflow } from "@/features/clients/hooks/useClientWorkflow";
 import { CLIENTS_PAGE_SIZE, useClients } from "@/features/clients/hooks/useClients";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { SedeBranchList } from "@/features/sedes/components/SedeBranchList";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import {
@@ -27,7 +27,6 @@ import {
   filterRepsBySede,
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
 import { canFilterClientsBySalesRep, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
@@ -51,8 +50,6 @@ export function ClientesPage() {
   const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
   const [salesRepId, setSalesRepId] = useState<number | null>(null);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
@@ -74,17 +71,7 @@ export function ClientesPage() {
     false,
   );
 
-  useEffect(() => {
-    if (!token || !showSalesRepFilter) {
-      setSalesReps([]);
-      return;
-    }
-    setLoadingReps(true);
-    void fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token, showSalesRepFilter]);
+  const { salesReps, loading: loadingReps } = useSalesReps(token, showSalesRepFilter);
 
   const branches = useMemo(
     () =>

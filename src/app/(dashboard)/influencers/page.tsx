@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -11,13 +10,12 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
-import type { CalendlySalesRep } from "@/features/calendly/types";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { InfluencerFormModal } from "@/features/influencers/components/InfluencerFormModal";
 import { InfluencersTable } from "@/features/influencers/components/InfluencersTable";
 import { useInfluencers } from "@/features/influencers/hooks/useInfluencers";
 import type { Influencer } from "@/features/influencers/types";
 import { api } from "@/lib/api";
-import { queryKeys } from "@/lib/queryKeys";
 import { canManageInfluencers } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
@@ -36,11 +34,7 @@ export default function InfluencersPage() {
     true,
   );
 
-  const { data: salesReps = [] } = useQuery({
-    queryKey: queryKeys.calendly.salesReps,
-    queryFn: () => api.get<CalendlySalesRep[]>("/calendly/sales-reps", token),
-    enabled: !!token && canAccess,
-  });
+  const { salesReps } = useSalesReps(token, !!token && canAccess);
 
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Influencer | null>(null);

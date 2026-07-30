@@ -5,6 +5,17 @@ const EVENT_TYPES_CACHE_VERSION = 3;
 
 export const EVENTS_AUTO_SYNC_MS = 90_000;
 export const EVENT_TYPES_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Si los eventos en React Query se actualizaron hace menos que esto, no forzar sync al montar. */
+export const EVENTS_FRESH_MS = 60_000;
+
+/** True si dataUpdatedAt de la query de eventos es reciente (p.ej. tras prefetch post-login). */
+export function isCalendlyEventsFresh(
+  dataUpdatedAt: number,
+  now = Date.now(),
+  maxAgeMs = EVENTS_FRESH_MS,
+): boolean {
+  return dataUpdatedAt > 0 && now - dataUpdatedAt < maxAgeMs;
+}
 
 interface EventTypesCacheEntry {
   version: number;

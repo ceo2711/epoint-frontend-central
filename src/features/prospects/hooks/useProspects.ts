@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Prospect, ProspectDetail } from "@/features/prospects/types";
-import type { Paginated } from "@/types/api";
+import type { ProspectDetail } from "@/features/prospects/types";
 import { api } from "@/lib/api";
+import { fetchProspectsList } from "@/lib/queryFetchers";
+import { queryKeys } from "@/lib/queryKeys";
 
 export const PROSPECTS_PAGE_SIZE = 10;
 
@@ -34,49 +36,48 @@ export function useProspects(
     allMerchants = false,
     enabled = true,
   } = options;
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.prospects.list(
+    page,
+    pageSize,
+    search,
+    statusFilter,
+    salesRepId,
+    sedeId,
+    allMerchants,
+  );
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey,
+    queryFn: () =>
+      fetchProspectsList(token!, {
+        page,
+        pageSize,
+        search,
+        statusFilter,
+        salesRepId,
+        sedeId,
+        allMerchants,
+      }),
+    enabled: !authLoading && !!token && enabled,
+  });
 
   const load = useCallback(async () => {
-    if (!token || !enabled) {
-      setProspects([]);
-      setTotal(0);
-      setPages(1);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(false);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("page_size", String(pageSize));
-      if (search) params.set("search", search);
-      if (statusFilter) params.set("status_filter", statusFilter);
-      if (salesRepId) params.set("sales_rep_id", String(salesRepId));
-      if (sedeId != null) params.set("sede_id", String(sedeId));
-      if (allMerchants) params.set("all_merchants", "true");
-      const data = await api.get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token);
-      setProspects(data.items);
-      setTotal(data.total);
-      setPages(data.pages);
-    } catch {
-      setError(true);
-      setProspects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, enabled, page, pageSize, search, statusFilter, salesRepId, sedeId, allMerchants]);
+    if (authLoading || !token || !enabled) return;
+    await queryClient.invalidateQueries({ queryKey });
+    await refetch();
+  }, [authLoading, token, enabled, queryClient, queryKey, refetch]);
 
-  useEffect(() => {
-    if (authLoading) return;
-    void load();
-  }, [authLoading, load]);
-
-  return { prospects, loading, error, load, total, pages, pageSize };
+  return {
+    prospects: data?.items ?? [],
+    loading: isLoading,
+    error: isError,
+    load,
+    total: data?.total ?? 0,
+    pages: data?.pages ?? 1,
+    pageSize: data?.page_size ?? pageSize,
+  };
 }
 
 export interface ProspectDetailReloadOptions {

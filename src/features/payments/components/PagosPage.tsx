@@ -14,8 +14,8 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
+import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
-import type { CalendlySalesRep } from "@/features/calendly/types";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
 import { PaymentLinkList } from "@/features/payments/components/PaymentLinkList";
 import { RegisterClientFromPaymentModal } from "@/features/payments/components/RegisterClientFromPaymentModal";
@@ -33,7 +33,6 @@ import type { PaymentLink, PaymentLinkCreatePayload } from "@/features/payments/
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
-import { fetchCalendlySalesReps } from "@/lib/queryFetchers";
 import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
 const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
@@ -49,8 +48,6 @@ export function PagosPage() {
   const [registering, setRegistering] = useState(false);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
-  const [salesReps, setSalesReps] = useState<CalendlySalesRep[]>([]);
-  const [loadingReps, setLoadingReps] = useState(false);
 
   const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
@@ -91,6 +88,8 @@ export function PagosPage() {
     false,
   );
 
+  const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
+
   useEffect(() => {
     if (!user) return;
     const allowed =
@@ -100,15 +99,6 @@ export function PagosPage() {
       router.replace("/dashboard");
     }
   }, [user, router]);
-
-  useEffect(() => {
-    if (!token || !canSupervise) return;
-    setLoadingReps(true);
-    fetchCalendlySalesReps(token)
-      .then(setSalesReps)
-      .catch(() => setSalesReps([]))
-      .finally(() => setLoadingReps(false));
-  }, [token, canSupervise]);
 
   const branches = useMemo(
     () =>
