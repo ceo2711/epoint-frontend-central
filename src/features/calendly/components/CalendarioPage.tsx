@@ -290,7 +290,6 @@ export function CalendarioPage() {
           {connection?.connected && (
             <CalendlyShareLink
               eventTypes={eventTypes}
-              profileUrl={connection.scheduling_url}
               loading={loadingEventTypes}
             />
           )}

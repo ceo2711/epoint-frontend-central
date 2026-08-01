@@ -12,6 +12,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
 import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
 import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
+import { clientDetailPath } from "@/lib/clientsNavigation";
 
 interface ClientListProps {
   clients: Client[];
@@ -22,6 +23,8 @@ interface ClientListProps {
   showMerchantColumn?: boolean;
   showSalesRepColumn?: boolean;
   showAdvisorColumn?: boolean;
+  /** Sede activa (admin): se preserva al abrir el detalle. */
+  sedeId?: number | null;
   page: number;
   pages: number;
   total: number;
@@ -54,6 +57,7 @@ export function ClientList({
   showMerchantColumn = false,
   showSalesRepColumn = false,
   showAdvisorColumn = false,
+  sedeId = null,
   page,
   pages,
   total,
@@ -68,7 +72,7 @@ export function ClientList({
   const someOnPageSelected = clients.some((client) => selectedSet.has(client.id));
 
   function goToClient(clientId: number) {
-    router.push(`/clientes/${clientId}`);
+    router.push(clientDetailPath(clientId, sedeId));
   }
 
   function renderCheckbox(clientId: number, name: string) {

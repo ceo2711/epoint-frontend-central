@@ -89,7 +89,6 @@ export function SourcesTable({
               <th>{t("common.name")}</th>
               <th>{t("sources.code")}</th>
               <th>{t("sources.description")}</th>
-              <th>{t("sources.sortOrder")}</th>
               <th>{t("common.status")}</th>
               <th>{t("common.actions")}</th>
             </tr>
@@ -100,7 +99,6 @@ export function SourcesTable({
                 <td className="font-semibold text-slate-800">{source.name}</td>
                 <td className="text-slate-500">{source.code}</td>
                 <td className="text-slate-500">{source.description ?? t("common.dash")}</td>
-                <td className="text-slate-500">{source.sort_order}</td>
                 <td>
                   <ActiveBadge active={source.is_active} />
                 </td>

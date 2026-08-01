@@ -17,6 +17,8 @@ export interface CalendlySalesRep {
   avatar_url?: string | null;
   sede_id?: number | null;
   sede_name?: string | null;
+  parent_user_id?: number | null;
+  parent_name?: string | null;
 }
 
 export interface CalendlyLinkedProspect {

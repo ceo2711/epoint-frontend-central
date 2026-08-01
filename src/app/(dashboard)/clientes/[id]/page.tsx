@@ -3,8 +3,8 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
@@ -35,6 +35,7 @@ import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions"
 import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
+import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
@@ -65,11 +66,6 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function formatDate(value: string | null, locale: string) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR");
-}
-
 function formatAddress(addr: Address) {
   const parts = [addr.street, addr.city, addr.state, addr.zip_code].filter(Boolean);
   const since =
@@ -80,11 +76,36 @@ function formatAddress(addr: Address) {
 }
 
 export default function ClienteDetailPage() {
+  const { t } = useTranslation();
+
+  return (
+    <Suspense
+      fallback={
+        <>
+          <Header
+            title={t("clientDetail.headerContextLoading")}
+            subtitle={t("clientDetail.loading")}
+          />
+          <div className="flex flex-1 items-center justify-center py-24">
+            <LoadingSpinner label={t("clientDetail.loading")} />
+          </div>
+        </>
+      }
+    >
+      <ClienteDetailPageContent />
+    </Suspense>
+  );
+}
+
+function ClienteDetailPageContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const rawId = params.id;
   const id = typeof rawId === "string" ? Number(rawId) : NaN;
   const idValid = Number.isFinite(id) && id > 0;
+  const listSedeId = parseSedeIdParam(searchParams.get("sede"));
+  const clientsHref = useMemo(() => clientsListPath(listSedeId), [listSedeId]);
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
@@ -204,7 +225,7 @@ export default function ClienteDetailPage() {
       const detail = (event as CustomEvent<ClientsRefreshDetail>).detail;
       if (detail?.deleted && detail.clientId === id) {
         deletedRef.current = true;
-        router.push("/clientes");
+        router.push(clientsHref);
         return;
       }
       if (deletedRef.current) return;
@@ -219,7 +240,7 @@ export default function ClienteDetailPage() {
 
     window.addEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
     return () => window.removeEventListener(CLIENTS_REFRESH_EVENT, handleRefresh);
-  }, [id, idValid, load, refreshDocuments, router]);
+  }, [id, idValid, load, refreshDocuments, router, clientsHref]);
 
   useEffect(() => {
     if (!client?.id) return;
@@ -350,7 +371,7 @@ export default function ClienteDetailPage() {
     deletedRef.current = true;
     const ok = await deleteClient(client.id, clientName);
     if (ok) {
-      router.push("/clientes");
+      router.push(clientsHref);
     } else {
       deletedRef.current = false;
     }
@@ -376,7 +397,7 @@ export default function ClienteDetailPage() {
         <Header title={t("clientDetail.headerContextLoading")} subtitle={t("clientDetail.title")} />
         <PageContent>
           <div className="alert alert-info">{loadError || t("clientDetail.notFound")}</div>
-          <Link href="/clientes" className="btn btn-secondary btn-sm mt-4">
+          <Link href={clientsHref} className="btn btn-secondary btn-sm mt-4">
             {t("common.back")}
           </Link>
         </PageContent>
@@ -426,7 +447,7 @@ export default function ClienteDetailPage() {
             {canDelete && (
               <Button size="sm" variant="danger" onClick={handleDelete}>{t("clients.delete")}</Button>
             )}
-            <Link href="/clientes" className="btn btn-secondary btn-sm">← {t("common.back")}</Link>
+            <Link href={clientsHref} className="btn btn-secondary btn-sm">← {t("common.back")}</Link>
           </div>
         </div>
         <Card className="p-4 sm:p-6">
@@ -622,15 +643,6 @@ export default function ClienteDetailPage() {
 
             {showOnboardingOverviewExtras ? (
               <>
-            <Card className="p-4 sm:p-6">
-              <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.timeline")}</h2>
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-                <InfoRow label={t("clientDetail.registeredAt")} value={formatDate(client.created_at, locale)} />
-                <InfoRow label={t("clientDetail.approvedAt")} value={formatDate(client.approved_at, locale)} />
-                <InfoRow label={t("clientDetail.rejectedAt")} value={formatDate(client.rejected_at, locale)} />
-              </div>
-            </Card>
-
             <Card className="p-4 sm:p-6">
               <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.addresses")}</h2>
               {client.addresses && client.addresses.length > 0 ? (

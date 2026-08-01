@@ -56,12 +56,6 @@ export function SourceForm({
           placeholder={t("sources.descriptionPlaceholder")}
         />
       </div>
-      <Input
-        label={t("sources.sortOrder")}
-        type="number"
-        value={String(form.sort_order)}
-        onChange={(e) => onChange({ ...form, sort_order: Number(e.target.value) || 0 })}
-      />
       {!embedded ? (
         <div className="sm:col-span-2">
           <Button type="submit" disabled={submitting}>

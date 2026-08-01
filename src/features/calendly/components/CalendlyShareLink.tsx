@@ -10,11 +10,10 @@ import { copyToClipboard } from "@/lib/clipboard";
 
 interface CalendlyShareLinkProps {
   eventTypes: CalendlyEventType[];
-  profileUrl?: string | null;
   loading?: boolean;
 }
 
-export function CalendlyShareLink({ eventTypes, profileUrl, loading = false }: CalendlyShareLinkProps) {
+export function CalendlyShareLink({ eventTypes, loading = false }: CalendlyShareLinkProps) {
   const { t } = useTranslation();
   const [copiedUri, setCopiedUri] = useState<string | null>(null);
 
@@ -75,38 +74,8 @@ export function CalendlyShareLink({ eventTypes, profileUrl, loading = false }: C
             </div>
           ))}
         </div>
-      ) : profileUrl ? (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <code className="flex-1 break-all rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            {profileUrl}
-          </code>
-          <Button type="button" variant="secondary" onClick={() => void handleCopy(profileUrl, "profile")}>
-            {copiedUri === "profile" ? t("calendly.copied") : t("calendly.copyLink")}
-          </Button>
-        </div>
       ) : (
         <p className="text-sm text-slate-500">{t("calendly.noShareLinks")}</p>
-      )}
-
-      {profileUrl && shareableTypes.length > 0 && (
-        <div className="border-t border-slate-100 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            {t("calendly.profileLinkLabel")}
-          </p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <code className="flex-1 break-all rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              {profileUrl}
-            </code>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void handleCopy(profileUrl, "profile")}
-            >
-              {copiedUri === "profile" ? t("calendly.copied") : t("calendly.copyLink")}
-            </Button>
-          </div>
-        </div>
       )}
     </div>
   );

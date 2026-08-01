@@ -24,7 +24,6 @@ function sourceToForm(source: Source): SourceFormData {
     code: source.code,
     name: source.name,
     description: source.description ?? "",
-    sort_order: source.sort_order,
   };
 }
 
@@ -46,7 +45,6 @@ export function SourceFormModal({ token, source, onClose, onSuccess }: SourceFor
           {
             name: form.name,
             description: form.description || null,
-            sort_order: form.sort_order,
           },
           token,
         );
@@ -57,7 +55,6 @@ export function SourceFormModal({ token, source, onClose, onSuccess }: SourceFor
             code: form.code,
             name: form.name,
             description: form.description || null,
-            sort_order: form.sort_order,
           },
           token,
         );

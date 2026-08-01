@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { HiOutlineTrash } from "react-icons/hi2";
 import { VscArrowLeft } from "react-icons/vsc";
 
@@ -27,9 +28,28 @@ import {
   filterRepsBySede,
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
+import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
 import { canFilterClientsBySalesRep, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
+  const { t } = useTranslation();
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <LoadingSpinner label={t("clients.loading")} />
+        </div>
+      }
+    >
+      <ClientesPageContent />
+    </Suspense>
+  );
+}
+
+function ClientesPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { merchants: workspaceMerchants, activeMerchantId } = useMerchant();
   const { t } = useTranslation();
@@ -49,8 +69,13 @@ export function ClientesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [merchantFilter, setMerchantFilter] = useState<ClientMerchantFilter>("all");
   const [salesRepId, setSalesRepId] = useState<number | null>(null);
-  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
+  const sedeFromUrl = isGlobal ? parseSedeIdParam(searchParams.get("sede")) : null;
+  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(sedeFromUrl);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelectedSedeId(sedeFromUrl);
+  }, [sedeFromUrl]);
 
   const showMerchantFilter = workspaceMerchants.length > 1;
   const showSalesRepFilter = canFilterBySalesRep;
@@ -167,6 +192,7 @@ export function ClientesPage() {
 
   function handleSelectSede(id: number) {
     setSelectedSedeId(id);
+    router.replace(clientsListPath(id));
   }
 
   function handleBackToSedes() {
@@ -174,6 +200,7 @@ export function ClientesPage() {
     setSalesRepId(null);
     setSearchInput("");
     setMerchantFilter("all");
+    router.replace(clientsListPath(null));
   }
 
   const canRunReminders =
@@ -267,6 +294,7 @@ export function ClientesPage() {
                 showMerchantColumn={merchantFilter === "all"}
                 showSalesRepColumn={showSalesRepFilter}
                 showAdvisorColumn={showAdvisorColumn}
+                sedeId={selectedSedeId}
                 page={page}
                 pages={pages}
                 total={total}
