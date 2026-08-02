@@ -14,6 +14,10 @@ interface ProspectCalendlyLinkModalProps {
   salesRepUserId: number;
   excludeEventId?: number | null;
   reschedule?: boolean;
+  /** Solo reuniones sin otro prospecto vinculado. */
+  onlyUnlinked?: boolean;
+  /** Flujo al marcar contactado: títulos y CTA distintos. */
+  markContactedMode?: boolean;
   onClose: () => void;
   onLink: (calendlyEventId: number) => Promise<void>;
 }
@@ -30,6 +34,8 @@ export function ProspectCalendlyLinkModal({
   salesRepUserId,
   excludeEventId,
   reschedule = false,
+  onlyUnlinked = false,
+  markContactedMode = false,
   onClose,
   onLink,
 }: ProspectCalendlyLinkModalProps) {
@@ -40,9 +46,12 @@ export function ProspectCalendlyLinkModal({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const activeEvents = events.filter(
-    (event) => event.status !== "canceled" && event.id !== excludeEventId,
-  );
+  const activeEvents = events.filter((event) => {
+    if (event.status === "canceled") return false;
+    if (event.id === excludeEventId) return false;
+    if (onlyUnlinked && event.prospect_id != null) return false;
+    return true;
+  });
 
   async function handleSubmit() {
     if (!selectedId) return;
@@ -55,13 +64,23 @@ export function ProspectCalendlyLinkModal({
     }
   }
 
+  const title = markContactedMode
+    ? t("prospects.markContactedPickMeetingTitle")
+    : reschedule
+      ? t("prospects.scheduleAnotherMeetingTitle")
+      : t("prospects.linkCalendlyTitle");
+
+  const submitLabel = markContactedMode
+    ? t("prospects.markContactedPickMeetingAction")
+    : reschedule
+      ? t("prospects.scheduleAnotherMeetingAction")
+      : t("prospects.linkCalendlyAction");
+
   return (
-    <Modal
-      title={reschedule ? t("prospects.scheduleAnotherMeetingTitle") : t("prospects.linkCalendlyTitle")}
-      onClose={onClose}
-      size="lg"
-    >
-      {reschedule ? (
+    <Modal title={title} onClose={onClose} size="lg">
+      {markContactedMode ? (
+        <p className="mb-4 text-sm text-slate-500">{t("prospects.markContactedPickMeetingHint")}</p>
+      ) : reschedule ? (
         <p className="mb-4 text-sm text-slate-500">{t("prospects.scheduleAnotherMeetingHint")}</p>
       ) : null}
       {loading ? (
@@ -73,7 +92,11 @@ export function ProspectCalendlyLinkModal({
       ) : !connection?.connected ? (
         <p className="text-sm text-slate-500">{t("prospects.linkCalendlyNotConnected")}</p>
       ) : activeEvents.length === 0 ? (
-        <p className="text-sm text-slate-500">{t("prospects.linkCalendlyEmpty")}</p>
+        <p className="text-sm text-slate-500">
+          {onlyUnlinked || markContactedMode
+            ? t("prospects.markContactedNoFreeMeetings")
+            : t("prospects.linkCalendlyEmpty")}
+        </p>
       ) : (
         <div className="max-h-[360px] space-y-2 overflow-y-auto">
           {activeEvents.map((event: CalendlyEvent) => (
@@ -110,11 +133,7 @@ export function ProspectCalendlyLinkModal({
           {t("common.cancel")}
         </Button>
         <Button type="button" onClick={() => void handleSubmit()} disabled={!selectedId || submitting}>
-          {submitting
-            ? t("common.loading")
-            : reschedule
-              ? t("prospects.scheduleAnotherMeetingAction")
-              : t("prospects.linkCalendlyAction")}
+          {submitting ? t("common.loading") : submitLabel}
         </Button>
       </div>
     </Modal>

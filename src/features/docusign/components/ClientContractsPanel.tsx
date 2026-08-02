@@ -208,6 +208,7 @@ export function ClientContractsPanel({
   }
 
   async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
+    let successMessage: string | null = null;
     try {
       const result = await sendEnvelope({
         ...payload,
@@ -215,17 +216,20 @@ export function ClientContractsPanel({
         signer_name: clientName.trim(),
         signer_email: clientEmail.trim(),
       });
-      setSendOpen(false);
       await load();
-      await modal.alert({
-        title: t("docusign.sendSuccessTitle"),
-        message: result?.message ?? t("docusign.sendSuccessMessage"),
-        variant: "success",
-      });
+      successMessage = result?.message ?? t("docusign.sendSuccessMessage");
     } catch (err) {
       onError?.(getUserFacingErrorMessage(err, t("docusign.sendError")));
       throw err;
     }
+    setSendOpen(false);
+    queueMicrotask(() => {
+      void modal.alert({
+        title: t("docusign.sendSuccessTitle"),
+        message: successMessage ?? t("docusign.sendSuccessMessage"),
+        variant: "success",
+      });
+    });
   }
 
   return (

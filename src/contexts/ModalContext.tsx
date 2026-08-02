@@ -258,7 +258,9 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
           onClose();
         }}
       >
-        <p className="text-sm leading-relaxed text-slate-600">{state.options.message}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+          {state.options.message}
+        </p>
         <div className="modal-actions">
           <Button type="button" variant="secondary" onClick={() => { state.resolve(false); onClose(); }}>
             {state.options.cancelLabel ?? t("common.cancel")}
@@ -297,12 +299,19 @@ function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => voi
         }}
       >
         {state.options.multiline ? (
-          <textarea
-            className="input-field min-h-[6rem] resize-y"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={state.options.placeholder}
-          />
+          <div className="space-y-2">
+            {state.options.label ? (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                {state.options.label}
+              </p>
+            ) : null}
+            <textarea
+              className="input-field min-h-[6rem] resize-y"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={state.options.placeholder}
+            />
+          </div>
         ) : (
           <Input
             label={state.options.label}

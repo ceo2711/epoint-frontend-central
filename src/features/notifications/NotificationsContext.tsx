@@ -21,7 +21,10 @@ import {
   setupNotificationSoundUnlock,
 } from "@/features/notifications/notificationSound";
 import { api } from "@/lib/api";
+import { invalidateClientsQueries } from "@/lib/invalidateClients";
+import { invalidateProspectsQueries } from "@/lib/invalidateProspects";
 import type { Notification, Paginated } from "@/types/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationsContextValue {
   unreadCount: number;
@@ -68,6 +71,7 @@ export function NotificationsProvider({
   enabled?: boolean;
 }) {
   const { token, user } = useAuth();
+  const queryClient = useQueryClient();
   const [unreadCount, setUnreadCount] = useState(0);
   const [recent, setRecent] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -139,21 +143,22 @@ export function NotificationsProvider({
           typeof envelopeId === "number" ? { envelopeId } : undefined,
         );
       }
-      if (notification.event_type === "PAYMENT_LINK_COMPLETED") {
+      if (
+        notification.event_type === "PAYMENT_LINK_COMPLETED" ||
+        notification.event_type === "PROSPECT_CONVERTED"
+      ) {
         const paymentLinkId = notification.payload?.payment_link_id;
         const prospectId = notification.payload?.prospect_id;
+        const clientId = notification.payload?.client_id;
         dispatchPaymentCompleted({
           paymentLinkId: typeof paymentLinkId === "number" ? paymentLinkId : undefined,
           prospectId: typeof prospectId === "number" ? prospectId : null,
         });
-      }
-      if (notification.event_type === "PROSPECT_CONVERTED") {
-        const paymentLinkId = notification.payload?.payment_link_id;
-        const prospectId = notification.payload?.prospect_id;
-        dispatchPaymentCompleted({
-          paymentLinkId: typeof paymentLinkId === "number" ? paymentLinkId : undefined,
-          prospectId: typeof prospectId === "number" ? prospectId : null,
-        });
+        void invalidateProspectsQueries(queryClient);
+        void invalidateClientsQueries(
+          queryClient,
+          typeof clientId === "number" ? { clientId } : undefined,
+        );
       }
 
       const prev = recentRef.current;
@@ -172,7 +177,7 @@ export function NotificationsProvider({
       void playNotificationSound();
       void refreshRef.current({ silent: true });
     },
-    [],
+    [queryClient],
   );
 
   const markRead = useCallback(

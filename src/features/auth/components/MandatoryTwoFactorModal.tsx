@@ -26,7 +26,8 @@ export function MandatoryTwoFactorModal() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  if (!user || !token || user.totp_enabled) return null;
+  // Primero cambio de contraseña obligatorio; el 2FA viene después.
+  if (!user || !token || user.totp_enabled || user.must_change_password) return null;
 
   async function handleStart() {
     setError("");

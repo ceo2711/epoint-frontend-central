@@ -109,6 +109,30 @@ export function Sidebar() {
         {items.map((item) => {
           const active = activeHref === item.href;
           const label = t(item.labelKey);
+          const disabledHint = item.disabledHintKey ? t(item.disabledHintKey) : undefined;
+          const itemClassName = `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+            collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""
+          } ${
+            item.disabled
+              ? "cursor-not-allowed text-cream-700/35"
+              : active
+                ? "bg-gradient-to-r from-cream-400 to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
+                : "text-cream-700 hover:bg-white/5 hover:text-white"
+          }`;
+
+          if (item.disabled) {
+            return (
+              <span
+                key={item.href}
+                title={disabledHint ?? label}
+                aria-disabled="true"
+                className={itemClassName}
+              >
+                <NavIcon d={item.icon} />
+                <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
+              </span>
+            );
+          }
 
           return (
             <Link
@@ -118,13 +142,7 @@ export function Sidebar() {
               onClick={closeMobile}
               onMouseEnter={() => warmRoute(item.href)}
               onFocus={() => warmRoute(item.href)}
-              className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""
-              } ${
-                active
-                  ? "bg-gradient-to-r from-cream-400 to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
-                  : "text-cream-700 hover:bg-white/5 hover:text-white"
-              }`}
+              className={itemClassName}
             >
               <NavIcon d={item.icon} />
               <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{label}</span>

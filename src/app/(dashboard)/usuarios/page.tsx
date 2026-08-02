@@ -3,6 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -21,8 +22,10 @@ import { UserListFilters } from "@/features/users/components/UserListFilters";
 import { UsersTable } from "@/features/users/components/UsersTable";
 import { useUsers } from "@/features/users/hooks/useUsers";
 import type { User } from "@/features/users/types";
-import { isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 import { api } from "@/lib/api";
+import { ReassignSubSellerModal } from "@/features/users/components/ReassignSubSellerModal";
 
 const HIDDEN_FILTER_ROLE_CODES = new Set([
   "ADMIN",
@@ -32,6 +35,7 @@ const HIDDEN_FILTER_ROLE_CODES = new Set([
 ]);
 
 export default function UsuariosPage() {
+  const queryClient = useQueryClient();
   const { token, hasPermission, user: currentUser } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
@@ -78,6 +82,8 @@ export default function UsuariosPage() {
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<User | null>(null);
   const [viewing, setViewing] = useState<User | null>(null);
+  const [reassigning, setReassigning] = useState<User | null>(null);
+  const canReassign = canSuperviseSalesReps(currentUser);
 
   if (isSalesAreaLeader(currentUser)) {
     return <SalesLeaderVendorsPage />;
@@ -120,6 +126,7 @@ export default function UsuariosPage() {
     try {
       await api.delete(`/users/${user.id}`, token);
       setViewing(null);
+      await invalidateStaffDirectoryCaches(queryClient);
       await reload();
     } catch (err) {
       await modal.alert({
@@ -178,9 +185,27 @@ export default function UsuariosPage() {
           currentUserId={currentUser?.id}
           canUpdate={hasPermission("users:update")}
           canDelete={hasPermission("users:delete")}
+          canReassignSubSeller={canReassign}
           onClose={closeDetailModal}
           onEdit={openEdit}
           onDeactivate={handleDeactivate}
+          onReassignSubSeller={(user) => {
+            setViewing(null);
+            setReassigning(user);
+          }}
+        />
+      ) : null}
+
+      {reassigning && token ? (
+        <ReassignSubSellerModal
+          token={token}
+          subSeller={reassigning}
+          onClose={() => setReassigning(null)}
+          onSuccess={async () => {
+            setReassigning(null);
+            await invalidateStaffDirectoryCaches(queryClient);
+            await reload();
+          }}
         />
       ) : null}
 

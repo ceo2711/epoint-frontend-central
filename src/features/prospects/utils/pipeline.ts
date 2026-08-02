@@ -1,6 +1,7 @@
 import type {
   ProspectCalendlyBrief,
   ProspectEnvelopeBrief,
+  ProspectHistoryEntry,
   ProspectPaymentBrief,
   ProspectStatus,
 } from "@/features/prospects/types";
@@ -12,10 +13,24 @@ const MEETING_DONE_STATUSES = new Set<ProspectStatus>([
 ]);
 
 export function isMeetingStepComplete(
-  calendly: ProspectCalendlyBrief | null,
+  _calendly: ProspectCalendlyBrief | null,
   status: ProspectStatus,
 ): boolean {
-  return calendly != null && MEETING_DONE_STATUSES.has(status);
+  // Contactado vale con o sin reunión Calendly (café, Meet, WhatsApp, etc.).
+  return MEETING_DONE_STATUSES.has(status);
+}
+
+export function findContactHistory(
+  history: ProspectHistoryEntry[] | null | undefined,
+): ProspectHistoryEntry | null {
+  if (!history?.length) return null;
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const entry = history[i];
+    if (entry.to_status === "LEAD_CONTACTADO" && entry.note?.trim()) {
+      return entry;
+    }
+  }
+  return null;
 }
 
 export function isContractStepComplete(envelopes: ProspectEnvelopeBrief[]): boolean {

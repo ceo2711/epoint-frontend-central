@@ -85,6 +85,8 @@ export const en: Messages = {
     users: "Users",
     salesReps: "Sales reps",
     subSellers: "My team",
+    subSellersLocked:
+      "Available with at least 5 concretized sales in any of the last 3 months",
     merchants: "Merchants",
     sources: "Sources",
     influencers: "Influencers",
@@ -364,6 +366,7 @@ export const en: Messages = {
     defaultSubject: "Epoint contract — Signature required",
     sendAction: "Send contract",
     sending: "Sending...",
+    sendingHint: "Sending the contract…",
     sendError: "Could not send the contract",
     sendSuccessTitle: "Contract sent",
     sendSuccessMessage: "DocuSign sent the contract to the signer.",
@@ -519,6 +522,11 @@ export const en: Messages = {
     createTitle: "New prospect",
     selectSalesRep: "Select a sales rep",
     selectSedeFirst: "Select a branch first",
+    sourceUnavailable: "unavailable",
+    noInfluencersAvailable:
+      "There are no influencers registered for this branch. Add one before using this source.",
+    noInfluencersForSalesRep:
+      "This sales rep has no linked influencers. Pick another rep or register an influencer.",
     qualification: "Qualification",
     qualificationHint: "Independent flag from pipeline status. Kept when converting to a client.",
     duplicateEmail: "This email is already registered to {name} ({entity})",
@@ -555,7 +563,7 @@ export const en: Messages = {
     addNoteAction: "Save note",
     noteError: "Could not save note",
     sendContract: "Send contract",
-    sendAnotherContract: "Another contract",
+    sendAnotherContract: "Send another contract",
     sendAnotherContractTitle: "Send another contract",
     sendAnotherContractConfirm:
       "Send a new contract to {name}? It will be linked to this prospect automatically.",
@@ -575,9 +583,22 @@ export const en: Messages = {
     linkCalendlyAgain: "Change linked meeting",
     markContacted: "Contacted",
     markContactedTitle: "Client contacted",
-    markContactedConfirm: "Confirm that you already contacted {name}?",
+    markContactedConfirm:
+      "Confirm that you already contacted {name}?\n\nThis action cannot be undone.\nDescribe how you met (cafe, Meet, WhatsApp, phone call, etc.).",
+    markContactedChannelPlaceholder:
+      "E.g. In-person meeting at a cafe / WhatsApp call / Google Meet…",
     markContactedNote: "Client contacted after the meeting",
     markContactedSuccess: "The prospect was marked as contacted.",
+    markContactedChannelTitle: "How they were contacted",
+    markContactedBy: "Logged by {name}",
+    markContactedPickMeetingTitle: "Choose the completed meeting",
+    markContactedPickMeetingHint:
+      "Select a free meeting from your calendar to link it and mark the prospect as contacted.",
+    markContactedPickMeetingAction: "Link and mark contacted",
+    markContactedNoFreeMeetings:
+      "There are no free meetings on the calendar (all are already linked to a prospect). Schedule or free a meeting and try again.",
+    markContactedConfirmWithMeeting:
+      "Confirm that you already contacted {name}?\n\nThis action cannot be undone.",
     scheduleAnotherMeeting: "Schedule another meeting",
     scheduleAnotherMeetingTitle: "Schedule another meeting",
     scheduleAnotherMeetingHint:
@@ -1111,14 +1132,15 @@ export const en: Messages = {
     title: "My team",
     headerContext: "these are your sub-sellers",
     subtitle:
-      "If you closed at least 5 concretized sales last month, you can register sub-sellers and track their metrics.",
+      "If you closed at least 5 sales in any of the last 3 months, you can register sub-sellers and track their metrics. A qualifying month renews the window for 3 months. If you lose eligibility, your sub-sellers are deactivated automatically.",
     loadError: "Could not load your team",
     noPermission:
-      "You can't manage sub-sellers yet. You need at least 5 concretized sales (prospect → client) in the previous month.",
+      "You can't manage sub-sellers yet. You need at least 5 concretized sales (prospect → client) in any of the last 3 months.",
     eligibilityTitle: "Eligibility",
     previousMonthSales: "Previous month sales",
+    windowSalesTitle: "Sales in the window (3 months)",
     requiredSales: "Threshold",
-    requiredSalesHint: "At least {count} concretized sales in the previous month",
+    requiredSalesHint: "At least {count} sales in any of the last {window} months",
     eligibleBadge: "Enabled",
     notEligibleBadge: "Not enabled yet",
     metricsTitle: "Team metrics",
@@ -1149,8 +1171,21 @@ export const en: Messages = {
     deactivateConfirm: "Deactivate {name}? They won't be able to sign in.",
     activateTitle: "Activate sub-seller",
     activateConfirm: "Reactivate {name}?",
+    reactivateAccount: "Reactivate account",
+    activating: "Activating…",
+    deactivating: "Deactivating…",
     statusActive: "Active",
     statusInactive: "Inactive",
+    statusInactiveNeedsReactivate: "Inactive — you can reactivate their account",
+    reassignAction: "Reassign sales rep",
+    reassignTitle: "Reassign sub-seller",
+    reassignHint:
+      "Choose the new lead sales rep. Useful if the previous owner resigned or changed teams.",
+    reassignParent: "New lead sales rep",
+    reassignConfirm: "Reassign",
+    reassignError: "Could not reassign the sub-seller",
+    reassignLoadError: "Could not load sales reps",
+    reassignNoParents: "No other lead sales reps are available in your branch.",
   },
   areas: {
     title: "Areas",

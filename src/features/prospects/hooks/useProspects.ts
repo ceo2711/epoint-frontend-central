@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ProspectDetail } from "@/features/prospects/types";
@@ -103,6 +103,7 @@ function normalizeProspectDetail(data: ProspectDetail): ProspectDetail {
 export function useProspectDetail(token: string | null, prospectId: number) {
   const [prospect, setProspect] = useState<ProspectDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasDataRef = useRef(false);
 
   const load = useCallback(async (options?: ProspectDetailReloadOptions) => {
     if (!token || !prospectId) return;
@@ -111,13 +112,22 @@ export function useProspectDetail(token: string | null, prospectId: number) {
     try {
       const data = await api.get<ProspectDetail>(`/prospects/${prospectId}`, token);
       setProspect(normalizeProspectDetail(data));
+      hasDataRef.current = true;
     } finally {
       if (!silent) setLoading(false);
     }
   }, [token, prospectId]);
 
   useEffect(() => {
-    void load();
+    hasDataRef.current = false;
+    setProspect(null);
+    setLoading(true);
+  }, [prospectId]);
+
+  useEffect(() => {
+    // Tras refresh de token, `load` se recrea: no mostrar loader si ya hay datos
+    // (si no, la página desmonta modales abiertos y parece que no pasó nada).
+    void load({ silent: hasDataRef.current });
   }, [load]);
 
   return { prospect, loading, reload: load };

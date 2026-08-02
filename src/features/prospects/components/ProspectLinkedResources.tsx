@@ -33,6 +33,9 @@ interface ProspectLinkedResourcesProps {
   /** Vista de cliente convertido: sin banner de conversión, sin unirse a reunión, copiar link de pago. */
   clientView?: boolean;
   canMarkContacted?: boolean;
+  contactNote?: string | null;
+  contactNoteBy?: string | null;
+  contactNoteAt?: string | null;
   onMarkContacted?: () => void;
   onLinkCalendly?: () => void;
   onLinkPayment?: () => void;
@@ -103,6 +106,9 @@ export function ProspectLinkedResources({
   canManage,
   clientView = false,
   canMarkContacted = false,
+  contactNote = null,
+  contactNoteBy = null,
+  contactNoteAt = null,
   onMarkContacted,
   onLinkCalendly,
   onLinkPayment,
@@ -178,17 +184,56 @@ export function ProspectLinkedResources({
                 <p className="text-xs text-amber-700">{t("prospects.linked.meetingPendingContact")}</p>
               ) : null}
             </div>
+          ) : contactNote ? (
+            <div className="mt-3 space-y-2 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {t("prospects.markContactedChannelTitle")}
+              </p>
+              <p className="whitespace-pre-wrap font-medium text-slate-900">{contactNote}</p>
+              {contactNoteBy || contactNoteAt ? (
+                <p className="text-xs text-slate-500">
+                  {[
+                    contactNoteBy
+                      ? t("prospects.markContactedBy", { name: contactNoteBy })
+                      : null,
+                    contactNoteAt ? formatDateTime(contactNoteAt, locale) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
           ) : (
             <p className="mt-3 text-sm text-slate-500">{t("prospects.linked.meetingEmpty")}</p>
           )}
-          {canManage ? (
+          {calendly && contactNote ? (
+            <div className="mt-3 space-y-1 rounded-lg border border-emerald-100 bg-white/70 px-3 py-2 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {t("prospects.markContactedChannelTitle")}
+              </p>
+              <p className="whitespace-pre-wrap text-slate-800">{contactNote}</p>
+              {contactNoteBy || contactNoteAt ? (
+                <p className="text-xs text-slate-500">
+                  {[
+                    contactNoteBy
+                      ? t("prospects.markContactedBy", { name: contactNoteBy })
+                      : null,
+                    contactNoteAt ? formatDateTime(contactNoteAt, locale) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {canManage && (canMarkContacted || (!meetingComplete && onLinkCalendly)) ? (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {canMarkContacted && onMarkContacted ? (
                 <Button size="xs" onClick={onMarkContacted}>
                   {t("prospects.markContacted")}
                 </Button>
               ) : null}
-              {onLinkCalendly ? (
+              {!meetingComplete && onLinkCalendly ? (
                 <Button size="xs" variant="secondary" onClick={onLinkCalendly}>
                   {calendly ? t("prospects.scheduleAnotherMeeting") : t("prospects.linkCalendlyAction")}
                 </Button>

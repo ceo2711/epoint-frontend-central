@@ -11,6 +11,7 @@ import { ProspectHistoryTimeline } from "@/features/prospects/components/Prospec
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
 import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectPaymentsModal";
 import type { ProspectPipelineSummary, ProspectStatus } from "@/features/prospects/types";
+import { findContactHistory } from "@/features/prospects/utils/pipeline";
 
 interface ClientSalesPipelineSectionProps {
   pipeline: ProspectPipelineSummary;
@@ -33,6 +34,7 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
     : pipeline.payment_link
       ? [pipeline.payment_link]
       : [];
+  const contactHistory = findContactHistory(pipeline.history);
 
   async function handleViewSigned(envelopeId: number) {
     const blob = await downloadSignedDocument(envelopeId);
@@ -61,6 +63,9 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
         payments={paymentLinks}
         canManage={false}
         clientView
+        contactNote={contactHistory?.note ?? null}
+        contactNoteBy={contactHistory?.changed_by_name ?? null}
+        contactNoteAt={contactHistory?.created_at ?? null}
         onViewContracts={
           pipeline.docusign_envelopes.length > 0 ? () => setContractsOpen(true) : undefined
         }

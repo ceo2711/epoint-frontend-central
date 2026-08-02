@@ -3,6 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { HiOutlineCamera, HiOutlineTrash } from "react-icons/hi2";
 
 import { Button } from "@/components/ui/Button";
@@ -24,6 +25,7 @@ import {
   type UserFormData,
 } from "@/features/users/types";
 import { api } from "@/lib/api";
+import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
 
 interface UserFormModalProps {
   token: string | null;
@@ -60,6 +62,7 @@ export function UserFormModal({
 }: UserFormModalProps) {
   const { t } = useTranslation();
   const modal = useModal();
+  const queryClient = useQueryClient();
   const { user: currentUser, refreshUser } = useAuth();
   const isEdit = !!user;
   const isBranchManager = currentUser?.role.code === "BRANCH_MANAGER";
@@ -229,6 +232,7 @@ export function UserFormModal({
         }
       }
       setPendingAvatar(null);
+      await invalidateStaffDirectoryCaches(queryClient);
       onSuccess();
       onClose();
     } catch (err) {

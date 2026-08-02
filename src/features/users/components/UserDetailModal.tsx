@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
+import { HiOutlineArrowPath, HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
 
 import { ActiveBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { IconActionButton } from "@/components/ui/IconActionButton";
 import { Modal } from "@/components/ui/Modal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -15,9 +16,11 @@ interface UserDetailModalProps {
   currentUserId?: number;
   canUpdate: boolean;
   canDelete: boolean;
+  canReassignSubSeller?: boolean;
   onClose: () => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
+  onReassignSubSeller?: (user: User) => void;
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -44,23 +47,35 @@ export function UserDetailModal({
   currentUserId,
   canUpdate,
   canDelete,
+  canReassignSubSeller = false,
   onClose,
   onEdit,
   onDeactivate,
+  onReassignSubSeller,
 }: UserDetailModalProps) {
   const { t, locale } = useTranslation();
   const fullName = `${user.first_name} ${user.last_name}`.trim();
   const canManage = user.is_active && user.id !== currentUserId;
   const showEdit = canUpdate && canManage;
   const showDeactivate = canDelete && canManage;
+  const isSubSeller =
+    user.role.code === "SUB_SELLER" || user.parent_user_id != null || Boolean(user.is_sub_seller);
+  const showReassign = Boolean(canReassignSubSeller && isSubSeller && onReassignSubSeller);
   const parent = user.parent ?? null;
   const parentName = parent
     ? `${parent.first_name} ${parent.last_name}`.trim() || parent.email
     : null;
 
   const headerActions =
-    showEdit || showDeactivate ? (
+    showEdit || showDeactivate || showReassign ? (
       <>
+        {showReassign ? (
+          <IconActionButton
+            label={t("subSellers.reassignAction")}
+            icon={<HiOutlineArrowPath className="h-4 w-4" />}
+            onClick={() => onReassignSubSeller?.(user)}
+          />
+        ) : null}
         {showEdit ? (
           <IconActionButton
             label={t("common.edit")}
@@ -123,6 +138,13 @@ export function UserDetailModal({
             label={t("common.createdAt")}
             value={formatDateTime(user.created_at, locale) ?? t("common.dash")}
           />
+          {showReassign ? (
+            <div className="pt-1">
+              <Button type="button" variant="secondary" size="sm" onClick={() => onReassignSubSeller?.(user)}>
+                {t("subSellers.reassignAction")}
+              </Button>
+            </div>
+          ) : null}
         </dl>
       </div>
     </Modal>

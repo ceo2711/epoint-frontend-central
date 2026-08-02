@@ -48,10 +48,11 @@ export function ProspectosPage() {
 
   const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
 
-  const { merchants, loading: merchantsLoading } = useMerchantOptions(
-    token,
-    hasPermission("prospects:create"),
-  );
+  const {
+    merchants,
+    loading: merchantsLoading,
+    reload: reloadMerchants,
+  } = useMerchantOptions(token, hasPermission("prospects:create"));
 
   const branches = useMemo(
     () =>
@@ -207,7 +208,12 @@ export function ProspectosPage() {
                 </div>
               ) : null}
               {hasPermission("prospects:create") ? (
-                <Button onClick={() => setCreateOpen(true)}>
+                <Button
+                  onClick={() => {
+                    void reloadMerchants();
+                    setCreateOpen(true);
+                  }}
+                >
                   <HiOutlineUserPlus className="mr-2 h-4 w-4" />
                   {t("prospects.createAction")}
                 </Button>

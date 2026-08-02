@@ -18,6 +18,9 @@ export interface NavItem {
   salesAreaOnly?: boolean;
   /** Solo vendedores (no subvendedores). */
   salesTeamPage?: boolean;
+  /** Visible pero no navegable (p. ej. Mi equipo sin elegibilidad). */
+  disabled?: boolean;
+  disabledHintKey?: string;
 }
 
 export const internalNav: NavItem[] = [
@@ -167,6 +170,13 @@ export function getAccessibleNavItems(
     if (item.href === "/usuarios" && salesLeader) {
       return { ...item, labelKey: "nav.salesReps" };
     }
+    if (item.salesTeamPage && isLeadSalesRep(user) && !user.can_manage_sub_sellers) {
+      return {
+        ...item,
+        disabled: true,
+        disabledHintKey: "nav.subSellersLocked",
+      };
+    }
     return item;
   });
 }
@@ -176,5 +186,7 @@ export function getAccessibleHrefs(
   hasPermission: (permission: string) => boolean,
   options?: { boardUnlocked?: boolean },
 ): string[] {
-  return getAccessibleNavItems(user, hasPermission, options).map((item) => item.href);
+  return getAccessibleNavItems(user, hasPermission, options)
+    .filter((item) => !item.disabled)
+    .map((item) => item.href);
 }

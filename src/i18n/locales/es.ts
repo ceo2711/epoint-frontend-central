@@ -83,6 +83,8 @@ export const es = {
     users: "Usuarios",
     salesReps: "Vendedores",
     subSellers: "Mi equipo",
+    subSellersLocked:
+      "Disponible con al menos 5 ventas concretadas en alguno de los últimos 3 meses",
     merchants: "Comercios",
     sources: "Sources",
     influencers: "Influencers",
@@ -362,6 +364,7 @@ export const es = {
     defaultSubject: "Contrato Epoint — Firma requerida",
     sendAction: "Enviar contrato",
     sending: "Enviando...",
+    sendingHint: "Enviando el contrato…",
     sendError: "No se pudo enviar el contrato",
     sendSuccessTitle: "Contrato enviado",
     sendSuccessMessage: "DocuSign envió el contrato al firmante.",
@@ -518,6 +521,11 @@ export const es = {
     createTitle: "Nuevo prospecto",
     selectSalesRep: "Seleccioná un vendedor",
     selectSedeFirst: "Primero seleccioná una sede",
+    sourceUnavailable: "no disponible",
+    noInfluencersAvailable:
+      "No hay influencers registrados para esta sucursal. Registrá uno antes de usar esta fuente.",
+    noInfluencersForSalesRep:
+      "Este vendedor no tiene influencers asociados. Elegí otro vendedor o registrá un influencer.",
     qualification: "Calificación",
     qualificationHint: "Es una bandera independiente del estado del pipeline. Se conserva al convertir a cliente.",
     duplicateEmail: "Este email ya está registrado por {name} ({entity})",
@@ -554,7 +562,7 @@ export const es = {
     addNoteAction: "Guardar nota",
     noteError: "No se pudo guardar la nota",
     sendContract: "Enviar contrato",
-    sendAnotherContract: "Otro contrato",
+    sendAnotherContract: "Enviar otro contrato",
     sendAnotherContractTitle: "Enviar otro contrato",
     sendAnotherContractConfirm:
       "¿Querés enviar un nuevo contrato a {name}? Quedará vinculado automáticamente a este prospecto.",
@@ -574,9 +582,22 @@ export const es = {
     linkCalendlyAgain: "Cambiar reunión vinculada",
     markContacted: "Contactado",
     markContactedTitle: "Cliente contactado",
-    markContactedConfirm: "¿Confirmás que ya contactaste a {name}?",
+    markContactedConfirm:
+      "¿Confirmás que ya contactaste a {name}?\n\nEsta acción no tiene vuelta atrás.\nIndicá por qué medio se reunieron (café, Meet, WhatsApp, llamada, etc.).",
+    markContactedChannelPlaceholder:
+      "Ej.: Reunión presencial en un café / Llamada de WhatsApp / Google Meet…",
     markContactedNote: "Cliente contactado tras la reunión",
     markContactedSuccess: "El prospecto quedó marcado como contactado.",
+    markContactedChannelTitle: "Cómo fue contactado",
+    markContactedBy: "Registrado por {name}",
+    markContactedPickMeetingTitle: "Elegí la reunión concretada",
+    markContactedPickMeetingHint:
+      "Seleccioná una reunión libre de tu calendario para vincularla y marcar al prospecto como contactado.",
+    markContactedPickMeetingAction: "Vincular y marcar contactado",
+    markContactedNoFreeMeetings:
+      "No hay reuniones libres en el calendario (todas ya tienen un prospecto vinculado). Agendá o liberá una reunión e intentá de nuevo.",
+    markContactedConfirmWithMeeting:
+      "¿Confirmás que ya contactaste a {name}?\n\nEsta acción no tiene vuelta atrás.",
     scheduleAnotherMeeting: "Agendar otra reunión",
     scheduleAnotherMeetingTitle: "Agendar otra reunión",
     scheduleAnotherMeetingHint:
@@ -1110,14 +1131,16 @@ export const es = {
     title: "Mi equipo",
     headerContext: "estos son tus subvendedores",
     subtitle:
-      "Si alcanzaste al menos 5 ventas concretadas el mes pasado, podés registrar subvendedores y seguir sus métricas.",
+      "Si concretaste al menos 5 ventas en alguno de los últimos 3 meses, podés registrar subvendedores y seguir sus métricas. Un mes calificado renueva la ventana por 3 meses. Si perdés la elegibilidad, tus subvendedores se desactivan automáticamente.",
     loadError: "No se pudo cargar el equipo",
     noPermission:
-      "Todavía no podés gestionar subvendedores. Necesitás al menos 5 ventas concretadas (prospecto → cliente) en el mes anterior.",
+      "Todavía no podés gestionar subvendedores. Necesitás al menos 5 ventas concretadas (prospecto → cliente) en alguno de los últimos 3 meses.",
     eligibilityTitle: "Elegibilidad",
     previousMonthSales: "Ventas del mes anterior",
+    windowSalesTitle: "Ventas en la ventana (3 meses)",
     requiredSales: "Umbral",
-    requiredSalesHint: "Al menos {count} ventas concretadas en el mes anterior",
+    requiredSalesHint:
+      "Al menos {count} ventas en alguno de los últimos {window} meses",
     eligibleBadge: "Habilitado",
     notEligibleBadge: "Aún no habilitado",
     metricsTitle: "Métricas del equipo",
@@ -1148,8 +1171,21 @@ export const es = {
     deactivateConfirm: "¿Desactivás a {name}? No podrá iniciar sesión.",
     activateTitle: "Activar subvendedor",
     activateConfirm: "¿Reactivás a {name}?",
+    reactivateAccount: "Reactivar cuenta",
+    activating: "Activando…",
+    deactivating: "Desactivando…",
     statusActive: "Activo",
     statusInactive: "Inactivo",
+    statusInactiveNeedsReactivate: "Inactivo — podés reactivar su cuenta",
+    reassignAction: "Reasignar vendedor",
+    reassignTitle: "Reasignar subvendedor",
+    reassignHint:
+      "Elegí el nuevo vendedor titular. Útil si el titular anterior renunció o cambió de equipo.",
+    reassignParent: "Nuevo vendedor titular",
+    reassignConfirm: "Reasignar",
+    reassignError: "No se pudo reasignar el subvendedor",
+    reassignLoadError: "No se pudieron cargar los vendedores",
+    reassignNoParents: "No hay otros vendedores titulares disponibles en tu sucursal.",
   },
   areas: {
     title: "Áreas",

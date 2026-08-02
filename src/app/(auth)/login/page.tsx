@@ -18,7 +18,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 
 type LoginStep = "credentials" | "twoFactor";
 
-const FADE_MS = 420;
+const FADE_MS = 220;
 const EXIT_MS = 650;
 
 export default function LoginPage() {
@@ -81,15 +81,19 @@ export default function LoginPage() {
   function goToTwoFactor(userName?: string) {
     clearTimers();
     setPendingUserName(userName);
-    setFadingOut(true);
     setStep("twoFactor");
-
-    const delay = reduceMotion ? 0 : FADE_MS;
+    // Mostrar el formulario 2FA de inmediato; el fade corto es solo visual.
+    if (reduceMotion) {
+      setShowTwoFactorContent(true);
+      setFadingOut(false);
+      return;
+    }
+    setFadingOut(true);
+    setShowTwoFactorContent(true);
     timersRef.current.push(
       window.setTimeout(() => {
-        setShowTwoFactorContent(true);
         setFadingOut(false);
-      }, delay),
+      }, FADE_MS),
     );
   }
 

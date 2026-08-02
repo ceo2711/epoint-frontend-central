@@ -66,11 +66,11 @@ export function ProspectCreateModal({
 
   const selectedSedeId = form.sede_id ? Number(form.sede_id) : null;
   const needsInfluencer = form.source === "INFLUENCERS";
-  const influencerSedeId = isGlobal ? selectedSedeId : user?.sede_id ?? null;
+  const influencersQueryEnabled = !!token && (!isGlobal || selectedSedeId != null);
   const { options: influencerOptions, loading: influencersLoading } = useInfluencerOptions(
     token,
-    needsInfluencer,
-    isGlobal ? influencerSedeId : null,
+    influencersQueryEnabled,
+    isGlobal ? selectedSedeId : null,
   );
 
   const repsForSede = useMemo(() => {
@@ -82,6 +82,21 @@ export function ProspectCreateModal({
     if (!isGlobal || selectedSedeId == null) return merchants;
     return merchants.filter((merchant) => merchant.sede_id === selectedSedeId);
   }, [merchants, isGlobal, selectedSedeId]);
+
+  const influencersForRep = useMemo(() => {
+    if (!needsSalesRep || !form.assigned_to_user_id) return influencerOptions;
+    const repId = Number(form.assigned_to_user_id);
+    return influencerOptions.filter((item) => item.sales_rep_user_id === repId);
+  }, [influencerOptions, needsSalesRep, form.assigned_to_user_id]);
+
+  const noSedeInfluencers =
+    influencersQueryEnabled && !influencersLoading && influencerOptions.length === 0;
+  const noRepInfluencers =
+    needsInfluencer &&
+    needsSalesRep &&
+    Boolean(form.assigned_to_user_id) &&
+    !influencersLoading &&
+    influencersForRep.length === 0;
 
   useEffect(() => {
     if (!isGlobal) return;
@@ -111,16 +126,34 @@ export function ProspectCreateModal({
   }, [isGlobal, repsForSede, merchantsForSede]);
 
   useEffect(() => {
+    if (!influencersQueryEnabled || influencersLoading) return;
+    if (form.source === "INFLUENCERS" && influencerOptions.length === 0) {
+      setForm((current) =>
+        current.source === "INFLUENCERS"
+          ? { ...current, source: "", influencer_id: "" }
+          : current,
+      );
+    }
+  }, [
+    influencersQueryEnabled,
+    influencersLoading,
+    influencerOptions.length,
+    form.source,
+  ]);
+
+  useEffect(() => {
     if (!needsInfluencer) {
       setForm((current) => (current.influencer_id ? { ...current, influencer_id: "" } : current));
       return;
     }
     setForm((current) => {
       if (!current.influencer_id) return current;
-      const stillValid = influencerOptions.some((item) => String(item.id) === current.influencer_id);
+      const stillValid = influencersForRep.some(
+        (item) => String(item.id) === current.influencer_id,
+      );
       return stillValid ? current : { ...current, influencer_id: "" };
     });
-  }, [needsInfluencer, influencerOptions]);
+  }, [needsInfluencer, influencersForRep]);
 
   const { availability, checking, hasConflict } = useProspectAvailabilityCheck(
     token,
@@ -140,7 +173,8 @@ export function ProspectCreateModal({
     Boolean(form.first_name && form.last_name && form.email && form.phone && form.merchant_id) &&
     (!isGlobal || Boolean(form.sede_id)) &&
     (!needsSalesRep || Boolean(form.assigned_to_user_id)) &&
-    (!needsInfluencer || Boolean(form.influencer_id));
+    (!needsInfluencer ||
+      (Boolean(form.influencer_id) && influencersForRep.length > 0 && !noSedeInfluencers));
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -214,6 +248,7 @@ export function ProspectCreateModal({
           <ClientSourceSelect
             value={form.source}
             onChange={(source) => setForm({ ...form, source, influencer_id: "" })}
+            disabledCodes={noSedeInfluencers ? ["INFLUENCERS"] : []}
           />
         </div>
 
@@ -222,24 +257,36 @@ export function ProspectCreateModal({
             <Select
               label={t("influencers.title")}
               required
-              disabled={influencersLoading || (isGlobal && !form.sede_id)}
+              disabled={
+                influencersLoading ||
+                (isGlobal && !form.sede_id) ||
+                noSedeInfluencers ||
+                (needsSalesRep && !form.assigned_to_user_id)
+              }
               value={form.influencer_id}
               onChange={(e) => setForm({ ...form, influencer_id: e.target.value })}
             >
               <option value="">
                 {isGlobal && !form.sede_id
                   ? t("prospects.selectSedeFirst")
-                  : influencersLoading
-                    ? t("common.loading")
-                    : t("influencers.selectInfluencer")}
+                  : needsSalesRep && !form.assigned_to_user_id
+                    ? t("prospects.selectSalesRep")
+                    : influencersLoading
+                      ? t("common.loading")
+                      : t("influencers.selectInfluencer")}
               </option>
-              {influencerOptions.map((influencer) => (
+              {influencersForRep.map((influencer) => (
                 <option key={influencer.id} value={influencer.id}>
                   {influencer.name}
                   {influencer.handle ? ` (${influencer.handle})` : ""}
                 </option>
               ))}
             </Select>
+            {noRepInfluencers ? (
+              <p className="mt-1.5 text-xs text-amber-700">
+                {t("prospects.noInfluencersForSalesRep")}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -280,7 +327,13 @@ export function ProspectCreateModal({
               required
               disabled={isGlobal && !form.sede_id}
               value={form.assigned_to_user_id}
-              onChange={(e) => setForm({ ...form, assigned_to_user_id: e.target.value })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  assigned_to_user_id: e.target.value,
+                  influencer_id: "",
+                })
+              }
             >
               <option value="">
                 {isGlobal && !form.sede_id

@@ -61,10 +61,11 @@ function hasPermission(role: StaffRole, permission: string): boolean {
   return perms.includes("*") || perms.includes(permission);
 }
 
-function visibleInternalHrefs(role: StaffRole, areaCode?: string): string[] {
+function visibleInternalHrefs(role: StaffRole, areaCode?: string, extra?: Partial<User>): string[] {
   const user = {
     role: { code: role },
     area: areaCode ? { id: 1, code: areaCode, name: areaCode } : null,
+    ...extra,
   } as User;
   return getAccessibleNavItems(user, (perm) => hasPermission(role, perm)).map((item) => item.href);
 }
@@ -105,13 +106,28 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/fuentes");
   });
 
-  it("SALES_REP ve dashboard, clientes, prospectos y su equipo", () => {
-    const hrefs = visibleInternalHrefs("SALES_REP");
+  it("SALES_REP elegible ve dashboard, clientes, prospectos y su equipo", () => {
+    const hrefs = visibleInternalHrefs("SALES_REP", undefined, {
+      can_manage_sub_sellers: true,
+    });
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/clientes");
     expect(hrefs).toContain("/prospectos");
     expect(hrefs).toContain("/equipo");
     expect(hrefs).not.toContain("/usuarios");
+  });
+
+  it("SALES_REP sin elegibilidad ve Mi equipo deshabilitado", () => {
+    const items = getAccessibleNavItems(
+      {
+        role: { code: "SALES_REP" },
+        area: null,
+        can_manage_sub_sellers: false,
+      } as User,
+      (perm) => hasPermission("SALES_REP", perm),
+    );
+    const equipo = items.find((item) => item.href === "/equipo");
+    expect(equipo?.disabled).toBe(true);
   });
 
   it("subvendedor no ve la página de equipo", () => {

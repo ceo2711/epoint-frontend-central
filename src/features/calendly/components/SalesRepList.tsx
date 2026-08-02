@@ -209,7 +209,7 @@ export function SalesRepList({
         {teams.map(({ lead, subSellers }) => (
           <section
             key={lead.id}
-            className="rounded-2xl border-2 border-slate-400 bg-slate-50/40 p-4"
+            className="rounded-2xl border-2 border-accent/70 bg-slate-50/40 p-4"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
               <SalesRepCard
@@ -240,7 +240,7 @@ export function SalesRepList({
                 </div>
               ) : (
                 <div className="flex min-h-[12.5rem] items-center sm:pt-1">
-                  <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 px-3 py-2 text-xs text-slate-500">
+                  <p className="rounded-lg border border-dashed border-accent/50 bg-white/70 px-3 py-2 text-xs text-slate-500">
                     {t("calendly.noSubSellers")}
                   </p>
                 </div>
@@ -250,7 +250,7 @@ export function SalesRepList({
         ))}
 
         {orphanSubs.length > 0 ? (
-          <section className="rounded-2xl border-2 border-slate-400 bg-slate-50/40 p-4">
+          <section className="rounded-2xl border-2 border-accent/70 bg-slate-50/40 p-4">
             <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
               {t("calendly.orphanSubSellers")}
             </p>

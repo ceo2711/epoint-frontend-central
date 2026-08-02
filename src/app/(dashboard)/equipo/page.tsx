@@ -23,6 +23,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
+import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
 import { queryKeys } from "@/lib/queryKeys";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
@@ -35,6 +36,10 @@ interface TeamMetrics {
     previous_month_sales: number;
     required_sales: number;
     can_manage_sub_sellers: boolean;
+    window_months?: number;
+    months?: Array<{ year: number; month: number; sales: number; qualified: boolean }>;
+    qualifying_months?: number;
+    consecutive_months_below_threshold?: number;
   };
   members: Array<{
     user: User;
@@ -69,6 +74,7 @@ export default function SubSellersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
@@ -81,7 +87,8 @@ export default function SubSellersPage() {
   });
 
   useEffect(() => {
-    if (user && user.role.code !== "SALES_REP") {
+    if (!user) return;
+    if (user.role.code !== "SALES_REP" || user.is_sub_seller || !user.can_manage_sub_sellers) {
       router.replace("/dashboard");
     }
   }, [user, router]);
@@ -103,7 +110,7 @@ export default function SubSellersPage() {
       setFormSuccess(t("subSellers.createSuccess"));
       await refetch();
       await refreshUser();
-      await queryClient.invalidateQueries({ queryKey: queryKeys.subSellers.all });
+      await invalidateStaffDirectoryCaches(queryClient);
     } catch (err) {
       setFormError(getUserFacingErrorMessage(err, t("subSellers.createError")));
     } finally {
@@ -112,24 +119,28 @@ export default function SubSellersPage() {
   }
 
   async function toggleActive(member: User) {
-    if (!token) return;
+    if (!token || togglingId != null) return;
     const next = !member.is_active;
     const confirmed = await modal.confirm({
       title: t(next ? "subSellers.activateTitle" : "subSellers.deactivateTitle"),
       message: t(next ? "subSellers.activateConfirm" : "subSellers.deactivateConfirm", {
         name: `${member.first_name} ${member.last_name}`,
       }),
-      confirmLabel: t(next ? "subSellers.activate" : "subSellers.deactivate"),
+      confirmLabel: t(next ? "subSellers.reactivateAccount" : "subSellers.deactivate"),
     });
     if (!confirmed) return;
+    setTogglingId(member.id);
     try {
       await api.patch(`/sub-sellers/${member.id}`, { is_active: next }, token);
       await refetch();
+      await invalidateStaffDirectoryCaches(queryClient);
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
         message: getUserFacingErrorMessage(err, t("subSellers.loadError")),
       });
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -170,16 +181,33 @@ export default function SubSellersPage() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl bg-slate-50 px-4 py-3">
-                    <p className="text-xs text-slate-500">{t("subSellers.previousMonthSales")}</p>
-                    <p className="mt-1 text-2xl font-semibold text-slate-800">
-                      {data?.eligibility.previous_month_sales ?? user.previous_month_sales ?? 0}
-                    </p>
+                    <p className="text-xs text-slate-500">{t("subSellers.windowSalesTitle")}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(data?.eligibility.months ?? []).map((row) => (
+                        <span
+                          key={`${row.year}-${row.month}`}
+                          className={`rounded-lg px-2.5 py-1 text-sm font-semibold tabular-nums ${
+                            row.qualified
+                              ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+                              : "bg-white text-slate-700 ring-1 ring-slate-200"
+                          }`}
+                        >
+                          {String(row.month).padStart(2, "0")}/{row.year}: {row.sales}
+                        </span>
+                      ))}
+                      {!data?.eligibility.months?.length ? (
+                        <p className="text-2xl font-semibold text-slate-800">
+                          {data?.eligibility.previous_month_sales ?? user.previous_month_sales ?? 0}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="rounded-xl bg-slate-50 px-4 py-3">
                     <p className="text-xs text-slate-500">{t("subSellers.requiredSales")}</p>
                     <p className="mt-1 text-sm font-medium text-slate-700">
                       {t("subSellers.requiredSalesHint", {
                         count: String(data?.eligibility.required_sales ?? 5),
+                        window: String(data?.eligibility.window_months ?? 3),
                       })}
                     </p>
                   </div>
@@ -350,29 +378,50 @@ export default function SubSellersPage() {
                     {subMembers.map(({ user: member }) => (
                       <li
                         key={member.id}
-                        className="flex flex-wrap items-center justify-between gap-3 py-3"
+                        className={`flex flex-wrap items-center justify-between gap-3 py-3 ${
+                          !member.is_active ? "rounded-xl bg-amber-50/60 px-3" : ""
+                        }`}
                       >
                         <div>
                           <p className="font-medium text-slate-800">
                             {member.first_name} {member.last_name}
                           </p>
                           <p className="text-xs text-slate-500">{member.email}</p>
-                          <p className="mt-1 text-xs font-medium text-slate-600">
+                          <p
+                            className={`mt-1 text-xs font-medium ${
+                              member.is_active ? "text-slate-600" : "text-amber-800"
+                            }`}
+                          >
                             {member.is_active
                               ? t("subSellers.statusActive")
-                              : t("subSellers.statusInactive")}
+                              : t("subSellers.statusInactiveNeedsReactivate")}
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => void toggleActive(member)}
-                        >
-                          {member.is_active
-                            ? t("subSellers.deactivate")
-                            : t("subSellers.activate")}
-                        </Button>
+                        {eligible ? (
+                          <Button
+                            type="button"
+                            variant={member.is_active ? "secondary" : "primary"}
+                            size="sm"
+                            disabled={togglingId != null}
+                            onClick={() => void toggleActive(member)}
+                          >
+                            {togglingId === member.id ? (
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+                                  aria-hidden
+                                />
+                                {member.is_active
+                                  ? t("subSellers.deactivating")
+                                  : t("subSellers.activating")}
+                              </span>
+                            ) : member.is_active ? (
+                              t("subSellers.deactivate")
+                            ) : (
+                              t("subSellers.reactivateAccount")
+                            )}
+                          </Button>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

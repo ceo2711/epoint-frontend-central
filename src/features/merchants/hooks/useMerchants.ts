@@ -25,7 +25,8 @@ export function useMerchants(
     loading: canRead ? isLoading : false,
     error: canRead ? (isError ? loadErrorMessage : "") : noPermissionMessage,
     reload: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.merchants.list(includeInactive) });
+      // Incluye `/merchants/options` (selects de prospectos/clientes) y todos los listados.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.merchants.all });
       await refetch();
     },
   };

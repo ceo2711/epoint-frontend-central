@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { SendContractForm } from "@/features/docusign/components/SendContractForm";
@@ -50,12 +51,18 @@ export function SendContractModal({
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(payload: DocusignSendPayload) {
+    if (submitting) return;
     setSubmitting(true);
     try {
       await onSubmit(payload);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleClose() {
+    if (submitting) return;
+    onClose();
   }
 
   return (
@@ -65,11 +72,12 @@ export function SendContractModal({
         signer: signerName,
         email: signerEmail,
       })}
-      onClose={onClose}
+      onClose={handleClose}
+      dismissible={!submitting}
       size="lg"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
+          <Button type="button" variant="secondary" onClick={handleClose} disabled={submitting}>
             {t("common.cancel")}
           </Button>
           <Button
@@ -82,18 +90,27 @@ export function SendContractModal({
         </div>
       }
     >
-      <SendContractForm
-        embedded
-        hideClientSearch
-        templates={templates}
-        defaultTemplateId={defaultTemplateId}
-        defaultRoleName={defaultRoleName}
-        initialSigner={{ name: signerName, email: signerEmail, clientId, prospectId, prospect }}
-        onSearchClients={onSearchClients}
-        onSearchProspects={onSearchProspects}
-        onLoadTemplateDetail={onLoadTemplateDetail}
-        onSubmit={handleSubmit}
-      />
+      <div className="relative">
+        {submitting ? (
+          <div className="absolute inset-0 z-10 flex min-h-[12rem] items-center justify-center rounded-xl bg-white/85 backdrop-blur-[1px]">
+            <LoadingSpinner label={t("docusign.sendingHint")} />
+          </div>
+        ) : null}
+        <div className={submitting ? "pointer-events-none select-none opacity-40" : undefined}>
+          <SendContractForm
+            embedded
+            hideClientSearch
+            templates={templates}
+            defaultTemplateId={defaultTemplateId}
+            defaultRoleName={defaultRoleName}
+            initialSigner={{ name: signerName, email: signerEmail, clientId, prospectId, prospect }}
+            onSearchClients={onSearchClients}
+            onSearchProspects={onSearchProspects}
+            onLoadTemplateDetail={onLoadTemplateDetail}
+            onSubmit={handleSubmit}
+          />
+        </div>
+      </div>
     </Modal>
   );
 }

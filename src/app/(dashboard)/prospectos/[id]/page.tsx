@@ -33,9 +33,10 @@ import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectP
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
-import { isReadyForClientConversion } from "@/features/prospects/utils/pipeline";
+import { findContactHistory, isReadyForClientConversion } from "@/features/prospects/utils/pipeline";
 import type { ProspectDetail, ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
+import { fetchCalendlyConnection } from "@/lib/queryFetchers";
 
 const PENDING_CONTRACT_SYNC_MS = 15_000;
 const PIPELINE_POLL_MS = 10_000;
@@ -95,6 +96,7 @@ export default function ProspectoDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [calendlyOpen, setCalendlyOpen] = useState(false);
+  const [calendlyMarkContactedOpen, setCalendlyMarkContactedOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentsListOpen, setPaymentsListOpen] = useState(false);
@@ -340,19 +342,61 @@ export default function ProspectoDetailPage() {
 
   async function handleMarkContacted() {
     if (!token || !prospect || !canUpdate) return;
-    const confirmed = await modal.confirm({
+
+    // Ya tiene reunión vinculada: confirmar y marcar sin comentario.
+    if (prospect.calendly_event) {
+      const confirmed = await modal.confirm({
+        title: t("prospects.markContactedTitle"),
+        message: t("prospects.markContactedConfirmWithMeeting", { name: prospect.full_name }),
+        confirmLabel: t("prospects.markContacted"),
+        cancelLabel: t("common.cancel"),
+      });
+      if (!confirmed) return;
+      try {
+        await api.post(`/prospects/${prospect.id}/mark-contacted`, {}, token);
+        await reload({ silent: true });
+        await modal.alert({
+          title: t("prospects.markContactedTitle"),
+          message: t("prospects.markContactedSuccess"),
+          variant: "success",
+        });
+      } catch (err) {
+        await modal.alert({
+          title: t("common.error"),
+          message: getUserFacingErrorMessage(err, t("prospects.statusUpdateError")),
+          variant: "error",
+        });
+      }
+      return;
+    }
+
+    // Sin reunión: si el vendedor tiene Calendly, elegir una reunión libre.
+    const salesRepId = prospect.assigned_to_user_id;
+    if (salesRepId) {
+      try {
+        const connection = await fetchCalendlyConnection(token, salesRepId);
+        if (connection.connected) {
+          setCalendlyMarkContactedOpen(true);
+          return;
+        }
+      } catch {
+        // Si falla la consulta, caemos al comentario manual.
+      }
+    }
+
+    // Sin Calendly: pedir medio de contacto.
+    const note = await modal.prompt({
       title: t("prospects.markContactedTitle"),
-      message: t("prospects.markContactedConfirm", { name: prospect.full_name }),
+      label: t("prospects.markContactedConfirm", { name: prospect.full_name }),
+      placeholder: t("prospects.markContactedChannelPlaceholder"),
       confirmLabel: t("prospects.markContacted"),
       cancelLabel: t("common.cancel"),
+      minLength: 5,
+      multiline: true,
     });
-    if (!confirmed) return;
+    if (!note) return;
     try {
-      await api.post(
-        `/prospects/${prospect.id}/mark-contacted`,
-        { note: t("prospects.markContactedNote") },
-        token,
-      );
+      await api.post(`/prospects/${prospect.id}/mark-contacted`, { note: note.trim() }, token);
       await reload({ silent: true });
       await modal.alert({
         title: t("prospects.markContactedTitle"),
@@ -379,24 +423,55 @@ export default function ProspectoDetailPage() {
     });
   }
 
-  async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
-    if (!prospect) return;
+  async function handleLinkCalendlyAndMarkContacted(calendlyEventId: number) {
+    if (!token || !prospect) return;
     try {
-      const result = await sendEnvelope({ ...payload, prospect_id: prospect.id });
-      setContractOpen(false);
+      await api.post(
+        `/prospects/${prospect.id}/link-calendly`,
+        { calendly_event_id: calendlyEventId },
+        token,
+      );
+      await api.post(`/prospects/${prospect.id}/mark-contacted`, {}, token);
       await reload({ silent: true });
       await modal.alert({
-        title: t("docusign.sendSuccessTitle"),
-        message: result?.message ?? t("docusign.sendSuccessMessage"),
+        title: t("prospects.markContactedTitle"),
+        message: t("prospects.markContactedSuccess"),
         variant: "success",
       });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("prospects.statusUpdateError")),
+        variant: "error",
+      });
+      throw err;
+    }
+  }
+
+  async function handleSendContract(payload: Parameters<typeof sendEnvelope>[0]) {
+    if (!prospect) return;
+    let successMessage: string | null = null;
+    try {
+      const result = await sendEnvelope({ ...payload, prospect_id: prospect.id });
+      await reload({ silent: true });
+      successMessage = result?.message ?? t("docusign.sendSuccessMessage");
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
         message: getUserFacingErrorMessage(err, t("docusign.sendError")),
         variant: "error",
       });
+      throw err;
     }
+    setContractOpen(false);
+    // Después de que el modal de envío suelte el spinner y se desmonte.
+    queueMicrotask(() => {
+      void modal.alert({
+        title: t("docusign.sendSuccessTitle"),
+        message: successMessage ?? t("docusign.sendSuccessMessage"),
+        variant: "success",
+      });
+    });
   }
 
   async function handleSendContractClick() {
@@ -511,7 +586,7 @@ export default function ProspectoDetailPage() {
     );
   }
 
-  if (loading) {
+  if (loading && !prospect) {
     return (
       <>
         <Header title={t("prospects.detailHeaderContextLoading")} subtitle={t("common.loading")} />
@@ -549,6 +624,7 @@ export default function ProspectoDetailPage() {
     !isConverted &&
     prospect.status === "PENDIENTE_CONTACTAR" &&
     allowedStatuses.includes("LEAD_CONTACTADO");
+  const contactHistory = findContactHistory(prospect.history ?? []);
 
   async function handleSaveBasic(e: FormEvent) {
     e.preventDefault();
@@ -766,6 +842,9 @@ export default function ProspectoDetailPage() {
             payments={prospect.payment_links ?? []}
             canManage={canUpdate}
             canMarkContacted={canMarkContacted}
+            contactNote={contactHistory?.note ?? null}
+            contactNoteBy={contactHistory?.changed_by_name ?? null}
+            contactNoteAt={contactHistory?.created_at ?? null}
             onMarkContacted={() => void handleMarkContacted()}
             onLinkCalendly={() => setCalendlyOpen(true)}
             onSendContract={showContractAction ? () => void handleSendContractClick() : undefined}
@@ -865,6 +944,17 @@ export default function ProspectoDetailPage() {
           reschedule={!!prospect.calendly_event}
           onClose={() => setCalendlyOpen(false)}
           onLink={handleLinkCalendly}
+        />
+      ) : null}
+
+      {calendlyMarkContactedOpen && prospect.assigned_to_user_id ? (
+        <ProspectCalendlyLinkModal
+          token={token}
+          salesRepUserId={prospect.assigned_to_user_id}
+          onlyUnlinked
+          markContactedMode
+          onClose={() => setCalendlyMarkContactedOpen(false)}
+          onLink={handleLinkCalendlyAndMarkContacted}
         />
       ) : null}
 

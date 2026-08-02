@@ -3,6 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { FormEvent, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -11,6 +12,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { MerchantForm } from "@/features/merchants/components/MerchantForm";
 import { EMPTY_MERCHANT_FORM, type Merchant, type MerchantFormData } from "@/features/merchants/types";
 import { ApiError, api } from "@/lib/api";
+import { queryKeys } from "@/lib/queryKeys";
 
 interface MerchantFormModalProps {
   token: string | null;
@@ -30,6 +32,7 @@ function merchantToForm(merchant: Merchant): MerchantFormData {
 export function MerchantFormModal({ token, merchant, onClose, onSuccess }: MerchantFormModalProps) {
   const { t } = useTranslation();
   const modal = useModal();
+  const queryClient = useQueryClient();
   const isEdit = !!merchant;
   const [form, setForm] = useState<MerchantFormData>(
     merchant ? merchantToForm(merchant) : EMPTY_MERCHANT_FORM,
@@ -54,6 +57,7 @@ export function MerchantFormModal({ token, merchant, onClose, onSuccess }: Merch
           token,
         );
       }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.merchants.all });
       onSuccess();
       onClose();
     } catch (err) {
