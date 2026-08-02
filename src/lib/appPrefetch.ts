@@ -46,6 +46,7 @@ import {
   canManageSources,
   canSuperviseSalesReps,
   isGlobalAdmin,
+  isLeadSalesRep,
   isSalesAreaLeader,
 } from "@/lib/roles";
 import type { Paginated, User } from "@/types/api";
@@ -375,7 +376,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     }
 
     case "/equipo":
-      if (roleCode !== "SALES_REP" || user.is_sub_seller || roleCode === "SUB_SELLER") return;
+      if (!isLeadSalesRep(user)) return;
       await queryClient.prefetchQuery({
         queryKey: queryKeys.subSellers.metrics(user.id),
         queryFn: () => fetchSubSellerMetrics(token),

@@ -1,5 +1,5 @@
 import type { User } from "@/types/api";
-import { isSalesAreaLeader } from "@/lib/roles";
+import { isLeadSalesRep, isSalesAreaLeader } from "@/lib/roles";
 
 export type StaffRoleCode =
   | "ADMIN"
@@ -159,10 +159,7 @@ export function getAccessibleNavItems(
     if (item.salesAreaOnly && user.role.code === "AREA_LEADER" && !salesLeader) {
       return false;
     }
-    if (
-      item.salesTeamPage &&
-      (user.role.code !== "SALES_REP" || user.is_sub_seller || user.role.code === "SUB_SELLER")
-    ) {
+    if (item.salesTeamPage && !isLeadSalesRep(user)) {
       return false;
     }
     return !item.permission || hasPermission(item.permission);

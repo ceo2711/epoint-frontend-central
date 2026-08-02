@@ -57,7 +57,9 @@ export function isAdvisorsAreaLeader(
 }
 
 /** Admin/gerente o líder de onboarding (antes: Encargado de Onboarding). */
-export function canManageOnboarding(user: User | null | undefined): boolean {
+export function canManageOnboarding(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
   return isSedeAdmin(user?.role.code) || isOnboardingAreaLeader(user);
 }
 
