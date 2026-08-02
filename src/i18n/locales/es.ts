@@ -1001,7 +1001,7 @@ export const es = {
     detailTitle: "Detalle del usuario",
     vendorsHeaderContext: "estos son tus vendedores",
     vendorsSubtitle: "Seleccioná un vendedor para ver sus métricas de ventas y comisión",
-    vendorsTeamSubtitle: "Métricas del equipo y detalle por vendedor",
+    vendorsTeamSubtitle: "Elegí un vendedor para ver sus métricas",
     vendorsListTitle: "Vendedores",
     vendorsListHint: "Tocá un vendedor para ver su panel personal",
     backToVendors: "Volver a vendedores",

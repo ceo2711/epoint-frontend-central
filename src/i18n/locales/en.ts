@@ -1002,7 +1002,7 @@ export const en: Messages = {
     detailTitle: "User details",
     vendorsHeaderContext: "these are your sales reps",
     vendorsSubtitle: "Select a sales rep to view their sales metrics and commission",
-    vendorsTeamSubtitle: "Team metrics and per-rep detail",
+    vendorsTeamSubtitle: "Choose a sales rep to see their metrics",
     vendorsListTitle: "Sales reps",
     vendorsListHint: "Tap a sales rep to open their personal dashboard",
     backToVendors: "Back to sales reps",

@@ -12,7 +12,6 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
 import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import { AreaMetricsPanel } from "@/features/dashboard/components/DashboardPanels";
-import { SalesLeadershipPanel } from "@/features/dashboard/components/SalesLeadershipPanel";
 import { useDashboardMetrics } from "@/features/dashboard/hooks/useDashboardMetrics";
 
 export function SalesLeaderVendorsPage() {
@@ -31,31 +30,20 @@ export function SalesLeaderVendorsPage() {
     [salesReps, selectedRepId],
   );
 
-  const teamEnabled = canViewMetrics && selectedRepId == null;
-  const repEnabled = canViewMetrics && selectedRepId != null;
-
-  const {
-    metrics: teamMetrics,
-    loading: loadingTeam,
-    error: teamError,
-  } = useDashboardMetrics(token, teamEnabled, activeMerchantId, roleCode, null, null);
-
   const {
     metrics: repMetrics,
     loading: loadingRep,
     error: repError,
   } = useDashboardMetrics(
     token,
-    repEnabled,
+    canViewMetrics && selectedRepId != null,
     activeMerchantId,
     roleCode,
     null,
     selectedRepId,
   );
 
-  const teamSalesArea = teamMetrics?.areas.find((area) => area.code === "VENTAS") ?? null;
   const repSalesArea = repMetrics?.areas.find((area) => area.code === "VENTAS") ?? null;
-  const leadership = teamMetrics?.sales_leadership ?? null;
 
   if (selectedRepId != null && selectedRep) {
     return (
@@ -98,45 +86,12 @@ export function SalesLeaderVendorsPage() {
   return (
     <>
       <Header title={t("users.vendorsHeaderContext")} subtitle={t("users.vendorsTeamSubtitle")} />
-      <PageContent className="space-y-8">
-        {!activeMerchantId ? (
-          <div className="alert alert-info">{t("dashboard.selectMerchant")}</div>
-        ) : null}
-
-        {activeMerchantId && (loadingTeam || loadingReps) ? (
+      <PageContent>
+        {loadingReps ? (
           <div className="flex justify-center py-16">
-            <LoadingSpinner label={t("dashboard.loadingStats")} />
+            <LoadingSpinner />
           </div>
-        ) : null}
-
-        {activeMerchantId && teamError && !loadingTeam ? (
-          <div className="alert alert-error">{t("dashboard.statsError")}</div>
-        ) : null}
-
-        {activeMerchantId && !loadingTeam && teamMetrics ? (
-          <>
-            {leadership ? <SalesLeadershipPanel leadership={leadership} /> : null}
-
-            {teamSalesArea ? (
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    {t("dashboard.leadershipFunnelTitle")}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">{t("dashboard.leadershipFunnelHint")}</p>
-                </div>
-                <AreaMetricsPanel
-                  area={teamSalesArea}
-                  metrics={teamMetrics}
-                  onBack={() => undefined}
-                  showBack={false}
-                />
-              </div>
-            ) : null}
-          </>
-        ) : null}
-
-        {!loadingReps ? (
+        ) : (
           <SalesRepList
             reps={salesReps}
             onSelect={setSelectedRepId}
@@ -144,7 +99,7 @@ export function SalesLeaderVendorsPage() {
             hintKey="users.vendorsListHint"
             showConnectionStatus={false}
           />
-        ) : null}
+        )}
       </PageContent>
     </>
   );

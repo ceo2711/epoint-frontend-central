@@ -290,6 +290,9 @@ export function ProspectCreateModal({
               {repsForSede.map((rep) => (
                 <option key={rep.id} value={rep.id}>
                   {rep.first_name} {rep.last_name}
+                  {rep.parent_name
+                    ? ` (${t("calendly.subSellerOf", { name: rep.parent_name })})`
+                    : ""}
                 </option>
               ))}
             </Select>
