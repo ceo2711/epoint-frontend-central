@@ -66,14 +66,21 @@ export function UserFormModal({
   const showSedeSelect = currentUser?.role.code === "ADMIN";
 
   const assignableRoles = useMemo(() => {
-    if (isBranchManager) {
-      return roles.filter((r) =>
-        SEDE_REQUIRED_ROLE_CODES.includes(r.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]) &&
-        r.code !== "BRANCH_MANAGER",
-      );
-    }
-    return roles;
-  }, [roles, isBranchManager]);
+    const allowCurrentSubSeller = Boolean(user && user.role.code === "SUB_SELLER");
+    const base = isBranchManager
+      ? roles.filter(
+          (r) =>
+            SEDE_REQUIRED_ROLE_CODES.includes(r.code as (typeof SEDE_REQUIRED_ROLE_CODES)[number]) &&
+            r.code !== "BRANCH_MANAGER",
+        )
+      : roles;
+    // Los subvendedores se crean desde /equipo; OM está deprecado.
+    return base.filter((r) => {
+      if (r.code === "ONBOARDING_MANAGER") return false;
+      if (r.code === "SUB_SELLER") return allowCurrentSubSeller;
+      return r.is_active !== false;
+    });
+  }, [roles, isBranchManager, user]);
 
   const [form, setForm] = useState<UserFormData>(user ? userToForm(user) : EMPTY_USER_FORM);
   const [submitting, setSubmitting] = useState(false);

@@ -12,6 +12,7 @@ import type { BoardCardLabel } from "@/features/boards/constants/cardLabels";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
+import { isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ClientBoardPanelProps {
@@ -29,27 +30,22 @@ function normalizeCard(card: BoardCard): BoardCard {
   };
 }
 
-const BOARD_STAFF_ROLES = new Set([
-  "ADMIN",
-  "BRANCH_MANAGER",
-  "ONBOARDING_MANAGER",
-  "ADVISOR",
-  "AREA_LEADER",
-]);
-const BOARD_CARD_DELETE_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
-const BOARD_CARD_LABEL_ROLES = new Set(["ONBOARDING_MANAGER", "ADVISOR"]);
+const BOARD_STAFF_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ADVISOR", "AREA_LEADER"]);
 
 export function ClientBoardPanel({ token, clientId, isClientPortal = false }: ClientBoardPanelProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const modal = useModal();
+  const onboardingLeader = isOnboardingAreaLeader(user);
   const canManageBoard =
     !isClientPortal && !!user && BOARD_STAFF_ROLES.has(user.role.code);
   const canCreateCards = canManageBoard || isClientPortal;
   const canDeleteCard =
-    !isClientPortal && !!user && BOARD_CARD_DELETE_ROLES.has(user.role.code);
+    !isClientPortal &&
+    !!user &&
+    (user.role.code === "ADVISOR" || onboardingLeader || isSedeAdmin(user.role.code));
   const canSetLabel =
-    !isClientPortal && !!user && BOARD_CARD_LABEL_ROLES.has(user.role.code);
+    !isClientPortal && !!user && (user.role.code === "ADVISOR" || onboardingLeader);
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);

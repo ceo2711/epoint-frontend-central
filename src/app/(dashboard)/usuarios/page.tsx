@@ -2,7 +2,7 @@
 
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,13 @@ import type { User } from "@/features/users/types";
 import { isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 import { api } from "@/lib/api";
 
+const HIDDEN_FILTER_ROLE_CODES = new Set([
+  "ADMIN",
+  "BRANCH_MANAGER",
+  "CLIENT",
+  "ONBOARDING_MANAGER",
+]);
+
 export default function UsuariosPage() {
   const { token, hasPermission, user: currentUser } = useAuth();
   const { t } = useTranslation();
@@ -33,6 +40,7 @@ export default function UsuariosPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sedeId, setSedeId] = useState<number | null>(null);
+  const [roleId, setRoleId] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 350);
@@ -47,10 +55,19 @@ export default function UsuariosPage() {
     {
       search: debouncedSearch,
       sedeId: showSedeFilter ? sedeId : null,
+      roleId,
     },
   );
   const { roles } = useRoles(token, hasPermission("roles:read"), "", "");
   const { areas } = useAreas(token, hasPermission("areas:read"), "", "");
+  const filterRoles = useMemo(
+    () =>
+      roles
+        .filter((role) => role.is_active !== false && !HIDDEN_FILTER_ROLE_CODES.has(role.code))
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [roles],
+  );
   const { sedes } = useSedes(
     token,
     hasPermission("sedes:read"),
@@ -121,10 +138,13 @@ export default function UsuariosPage() {
           <UserListFilters
             search={searchInput}
             sedeId={sedeId}
+            roleId={roleId}
             sedes={sedes}
+            roles={filterRoles}
             showSedeFilter={showSedeFilter}
             onSearchChange={setSearchInput}
             onSedeFilterChange={setSedeId}
+            onRoleFilterChange={setRoleId}
           />
           {hasPermission("users:create") ? (
             <Button size="sm" onClick={openCreate} className="shrink-0 self-end sm:self-auto">
@@ -144,6 +164,7 @@ export default function UsuariosPage() {
             currentUserId={currentUser?.id}
             canUpdate={hasPermission("users:update")}
             canDelete={hasPermission("users:delete")}
+            showSedeColumn={showSedeFilter}
             onSelect={openDetail}
             onEdit={openEdit}
             onDeactivate={handleDeactivate}

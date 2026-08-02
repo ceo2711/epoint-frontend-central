@@ -310,6 +310,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
         roleCode !== "ADMIN" &&
         roleCode !== "BRANCH_MANAGER" &&
         roleCode !== "SALES_REP" &&
+        roleCode !== "SUB_SELLER" &&
         !(roleCode === "AREA_LEADER" && user.area?.code === "VENTAS")
       ) {
         return;
@@ -344,7 +345,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     }
 
     case "/calendario": {
-      if (roleCode === "SALES_REP") {
+      if (roleCode === "SALES_REP" || roleCode === "SUB_SELLER") {
         await prefetchCalendlyBundle(ctx, user.id);
         return;
       }
@@ -367,14 +368,14 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
         ]);
         return;
       }
-      if (roleCode === "SALES_REP") {
+      if (roleCode === "SALES_REP" || roleCode === "SUB_SELLER") {
         await prefetchDocusignForSalesRep(ctx);
       }
       return;
     }
 
     case "/equipo":
-      if (roleCode !== "SALES_REP" || user.is_sub_seller) return;
+      if (roleCode !== "SALES_REP" || user.is_sub_seller || roleCode === "SUB_SELLER") return;
       await queryClient.prefetchQuery({
         queryKey: queryKeys.subSellers.metrics(user.id),
         queryFn: () => fetchSubSellerMetrics(token),

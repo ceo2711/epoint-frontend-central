@@ -785,11 +785,11 @@ export default function ProspectoDetailPage() {
         {canUpdate && !isConverted && manualStatuses.length > 0 ? (
           <Card className="p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {user?.role.code === "SALES_REP"
+              {(user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER")
                 ? t("prospects.closeProspect")
                 : t("prospects.updateStatus")}
             </h2>
-            {user?.role.code === "SALES_REP" ? (
+            {(user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER") ? (
               <p className="mb-3 text-sm text-slate-500">{t("prospects.salesRepStatusHint")}</p>
             ) : null}
             <form onSubmit={(e) => void handleStatusUpdate(e)} className="space-y-3">

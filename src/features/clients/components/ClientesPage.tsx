@@ -29,7 +29,7 @@ import {
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
 import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
-import { canFilterClientsBySalesRep, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
+import { canFilterClientsBySalesRep, canManageOnboarding, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 
 export function ClientesPage() {
   const { t } = useTranslation();
@@ -61,7 +61,7 @@ function ClientesPageContent() {
   const clientsSubtitle =
     roleCode === "ADVISOR"
       ? t("clients.subtitleAdvisor")
-      : roleCode === "ONBOARDING_MANAGER" || onboardingAreaLeader
+      : onboardingAreaLeader
         ? t("clients.subtitleOnboarding")
         : t("clients.subtitle");
   const [page, setPage] = useState(1);
@@ -79,14 +79,11 @@ function ClientesPageContent() {
 
   const showMerchantFilter = workspaceMerchants.length > 1;
   const showSalesRepFilter = canFilterBySalesRep;
-  const showAdvisorColumn = roleCode === "SALES_REP" || canFilterBySalesRep;
+  const showAdvisorColumn = roleCode === "SALES_REP" || roleCode === "SUB_SELLER" || canFilterBySalesRep;
   const canBulkDelete = sedeAdmin && hasPermission("clients:delete");
   const showSedePicker = isGlobal && selectedSedeId === null;
   const listEnabled = !isGlobal || selectedSedeId != null;
-  const onboardingOnly =
-    roleCode === "ONBOARDING_MANAGER" ||
-    roleCode === "BRANCH_MANAGER" ||
-    onboardingAreaLeader;
+  const onboardingOnly = roleCode === "BRANCH_MANAGER" || onboardingAreaLeader;
 
   const { sedes, loading: loadingSedes } = useSedes(
     token,
@@ -204,7 +201,7 @@ function ClientesPageContent() {
   }
 
   const canRunReminders =
-    roleCode === "ADMIN" || roleCode === "BRANCH_MANAGER" || roleCode === "ONBOARDING_MANAGER";
+    canManageOnboarding(user);
 
   const headerTitle = isGlobal ? t("clients.adminHeaderContext") : t("clients.headerContext");
   const headerSubtitle = isGlobal ? t("clients.adminPageSubtitleSedes") : clientsSubtitle;

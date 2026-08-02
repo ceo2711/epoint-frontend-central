@@ -1,24 +1,31 @@
 "use client";
 
 import { useTranslation } from "@/contexts/LanguageContext";
+import type { Role } from "@/features/roles/types";
 import type { Sede } from "@/features/sedes/types";
 
 interface UserListFiltersProps {
   search: string;
   sedeId: number | null;
+  roleId: number | null;
   sedes: Sede[];
+  roles: Role[];
   showSedeFilter: boolean;
   onSearchChange: (value: string) => void;
   onSedeFilterChange: (value: number | null) => void;
+  onRoleFilterChange: (value: number | null) => void;
 }
 
 export function UserListFilters({
   search,
   sedeId,
+  roleId,
   sedes,
+  roles,
   showSedeFilter,
   onSearchChange,
   onSedeFilterChange,
+  onRoleFilterChange,
 }: UserListFiltersProps) {
   const { t } = useTranslation();
 
@@ -37,6 +44,28 @@ export function UserListFilters({
           className="input-field py-2"
           autoComplete="off"
         />
+      </div>
+
+      <div className="w-full sm:w-auto sm:min-w-[12rem]">
+        <label htmlFor="users-role-filter" className="input-label mb-1">
+          {t("common.role")}
+        </label>
+        <select
+          id="users-role-filter"
+          value={roleId == null ? "all" : String(roleId)}
+          onChange={(event) => {
+            const value = event.target.value;
+            onRoleFilterChange(value === "all" ? null : Number(value));
+          }}
+          className="input-field py-2"
+        >
+          <option value="all">{t("users.allRoles")}</option>
+          {roles.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {showSedeFilter ? (

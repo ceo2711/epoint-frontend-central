@@ -9,6 +9,7 @@ import type { User } from "@/features/users/types";
 export type UsersListFilters = {
   search?: string;
   sedeId?: number | null;
+  roleId?: number | null;
 };
 
 export function useUsers(
@@ -20,10 +21,11 @@ export function useUsers(
 ) {
   const search = filters.search?.trim() ?? "";
   const sedeId = filters.sedeId ?? null;
+  const roleId = filters.roleId ?? null;
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: queryKeys.users.list({ search, sedeId }),
-    queryFn: () => fetchUsers(token!, { search, sedeId }),
+    queryKey: queryKeys.users.list({ search, sedeId, roleId }),
+    queryFn: () => fetchUsers(token!, { search, sedeId, roleId }),
     enabled: !!token && canRead,
   });
 

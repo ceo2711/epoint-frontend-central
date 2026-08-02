@@ -53,6 +53,10 @@ export function UserDetailModal({
   const canManage = user.is_active && user.id !== currentUserId;
   const showEdit = canUpdate && canManage;
   const showDeactivate = canDelete && canManage;
+  const parent = user.parent ?? null;
+  const parentName = parent
+    ? `${parent.first_name} ${parent.last_name}`.trim() || parent.email
+    : null;
 
   const headerActions =
     showEdit || showDeactivate ? (
@@ -97,6 +101,17 @@ export function UserDetailModal({
             label={t("common.role")}
             value={<span className="badge badge-blue">{user.role.name}</span>}
           />
+          {parent && parentName ? (
+            <DetailRow
+              label={t("users.teamOwner")}
+              value={
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-800">{parentName}</p>
+                  <p className="break-all text-xs text-slate-500">{parent.email}</p>
+                </div>
+              }
+            />
+          ) : null}
           <DetailRow label={t("users.sede")} value={user.sede?.name ?? t("common.dash")} />
           <DetailRow label={t("common.area")} value={user.area?.name ?? t("common.dash")} />
           <DetailRow label={t("common.status")} value={<ActiveBadge active={user.is_active} />} />

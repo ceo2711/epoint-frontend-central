@@ -22,9 +22,6 @@ describe("canViewClientOnboardingWorkspace", () => {
       canViewClientOnboardingWorkspace({ id: 1, role: role("BRANCH_MANAGER"), area: null }),
     ).toBe(true);
     expect(
-      canViewClientOnboardingWorkspace({ id: 1, role: role("ONBOARDING_MANAGER"), area: null }),
-    ).toBe(true);
-    expect(
       canViewClientOnboardingWorkspace({
         id: 1,
         role: role("AREA_LEADER"),
@@ -52,7 +49,7 @@ describe("canViewClientOnboardingWorkspace", () => {
 });
 
 describe("canViewApprovedClientWorkspace", () => {
-  const onboardingUser = { id: 1, role: role("ONBOARDING_MANAGER"), area: null };
+  const onboardingUser = { id: 1, role: role("AREA_LEADER"), area: area(2, "ONBOARDING", "Onboarding") };
 
   it("requiere cliente aprobado", () => {
     expect(canViewApprovedClientWorkspace(onboardingUser, { approved_at: null })).toBe(false);
@@ -63,7 +60,7 @@ describe("canViewApprovedClientWorkspace", () => {
 });
 
 describe("canEditClientProfile", () => {
-  const onboardingUser = { role: role("ONBOARDING_MANAGER"), area: null };
+  const onboardingUser = { role: role("AREA_LEADER"), area: area(2, "ONBOARDING", "Onboarding") };
   const salesUser = { role: role("SALES_REP"), area: null };
 
   it("onboarding puede editar clientes aprobados", () => {

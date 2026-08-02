@@ -45,6 +45,10 @@ function shouldLogHttpError(path: string, status: number, silentHttpErrors?: boo
   if (status >= 400 && status < 500 && SILENT_AUTH_CLIENT_PATHS.has(path)) {
     return false;
   }
+  // Validaciones de negocio: la UI ya muestra el mensaje (modal/toast). No spamear consola.
+  if (status === 400 || status === 409 || status === 422) {
+    return false;
+  }
   return true;
 }
 

@@ -60,10 +60,7 @@ export function defaultClientsListParams(user: User, pageSize: number): ClientsL
   const showMerchantFilter = (user.merchants ?? []).length > 1;
 
   return {
-    onboardingOnly:
-      roleCode === "ONBOARDING_MANAGER" ||
-      roleCode === "BRANCH_MANAGER" ||
-      isOnboardingAreaLeader(user),
+    onboardingOnly: roleCode === "BRANCH_MANAGER" || isOnboardingAreaLeader(user),
     page: 1,
     pageSize,
     search: "",

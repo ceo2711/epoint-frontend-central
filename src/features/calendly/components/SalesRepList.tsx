@@ -131,7 +131,7 @@ function SalesRepCard({
     <button
       type="button"
       onClick={() => onSelect(rep.id)}
-      className="group flex h-[10.75rem] w-[16rem] shrink-0 flex-col rounded-2xl border border-cream-600 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      className="group flex min-h-[12.5rem] w-[18rem] shrink-0 flex-col rounded-2xl border border-cream-600 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
     >
       <div className="flex items-start justify-between gap-3">
         {rep.avatar_url ? (
@@ -161,7 +161,7 @@ function SalesRepCard({
 
       {showConnectionStatus ? (
         <span
-          className={`mt-4 inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+          className={`mt-auto inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
             rep.connected
               ? "bg-emerald-100 text-emerald-700"
               : "bg-slate-100 text-slate-600"
@@ -170,7 +170,7 @@ function SalesRepCard({
           {rep.connected ? t("calendly.connected") : t("calendly.notConnected")}
         </span>
       ) : (
-        <span className="mt-4 text-xs font-medium text-slate-400 transition group-hover:text-brand">
+        <span className="mt-auto text-xs font-medium text-slate-400 transition group-hover:text-brand">
           {t("common.view")} →
         </span>
       )}
@@ -239,7 +239,7 @@ export function SalesRepList({
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-[10.75rem] items-center sm:pt-1">
+                <div className="flex min-h-[12.5rem] items-center sm:pt-1">
                   <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 px-3 py-2 text-xs text-slate-500">
                     {t("calendly.noSubSellers")}
                   </p>

@@ -13,6 +13,8 @@ interface UsersTableProps {
   currentUserId?: number;
   canUpdate: boolean;
   canDelete: boolean;
+  /** Solo admin global: el gerente ya ve solo su sede. */
+  showSedeColumn?: boolean;
   onSelect: (user: User) => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
@@ -23,6 +25,7 @@ export function UsersTable({
   currentUserId,
   canUpdate,
   canDelete,
+  showSedeColumn = true,
   onSelect,
   onEdit,
   onDeactivate,
@@ -98,7 +101,9 @@ export function UsersTable({
             <p className="mt-2 break-all text-sm text-slate-500">{user.email}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="badge badge-blue">{user.role.name}</span>
-              <span className="text-sm text-slate-600">{user.sede?.name ?? t("common.dash")}</span>
+              {showSedeColumn ? (
+                <span className="text-sm text-slate-600">{user.sede?.name ?? t("common.dash")}</span>
+              ) : null}
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
               <ActiveBadge active={user.is_active} />
             </div>
@@ -118,7 +123,7 @@ export function UsersTable({
               <th>{t("common.name")}</th>
               <th>{t("common.email")}</th>
               <th>{t("common.role")}</th>
-              <th>{t("users.sede")}</th>
+              {showSedeColumn ? <th>{t("users.sede")}</th> : null}
               <th>{t("common.area")}</th>
               <th>{t("common.status")}</th>
               {(canUpdate || canDelete) && <th>{t("common.actions")}</th>}
@@ -136,7 +141,7 @@ export function UsersTable({
                 <td>
                   <span className="badge badge-blue">{user.role.name}</span>
                 </td>
-                <td>{user.sede?.name ?? t("common.dash")}</td>
+                {showSedeColumn ? <td>{user.sede?.name ?? t("common.dash")}</td> : null}
                 <td>{user.area?.name ?? t("common.dash")}</td>
                 <td>
                   <ActiveBadge active={user.is_active} />

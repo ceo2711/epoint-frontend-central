@@ -11,13 +11,15 @@ import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/chat/types";
 import { useChatClientIdHint } from "@/features/chat/hooks/useChatClientIdHint";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { RichTextContent } from "@/components/ui/RichTextContent";
+import { canManageOnboarding, isSalesStaff } from "@/lib/roles";
 import { useModalOverlayOpen } from "@/lib/modalOverlay";
+import type { User } from "@/types/api";
 
-const BOARD_UPLOAD_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER", "ADVISOR"]);
-const APPROVE_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ONBOARDING_MANAGER"]);
-const SALESISH_ROLES = new Set(["SALES_REP", "ADMIN", "BRANCH_MANAGER", "AREA_LEADER"]);
+const BOARD_UPLOAD_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ADVISOR", "AREA_LEADER"]);
+const SALESISH_ROLES = new Set(["SALES_REP", "SUB_SELLER", "ADMIN", "BRANCH_MANAGER", "AREA_LEADER"]);
 
-function suggestionKeysForRole(roleCode: string): string[] {
+function suggestionKeysForRole(user: User): string[] {
+  const roleCode = user.role.code;
   if (roleCode === "CLIENT") {
     return [
       "chat.suggestionClientData",
@@ -29,10 +31,10 @@ function suggestionKeysForRole(roleCode: string): string[] {
   if (SALESISH_ROLES.has(roleCode)) {
     keys.splice(1, 0, "chat.suggestionRegisterClient", "chat.suggestionProspects");
   }
-  if (APPROVE_ROLES.has(roleCode)) {
+  if (canManageOnboarding(user)) {
     keys.splice(1, 0, "chat.suggestionApproveClient");
   }
-  if (BOARD_UPLOAD_ROLES.has(roleCode) || roleCode === "SALES_REP") {
+  if (BOARD_UPLOAD_ROLES.has(roleCode) || isSalesStaff(roleCode)) {
     keys.push("chat.suggestionUploadDocs");
   }
   // Evitar demasiados chips: máximo 4 únicos.
@@ -208,7 +210,7 @@ export function FloatingChatWidget() {
     name: user.first_name,
   });
   const chatSubtitle = chatT(isClient ? "chat.subtitleClient" : "chat.subtitle");
-  const suggestionKeys = suggestionKeysForRole(user.role.code);
+  const suggestionKeys = suggestionKeysForRole(user);
   const showSuggestions = messages.length === 0 && !loading && !fileUploading && !stagedUpload;
 
   async function handleSubmit(event: FormEvent) {

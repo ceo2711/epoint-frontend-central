@@ -12,6 +12,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { SedeDetailModal } from "@/features/sedes/components/SedeDetailModal";
 import { SedeFormModal } from "@/features/sedes/components/SedeFormModal";
 import { SedesTable } from "@/features/sedes/components/SedesTable";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
@@ -34,6 +35,7 @@ export default function SedesPage() {
   );
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editing, setEditing] = useState<Sede | null>(null);
+  const [viewing, setViewing] = useState<Sede | null>(null);
 
   useEffect(() => {
     if (user && !canAccess) {
@@ -42,18 +44,28 @@ export default function SedesPage() {
   }, [user, canAccess, router]);
 
   function openCreate() {
+    setViewing(null);
     setEditing(null);
     setModalMode("create");
   }
 
+  function openDetail(sede: Sede) {
+    setViewing(sede);
+  }
+
   function openEdit(sede: Sede) {
+    setViewing(null);
     setEditing(sede);
     setModalMode("edit");
   }
 
-  function closeModal() {
+  function closeFormModal() {
     setModalMode(null);
     setEditing(null);
+  }
+
+  function closeDetailModal() {
+    setViewing(null);
   }
 
   async function handleReactivate(sede: Sede) {
@@ -66,6 +78,7 @@ export default function SedesPage() {
     if (!confirmed) return;
     try {
       await api.patch(`/sedes/${sede.id}`, { is_active: true }, token);
+      setViewing(null);
       await reload();
     } catch (err) {
       await modal.alert({
@@ -87,6 +100,7 @@ export default function SedesPage() {
     if (!confirmed) return;
     try {
       await api.delete(`/sedes/${sede.id}`, token);
+      setViewing(null);
       await reload();
     } catch (err) {
       await modal.alert({
@@ -127,6 +141,7 @@ export default function SedesPage() {
             sedes={sedes}
             canUpdate={hasPermission("sedes:update")}
             canDelete={hasPermission("sedes:delete")}
+            onSelect={openDetail}
             onEdit={openEdit}
             onDeactivate={handleDeactivate}
             onReactivate={handleReactivate}
@@ -134,11 +149,23 @@ export default function SedesPage() {
         ) : null}
       </PageContent>
 
+      {viewing ? (
+        <SedeDetailModal
+          sede={viewing}
+          canUpdate={hasPermission("sedes:update")}
+          canDelete={hasPermission("sedes:delete")}
+          onClose={closeDetailModal}
+          onEdit={openEdit}
+          onDeactivate={handleDeactivate}
+          onReactivate={handleReactivate}
+        />
+      ) : null}
+
       {modalMode && hasPermission(modalMode === "edit" ? "sedes:update" : "sedes:create") ? (
         <SedeFormModal
           token={token}
           sede={modalMode === "edit" ? editing : null}
-          onClose={closeModal}
+          onClose={closeFormModal}
           onSuccess={() => void reload()}
         />
       ) : null}

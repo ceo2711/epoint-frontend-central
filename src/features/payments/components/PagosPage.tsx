@@ -35,7 +35,7 @@ import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
+const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
 export function PagosPage() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export function PagosPage() {
 
   const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP";
+  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
   const canLinkProspect = hasPermission("prospects:update");
   const canSearchProspects = hasPermission("prospects:read");
 
@@ -412,6 +412,7 @@ export function PagosPage() {
           token={token}
           title={t("prospects.linkToProspect")}
           emailHint={linkPayment.customer_email}
+          salesRepId={canSupervise ? selectedRepId : null}
           onClose={() => setLinkPayment(null)}
           onSelect={handleLinkPaymentToProspect}
         />

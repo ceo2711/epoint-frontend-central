@@ -19,6 +19,8 @@ interface ProspectLinkPickerModalProps {
   token: string | null;
   title: string;
   emailHint?: string;
+  /** Si se informa, solo lista prospectos asignados a ese vendedor. */
+  salesRepId?: number | null;
   onClose: () => void;
   onSelect: (prospectId: number) => Promise<void>;
 }
@@ -27,6 +29,7 @@ export function ProspectLinkPickerModal({
   token,
   title,
   emailHint,
+  salesRepId = null,
   onClose,
   onSelect,
 }: ProspectLinkPickerModalProps) {
@@ -55,6 +58,9 @@ export function ProspectLinkPickerModal({
       setSelectedId(null);
 
       const params = new URLSearchParams({ page: "1", page_size: "20", search: query });
+      if (salesRepId != null) {
+        params.set("sales_rep_id", String(salesRepId));
+      }
       void api
         .get<Paginated<Prospect>>(`/prospects?${params.toString()}`, token)
         .then((data) => {
@@ -73,7 +79,7 @@ export function ProspectLinkPickerModal({
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [search, token]);
+  }, [search, token, salesRepId]);
 
   async function handleSubmit() {
     if (!selectedId) return;
@@ -102,9 +108,17 @@ export function ProspectLinkPickerModal({
             <LoadingSpinner label={t("common.loading")} />
           </div>
         ) : !hasSearched ? (
-          <p className="text-sm text-slate-500">{t("prospects.linkPickerPrompt")}</p>
+          <p className="text-sm text-slate-500">
+            {salesRepId != null
+              ? t("prospects.linkPickerPromptForRep")
+              : t("prospects.linkPickerPrompt")}
+          </p>
         ) : prospects.length === 0 ? (
-          <p className="text-sm text-slate-500">{t("prospects.linkPickerEmpty")}</p>
+          <p className="text-sm text-slate-500">
+            {salesRepId != null
+              ? t("prospects.linkPickerEmptyForRep")
+              : t("prospects.linkPickerEmpty")}
+          </p>
         ) : (
           <div className="max-h-[320px] space-y-2 overflow-y-auto">
             {prospects.map((prospect) => (

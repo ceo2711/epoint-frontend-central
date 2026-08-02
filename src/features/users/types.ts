@@ -3,14 +3,14 @@ export type { User, Paginated } from "@/types/api";
 /** Roles que deben tener sede asignada al crear/editar. */
 export const SEDE_REQUIRED_ROLE_CODES = [
   "SALES_REP",
-  "ONBOARDING_MANAGER",
+  "SUB_SELLER",
   "ADVISOR",
   "BRANCH_MANAGER",
   "AREA_LEADER",
 ] as const;
 
 /** Roles que deben tener área asignada al crear/editar. */
-export const AREA_REQUIRED_ROLE_CODES = ["AREA_LEADER"] as const;
+export const AREA_REQUIRED_ROLE_CODES = ["AREA_LEADER", "ADVISOR"] as const;
 
 export type UserFormData = {
   email: string;

@@ -48,13 +48,18 @@ export const queryKeys = {
   },
   users: {
     all: ["users"] as const,
-    list: (filters?: { search?: string; sedeId?: number | null }) =>
+    list: (filters?: {
+      search?: string;
+      sedeId?: number | null;
+      roleId?: number | null;
+    }) =>
       [
         "users",
         "list",
         {
           search: filters?.search ?? "",
           sedeId: filters?.sedeId ?? null,
+          roleId: filters?.roleId ?? null,
         },
       ] as const,
   },

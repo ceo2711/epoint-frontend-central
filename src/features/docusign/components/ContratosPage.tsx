@@ -33,7 +33,7 @@ import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
 import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
+const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
 export function ContratosPage() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export function ContratosPage() {
 
   const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP";
+  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
   const canLinkProspect = hasPermission("prospects:update");
 
   const {
@@ -403,6 +403,7 @@ export function ContratosPage() {
           token={token}
           title={t("prospects.linkToProspect")}
           emailHint={linkEnvelope.signer_email}
+          salesRepId={canSupervise ? selectedRepId : null}
           onClose={() => setLinkEnvelope(null)}
           onSelect={handleLinkEnvelopeToProspect}
         />

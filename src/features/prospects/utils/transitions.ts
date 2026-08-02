@@ -18,7 +18,7 @@ export function getManualStatusOptions(
   status: ProspectStatus,
 ): ProspectStatus[] {
   const allowed = getAllowedNextStatuses(status);
-  if (roleCode === "SALES_REP") {
+  if (roleCode === "SALES_REP" || roleCode === "SUB_SELLER") {
     return allowed.filter((item) => item === "LEAD_CERRADO");
   }
   return allowed;

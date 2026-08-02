@@ -7,7 +7,6 @@ import {
 } from "react-icons/hi2";
 
 import { ActiveBadge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Sede } from "@/features/sedes/types";
@@ -16,6 +15,7 @@ interface SedesTableProps {
   sedes: Sede[];
   canUpdate: boolean;
   canDelete: boolean;
+  onSelect: (sede: Sede) => void;
   onEdit: (sede: Sede) => void;
   onDeactivate: (sede: Sede) => void;
   onReactivate: (sede: Sede) => void;
@@ -25,6 +25,7 @@ export function SedesTable({
   sedes,
   canUpdate,
   canDelete,
+  onSelect,
   onEdit,
   onDeactivate,
   onReactivate,
@@ -38,7 +39,10 @@ export function SedesTable({
           <IconActionButton
             label={t("common.edit")}
             icon={<HiOutlinePencilSquare />}
-            onClick={() => onEdit(sede)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(sede);
+            }}
           />
         ) : null}
         {canDelete && sede.is_active ? (
@@ -46,7 +50,10 @@ export function SedesTable({
             label={t("sedes.deactivate")}
             icon={<HiOutlineNoSymbol />}
             variant="danger"
-            onClick={() => onDeactivate(sede)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeactivate(sede);
+            }}
           />
         ) : null}
         {canUpdate && !sede.is_active ? (
@@ -54,7 +61,10 @@ export function SedesTable({
             label={t("sedes.reactivate")}
             icon={<HiOutlineArrowPath />}
             variant="primary"
-            onClick={() => onReactivate(sede)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReactivate(sede);
+            }}
           />
         ) : null}
       </TableActions>
@@ -65,7 +75,19 @@ export function SedesTable({
     <>
       <div className="space-y-3 md:hidden">
         {sedes.map((sede) => (
-          <Card key={sede.id} className="p-4">
+          <div
+            key={sede.id}
+            className="card-flat cursor-pointer p-4 transition hover:border-brand/30 hover:shadow-md"
+            onClick={() => onSelect(sede)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(sede);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
             <div className="flex items-start gap-3">
               {sede.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -89,12 +111,16 @@ export function SedesTable({
             ) : null}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <ActiveBadge active={sede.is_active} />
-              {renderActions(sede)}
             </div>
-          </Card>
+            {(canUpdate || canDelete) ? (
+              <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                {renderActions(sede)}
+              </div>
+            ) : null}
+          </div>
         ))}
         {sedes.length === 0 ? (
-          <Card className="p-8 text-center text-slate-400">{t("sedes.empty")}</Card>
+          <div className="card-flat p-8 text-center text-slate-400">{t("sedes.empty")}</div>
         ) : null}
       </div>
 
@@ -106,12 +132,16 @@ export function SedesTable({
               <th>{t("sedes.code")}</th>
               <th>{t("sedes.description")}</th>
               <th>{t("common.status")}</th>
-              <th>{t("common.actions")}</th>
+              {(canUpdate || canDelete) ? <th>{t("common.actions")}</th> : null}
             </tr>
           </thead>
           <tbody>
             {sedes.map((sede) => (
-              <tr key={sede.id}>
+              <tr
+                key={sede.id}
+                className="cursor-pointer transition hover:bg-cream-100/80"
+                onClick={() => onSelect(sede)}
+              >
                 <td>
                   <div className="flex min-w-0 items-center gap-3">
                     {sede.avatar_url ? (
@@ -131,14 +161,18 @@ export function SedesTable({
                 </td>
                 <td className="text-slate-500">{sede.code}</td>
                 <td className="text-slate-500">{sede.description ?? t("common.dash")}</td>
-                <td><ActiveBadge active={sede.is_active} /></td>
-                <td>{renderActions(sede)}</td>
+                <td>
+                  <ActiveBadge active={sede.is_active} />
+                </td>
+                {(canUpdate || canDelete) ? (
+                  <td onClick={(e) => e.stopPropagation()}>{renderActions(sede)}</td>
+                ) : null}
               </tr>
             ))}
           </tbody>
         </table>
         {sedes.length === 0 ? (
-          <Card className="p-8 text-center text-slate-400">{t("sedes.empty")}</Card>
+          <div className="card-flat p-8 text-center text-slate-400">{t("sedes.empty")}</div>
         ) : null}
       </div>
     </>

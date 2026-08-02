@@ -34,7 +34,7 @@ import type { CalendlyEvent } from "@/features/calendly/types";
 import { api } from "@/lib/api";
 import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
-const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "AREA_LEADER"]);
+const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
 type EventFormState =
   | { mode: "create"; initialDate?: Date }
@@ -47,7 +47,7 @@ export function CalendarioPage() {
   const { t } = useTranslation();
   const canSupervise = canSuperviseSalesReps(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP";
+  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendlyEvent | null>(null);
@@ -411,6 +411,7 @@ export function CalendarioPage() {
           token={token}
           title={t("prospects.linkToProspect")}
           emailHint={linkProspectEvent.invitee_email ?? undefined}
+          salesRepId={linkProspectEvent.user_id ?? targetUserId}
           onClose={() => setLinkProspectEvent(null)}
           onSelect={handleLinkProspect}
         />

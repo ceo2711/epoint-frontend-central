@@ -30,6 +30,7 @@ export interface CalendlyLinkedProspect {
 
 export interface CalendlyEvent {
   id: number;
+  user_id: number;
   name: string;
   status: string;
   start_time: string;

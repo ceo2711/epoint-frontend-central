@@ -223,15 +223,16 @@ describe("prefetchAppData por rol", () => {
     expect(queryClient.getQueryData(queryKeys.calendly.events(31))).toBeUndefined();
   });
 
-  it("ONBOARDING_MANAGER: lista de clientes onboarding + dashboard", async () => {
+  it("AREA_LEADER onboarding: lista de clientes onboarding + dashboard", async () => {
     const user = baseUser({
       id: 40,
       role: {
         id: 5,
-        code: "ONBOARDING_MANAGER",
-        name: "Onboarding",
+        code: "AREA_LEADER",
+        name: "Líder de área",
         permissions: [],
       },
+      area: { id: 2, code: "ONBOARDING", name: "Onboarding" },
     });
     await prefetchAppData(queryClient, "tok", user, perms("clients:read", "clients:create"));
 
@@ -252,7 +253,7 @@ describe("prefetchAppData por rol", () => {
     ).toBeDefined();
     expect(
       queryClient.getQueryData(
-        queryKeys.dashboard.metrics(resolveActiveMerchantId(user), "ONBOARDING_MANAGER"),
+        queryKeys.dashboard.metrics(resolveActiveMerchantId(user), "AREA_LEADER"),
       ),
     ).toBeDefined();
   });

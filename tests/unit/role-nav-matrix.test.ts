@@ -15,7 +15,7 @@ const clientNav = [
   "/portal/tablero",
 ] as const;
 
-type StaffRole = "ADMIN" | "AREA_LEADER" | "SALES_REP" | "ONBOARDING_MANAGER" | "ADVISOR";
+type StaffRole = "ADMIN" | "AREA_LEADER" | "SALES_REP" | "ADVISOR";
 
 const ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
   ADMIN: ["*"],
@@ -45,16 +45,6 @@ const ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
     "prospects:read",
     "prospects:create",
     "prospects:update",
-  ],
-  ONBOARDING_MANAGER: [
-    "clients:read",
-    "clients:update",
-    "clients:approve",
-    "documents:read",
-    "documents:upload",
-    "boards:read",
-    "boards:manage",
-    "credentials:read",
   ],
   ADVISOR: [
     "clients:read",
@@ -88,6 +78,31 @@ describe("role navigation matrix", () => {
     expect(hrefs).toContain("/calendario");
     expect(hrefs).toContain("/contratos");
     expect(hrefs).toContain("/pagos");
+    expect(hrefs).toContain("/roles");
+  });
+
+  it("BRANCH_MANAGER no ve roles ni catálogos solo-admin", () => {
+    const hrefs = getAccessibleNavItems(
+      { role: { code: "BRANCH_MANAGER" }, area: { id: 1, code: "VENTAS", name: "Ventas" } } as User,
+      (perm) => {
+        if (
+          perm.startsWith("sedes:") ||
+          perm.startsWith("merchants:") ||
+          perm.startsWith("sources:") ||
+          perm.startsWith("roles:") ||
+          perm === "clients:delete"
+        ) {
+          return false;
+        }
+        return true;
+      },
+    ).map((item) => item.href);
+    expect(hrefs).toContain("/usuarios");
+    expect(hrefs).toContain("/clientes");
+    expect(hrefs).not.toContain("/roles");
+    expect(hrefs).not.toContain("/sedes");
+    expect(hrefs).not.toContain("/comercios");
+    expect(hrefs).not.toContain("/fuentes");
   });
 
   it("SALES_REP ve dashboard, clientes, prospectos y su equipo", () => {
@@ -102,7 +117,7 @@ describe("role navigation matrix", () => {
   it("subvendedor no ve la página de equipo", () => {
     const hrefs = getAccessibleNavItems(
       {
-        role: { code: "SALES_REP" },
+        role: { code: "SUB_SELLER" },
         area: null,
         is_sub_seller: true,
       } as User,
@@ -149,10 +164,10 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/contratos");
   });
 
-  it("ONBOARDING_MANAGER no ve usuarios ni comercios", () => {
-    const hrefs = visibleInternalHrefs("ONBOARDING_MANAGER");
+  it("AREA_LEADER de onboarding ve clientes y usuarios, no pantallas comerciales", () => {
+    const hrefs = visibleInternalHrefs("AREA_LEADER", "ONBOARDING");
     expect(hrefs).toContain("/clientes");
-    expect(hrefs).not.toContain("/usuarios");
+    expect(hrefs).toContain("/usuarios");
     expect(hrefs).not.toContain("/comercios");
     expect(hrefs).not.toContain("/roles");
     expect(hrefs).not.toContain("/prospectos");

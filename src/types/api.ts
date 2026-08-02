@@ -16,6 +16,13 @@ export interface SedeBrief {
   name: string;
 }
 
+export interface ParentUserBrief {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -35,6 +42,7 @@ export interface User {
   permissions?: string[];
   client_id?: number | null;
   parent_user_id?: number | null;
+  parent?: ParentUserBrief | null;
   can_manage_sub_sellers?: boolean;
   is_sub_seller?: boolean;
   previous_month_sales?: number | null;

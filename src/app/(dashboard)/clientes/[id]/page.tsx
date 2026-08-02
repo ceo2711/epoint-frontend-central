@@ -41,7 +41,7 @@ import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/doc
 import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
-import { isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
+import { canManageOnboarding, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 function buildClientForm(client: Client) {
@@ -277,15 +277,11 @@ function ClienteDetailPageContent() {
     assignedAdvisors.some((item) => item.id === user.id);
   const canManageAdvisor =
     !!client?.approved_at &&
-    ((user?.role.code === "ONBOARDING_MANAGER" && hasPermission("clients:approve")) ||
-      user?.role.code === "ADMIN" ||
-      user?.role.code === "BRANCH_MANAGER" ||
-      isOnboardingAreaLeader(user) ||
-      isAssignedAdvisor);
+    ((canManageOnboarding(user) && hasPermission("clients:approve")) || isAssignedAdvisor);
   const showAdvisorContact =
     assignedAdvisors.length > 0 &&
     !canManageAdvisor &&
-    (user?.role.code === "SALES_REP" || isSedeAdmin(user?.role.code));
+    (user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER" || isSedeAdmin(user?.role.code));
 
   const sourceLabel =
     client?.source && client.source in CLIENT_SOURCE_LABEL_KEYS
@@ -414,7 +410,7 @@ function ClienteDetailPageContent() {
   const workspaceHint =
     user?.role.code === "ADVISOR"
       ? t("clientDetail.workspaceHintAdvisor")
-      : user?.role.code === "ONBOARDING_MANAGER"
+      : isOnboardingAreaLeader(user)
         ? t("clientDetail.workspaceHintOnboarding")
         : null;
 

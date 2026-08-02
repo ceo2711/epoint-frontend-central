@@ -187,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (
           permission.startsWith("sedes:") ||
           permission.startsWith("merchants:") ||
+          permission.startsWith("sources:") ||
           permission === "clients:delete"
         ) {
           return false;

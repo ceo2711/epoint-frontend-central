@@ -2,6 +2,16 @@ import type { User } from "@/types/api";
 
 /** Roles con poderes de administración de sede (gerente) o globales (admin). */
 
+export const SALES_STAFF_ROLE_CODES = ["SALES_REP", "SUB_SELLER"] as const;
+
+export function isSalesStaff(roleCode: string | undefined | null): boolean {
+  return roleCode === "SALES_REP" || roleCode === "SUB_SELLER";
+}
+
+export function isLeadSalesRep(user: User | null | undefined): boolean {
+  return user?.role.code === "SALES_REP" && !user.is_sub_seller;
+}
+
 export function isGlobalAdmin(roleCode: string | undefined | null): boolean {
   return roleCode === "ADMIN";
 }
@@ -38,6 +48,17 @@ export function isOnboardingAreaLeader(
   user: Pick<User, "role" | "area"> | null | undefined,
 ): boolean {
   return user?.role.code === "AREA_LEADER" && user.area?.code === "ONBOARDING";
+}
+
+export function isAdvisorsAreaLeader(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
+  return user?.role.code === "AREA_LEADER" && user.area?.code === "ASESORES";
+}
+
+/** Admin/gerente o líder de onboarding (antes: Encargado de Onboarding). */
+export function canManageOnboarding(user: User | null | undefined): boolean {
+  return isSedeAdmin(user?.role.code) || isOnboardingAreaLeader(user);
 }
 
 /** Puede ver/filtrar el trabajo de vendedores (gerente/admin o líder de ventas). */

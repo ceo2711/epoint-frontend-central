@@ -144,11 +144,16 @@ export function fetchSedes(token: string, includeInactive = true) {
 
 export function fetchUsers(
   token: string,
-  filters?: { search?: string; sedeId?: number | null },
+  filters?: {
+    search?: string;
+    sedeId?: number | null;
+    roleId?: number | null;
+  },
 ) {
   const params = new URLSearchParams();
   if (filters?.search?.trim()) params.set("search", filters.search.trim());
   if (filters?.sedeId != null) params.set("sede_id", String(filters.sedeId));
+  if (filters?.roleId != null) params.set("role_id", String(filters.roleId));
   const query = params.toString();
   return api.get<Paginated<User>>(`/users${query ? `?${query}` : ""}`, token);
 }

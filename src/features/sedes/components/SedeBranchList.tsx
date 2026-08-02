@@ -62,37 +62,43 @@ export function SedeBranchList({
             key={branch.id}
             type="button"
             onClick={() => onSelect(branch.id)}
-            className="group flex min-h-[9.5rem] flex-col rounded-2xl border border-cream-600 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            className="group flex flex-col overflow-hidden rounded-2xl border border-cream-600 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="relative aspect-[21/9] w-full overflow-hidden bg-slate-100">
               {branch.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={branch.avatarUrl}
                   alt=""
-                  className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-brand/15"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                 />
               ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand">
-                  {initialsFor(branch.name)}
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand/20 via-cream-100 to-slate-200">
+                  <span className="text-xl font-bold tracking-wide text-brand/70">
+                    {initialsFor(branch.name)}
+                  </span>
                 </div>
               )}
-              <VscChevronRight
-                className="h-5 w-5 shrink-0 text-slate-300 transition group-hover:text-brand"
-                aria-hidden
-              />
             </div>
 
-            <div className="mt-4 min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-slate-900">{branch.name}</p>
-              {branch.description ? (
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">{branch.description}</p>
-              ) : null}
-            </div>
+            <div className="flex flex-1 flex-col px-3.5 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-900">{branch.name}</p>
+                  {branch.description ? (
+                    <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{branch.description}</p>
+                  ) : null}
+                </div>
+                <VscChevronRight
+                  className="mt-0.5 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-brand"
+                  aria-hidden
+                />
+              </div>
 
-            <span className="mt-4 text-xs font-medium text-slate-400 transition group-hover:text-brand">
-              {t(countLabelKey, { count: branch.repCount })} →
-            </span>
+              <span className="mt-2 text-xs font-medium text-slate-400 transition group-hover:text-brand">
+                {t(countLabelKey, { count: branch.repCount })} →
+              </span>
+            </div>
           </button>
         ))}
       </div>
