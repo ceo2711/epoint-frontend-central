@@ -1,5 +1,5 @@
 import type { User } from "@/types/api";
-import { isLeadSalesRep, isSalesAreaLeader } from "@/lib/roles";
+import { canOwnSubSellers, isSalesAreaLeader } from "@/lib/roles";
 
 export type StaffRoleCode =
   | "ADMIN"
@@ -72,8 +72,9 @@ export const internalNav: NavItem[] = [
     href: "/equipo",
     labelKey: "nav.subSellers",
     icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
-    roles: ["SALES_REP"],
+    roles: ["SALES_REP", "AREA_LEADER"],
     salesTeamPage: true,
+    salesAreaOnly: true,
   },
   {
     href: "/usuarios",
@@ -162,7 +163,7 @@ export function getAccessibleNavItems(
     if (item.salesAreaOnly && user.role.code === "AREA_LEADER" && !salesLeader) {
       return false;
     }
-    if (item.salesTeamPage && !isLeadSalesRep(user)) {
+    if (item.salesTeamPage && !canOwnSubSellers(user)) {
       return false;
     }
     return !item.permission || hasPermission(item.permission);
@@ -170,7 +171,7 @@ export function getAccessibleNavItems(
     if (item.href === "/usuarios" && salesLeader) {
       return { ...item, labelKey: "nav.salesReps" };
     }
-    if (item.salesTeamPage && isLeadSalesRep(user) && !user.can_manage_sub_sellers) {
+    if (item.salesTeamPage && canOwnSubSellers(user) && !user.can_manage_sub_sellers) {
       return {
         ...item,
         disabled: true,

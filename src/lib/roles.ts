@@ -12,6 +12,16 @@ export function isLeadSalesRep(user: User | null | undefined): boolean {
   return user?.role.code === "SALES_REP" && !user.is_sub_seller;
 }
 
+/** Puede operar herramientas comerciales propias (prospectos, calendario, contratos, pagos). */
+export function canSell(user: User | null | undefined): boolean {
+  return isSalesStaff(user?.role.code) || isSalesAreaLeader(user);
+}
+
+/** Titular potencial de "Mi equipo" (vendedor titular o líder de ventas). */
+export function canOwnSubSellers(user: User | null | undefined): boolean {
+  return isLeadSalesRep(user) || isSalesAreaLeader(user);
+}
+
 export function isGlobalAdmin(roleCode: string | undefined | null): boolean {
   return roleCode === "ADMIN";
 }

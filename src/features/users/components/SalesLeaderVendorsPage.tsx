@@ -11,13 +11,16 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useMerchant } from "@/contexts/MerchantContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useModal } from "@/contexts/ModalContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
 import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import type { CalendlySalesRep } from "@/features/calendly/types";
 import { AreaMetricsPanel } from "@/features/dashboard/components/DashboardPanels";
 import { useDashboardMetrics } from "@/features/dashboard/hooks/useDashboardMetrics";
 import { ReassignSubSellerModal } from "@/features/users/components/ReassignSubSellerModal";
+import { api } from "@/lib/api";
 import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
+import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
 
 function salesRepToUserStub(rep: CalendlySalesRep): User {
@@ -36,7 +39,7 @@ function salesRepToUserStub(rep: CalendlySalesRep): User {
     is_sub_seller: rep.parent_user_id != null,
     must_change_password: false,
     totp_enabled: false,
-    is_active: true,
+    is_active: rep.is_active !== false,
     last_login_at: null,
     created_at: "",
     avatar_url: null,
@@ -45,11 +48,13 @@ function salesRepToUserStub(rep: CalendlySalesRep): User {
 
 export function SalesLeaderVendorsPage() {
   const queryClient = useQueryClient();
+  const modal = useModal();
   const { token, user, hasPermission } = useAuth();
   const { activeMerchantId } = useMerchant();
   const { t } = useTranslation();
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [reassigning, setReassigning] = useState<CalendlySalesRep | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   const canViewMetrics = hasPermission("clients:read");
   const roleCode = user?.role.code ?? null;
@@ -76,6 +81,38 @@ export function SalesLeaderVendorsPage() {
 
   const repSalesArea = repMetrics?.areas.find((area) => area.code === "VENTAS") ?? null;
   const selectedIsSub = Boolean(selectedRep?.parent_user_id);
+  const selectedInactive = selectedRep?.is_active === false;
+
+  async function handleToggleActive() {
+    if (!token || !selectedRep || !selectedIsSub) return;
+    const next = selectedInactive;
+    const name = `${selectedRep.first_name} ${selectedRep.last_name}`.trim();
+    const confirmed = await modal.confirm({
+      title: t(next ? "subSellers.activateTitle" : "subSellers.deactivateTitle"),
+      message: t(next ? "subSellers.activateConfirm" : "subSellers.deactivateConfirm", { name }),
+      confirmLabel: t(next ? "subSellers.reactivateAccount" : "subSellers.deactivate"),
+      cancelLabel: t("common.cancel"),
+      variant: next ? "primary" : "danger",
+    });
+    if (!confirmed) return;
+
+    setToggling(true);
+    try {
+      await api.patch(`/sub-sellers/${selectedRep.id}`, { is_active: next }, token, {
+        silentHttpErrors: true,
+      });
+      await invalidateStaffDirectoryCaches(queryClient);
+      await reloadReps();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("subSellers.loadError")),
+        variant: "error",
+      });
+    } finally {
+      setToggling(false);
+    }
+  }
 
   if (selectedRepId != null && selectedRep) {
     return (
@@ -95,11 +132,40 @@ export function SalesLeaderVendorsPage() {
               {t("users.backToVendors")}
             </button>
             {selectedIsSub && token ? (
-              <Button type="button" size="sm" variant="secondary" onClick={() => setReassigning(selectedRep)}>
-                {t("subSellers.reassignAction")}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedInactive ? (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    {t("common.inactive")}
+                  </span>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedInactive ? "primary" : "secondary"}
+                  disabled={toggling}
+                  onClick={() => void handleToggleActive()}
+                >
+                  {toggling
+                    ? t("common.saving")
+                    : t(selectedInactive ? "subSellers.reactivateAccount" : "subSellers.deactivate")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setReassigning(selectedRep)}
+                >
+                  {t("subSellers.reassignAction")}
+                </Button>
+              </div>
             ) : null}
           </div>
+
+          {selectedIsSub && selectedInactive ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {t("subSellers.statusInactiveNeedsReactivate")}
+            </div>
+          ) : null}
 
           {loadingRep ? (
             <div className="flex justify-center py-16">

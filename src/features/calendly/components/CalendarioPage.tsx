@@ -9,6 +9,10 @@ import { VscArrowLeft } from "react-icons/vsc";
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
+import {
+  SalesToolsScopeToggle,
+  type SalesToolsScope,
+} from "@/components/ui/SalesToolsScopeToggle";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -32,7 +36,7 @@ import {
 import { ProspectLinkPickerModal } from "@/features/prospects/components/ProspectLinkPickerModal";
 import type { CalendlyEvent } from "@/features/calendly/types";
 import { api } from "@/lib/api";
-import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { canSell, canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
 const CALENDAR_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
@@ -46,8 +50,10 @@ export function CalendarioPage() {
   const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
   const canSupervise = canSuperviseSalesReps(user);
+  const salesLeader = isSalesAreaLeader(user);
+  const canSellTools = canSell(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
+  const [scope, setScope] = useState<SalesToolsScope>("own");
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendlyEvent | null>(null);
@@ -58,13 +64,15 @@ export function CalendarioPage() {
   const [syncing, setSyncing] = useState(false);
   const [loadingReps, setLoadingReps] = useState(false);
 
-  const adminViewingRep = canSupervise && selectedRepId !== null;
+  const viewingTeam = canSupervise && (!canSellTools || scope === "team");
+  const viewingOwn = canSellTools && (!canSupervise || scope === "own");
+  const adminViewingRep = viewingTeam && selectedRepId !== null;
 
   const targetUserId = useMemo(() => {
-    if (isSalesRep) return user?.id ?? null;
-    if (canSupervise) return selectedRepId;
+    if (viewingOwn) return user?.id ?? null;
+    if (viewingTeam) return selectedRepId;
     return null;
-  }, [canSupervise, isSalesRep, selectedRepId, user?.id]);
+  }, [viewingOwn, viewingTeam, selectedRepId, user?.id]);
 
   const {
     connection,
@@ -86,7 +94,7 @@ export function CalendarioPage() {
     updateEvent,
     cancelEvent,
   } = useCalendly(token, targetUserId, {
-    enabled: !canSupervise || selectedRepId !== null,
+    enabled: viewingOwn || (viewingTeam && selectedRepId !== null),
   });
 
   const { sedes, loading: loadingSedes } = useSedes(
@@ -132,24 +140,31 @@ export function CalendarioPage() {
   }, [user, router]);
 
   useEffect(() => {
-    if (!canSupervise) return;
+    if (!viewingTeam) return;
     setLoadingReps(true);
     void loadSalesReps().finally(() => setLoadingReps(false));
-  }, [canSupervise, loadSalesReps]);
+  }, [viewingTeam, loadSalesReps]);
 
   useEffect(() => {
     return onCalendlyRefresh(() => {
-      if (!canSupervise || selectedRepId !== null) {
+      if (viewingOwn || selectedRepId !== null) {
         void sync();
       }
     });
-  }, [sync, canSupervise, selectedRepId]);
+  }, [sync, viewingOwn, selectedRepId]);
 
   useEffect(() => {
-    if (formState && isSalesRep) {
+    if (formState && viewingOwn) {
       void loadEventTypes();
     }
-  }, [formState, isSalesRep, loadEventTypes]);
+  }, [formState, viewingOwn, loadEventTypes]);
+
+  function handleScopeChange(next: SalesToolsScope) {
+    setScope(next);
+    setSelectedRepId(null);
+    setSelectedEvent(null);
+    setFormState(null);
+  }
 
   function handleSelectSede(id: number) {
     setSelectedSedeId(id);
@@ -246,14 +261,13 @@ export function CalendarioPage() {
     return null;
   }
 
-  const viewingOwnCalendar = isSalesRep;
-  const canManageEvents = viewingOwnCalendar && connection?.connected && CALENDLY_WRITE_ENABLED;
-  const showConnectPanel = viewingOwnCalendar && !connection?.connected;
-  const showCalendarArea = connection?.connected && (viewingOwnCalendar || adminViewingRep);
+  const canManageEvents = viewingOwn && connection?.connected && CALENDLY_WRITE_ENABLED;
+  const showConnectPanel = viewingOwn && !connection?.connected;
+  const showCalendarArea = connection?.connected && (viewingOwn || adminViewingRep);
 
   const calendarContent = (
     <>
-      {(loading || (canSupervise && adminViewingRep && !selectedRep)) && (
+      {(loading || (viewingTeam && adminViewingRep && !selectedRep)) && (
         <div className="flex justify-center py-12">
           <LoadingSpinner label={t("calendly.loading")} />
         </div>
@@ -276,7 +290,7 @@ export function CalendarioPage() {
               connection?.connected ? (
                 <CalendlyActionsMenu
                   canCreateEvent={!!canManageEvents}
-                  canOpenSettings={viewingOwnCalendar}
+                  canOpenSettings={viewingOwn}
                   syncing={syncing}
                   loading={loading}
                   align="right"
@@ -298,25 +312,30 @@ export function CalendarioPage() {
     </>
   );
 
+  const headerSupervise = viewingTeam;
   return (
     <>
       <Header
-        title={t(canSupervise ? "calendly.adminHeaderContext" : "calendly.headerContext")}
+        title={t(headerSupervise ? "calendly.adminHeaderContext" : "calendly.headerContext")}
         subtitle={t(
-          canSupervise
+          headerSupervise
             ? isGlobal
               ? "calendly.adminSubtitleSedes"
               : "calendly.adminSubtitle"
             : "calendly.salesSubtitle",
         )}
       />
-      {canSupervise && !adminViewingRep && (loadingReps || (isGlobal && loadingSedes)) ? (
+      {viewingTeam && !adminViewingRep && (loadingReps || (isGlobal && loadingSedes)) ? (
         <PageLoader label={t("calendly.loading")} />
       ) : (
       <PageContent className="space-y-6">
         {error && <div className="alert alert-error">{error}</div>}
 
-        {canSupervise && !adminViewingRep && (
+        {salesLeader ? (
+          <SalesToolsScopeToggle value={scope} onChange={handleScopeChange} />
+        ) : null}
+
+        {viewingTeam && !adminViewingRep && (
           <>
             {isGlobal && selectedSedeId === null ? (
               <SedeBranchList
@@ -351,7 +370,7 @@ export function CalendarioPage() {
           </>
         )}
 
-        {canSupervise && adminViewingRep && selectedRep && (
+        {viewingTeam && adminViewingRep && selectedRep && (
           <div className="space-y-6">
             <div className="card-flat p-4 sm:p-5">
               <button
@@ -384,7 +403,7 @@ export function CalendarioPage() {
           </div>
         )}
 
-        {isSalesRep && <div className="space-y-6">{calendarContent}</div>}
+        {viewingOwn && <div className="space-y-6">{calendarContent}</div>}
       </PageContent>
       )}
 
@@ -437,7 +456,7 @@ export function CalendarioPage() {
         />
       )}
 
-      {settingsOpen && viewingOwnCalendar && (
+      {settingsOpen && viewingOwn && (
         <CalendlySettingsModal
           schedulingUrl={connection?.scheduling_url}
           onClose={() => setSettingsOpen(false)}

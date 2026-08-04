@@ -10,6 +10,10 @@ import { VscArrowLeft } from "react-icons/vsc";
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
+import {
+  SalesToolsScopeToggle,
+  type SalesToolsScope,
+} from "@/components/ui/SalesToolsScopeToggle";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -33,7 +37,7 @@ import type { PaymentLink, PaymentLinkCreatePayload } from "@/features/payments/
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
-import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { canSell, canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
 const PAYMENT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
@@ -48,10 +52,14 @@ export function PagosPage() {
   const [registering, setRegistering] = useState(false);
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  const [scope, setScope] = useState<SalesToolsScope>("own");
 
   const canSupervise = canSuperviseSalesReps(user);
+  const salesLeader = isSalesAreaLeader(user);
+  const canSellTools = canSell(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
+  const viewingTeam = canSupervise && (!canSellTools || scope === "team");
+  const viewingOwn = canSellTools && (!canSupervise || scope === "own");
   const canLinkProspect = hasPermission("prospects:update");
   const canSearchProspects = hasPermission("prospects:read");
 
@@ -71,15 +79,15 @@ export function PagosPage() {
     registerClient,
     isCreating,
   } = usePayments(token, {
-    adminView: canSupervise,
-    salesRepId: canSupervise ? selectedRepId : undefined,
+    adminView: viewingTeam,
+    salesRepId: viewingTeam ? selectedRepId : undefined,
   });
 
   useEffect(() => {
     setPage(1);
   }, [selectedRepId, setPage]);
 
-  const { merchants, loading: merchantsLoading } = useMerchantOptions(token, isSalesRep);
+  const { merchants, loading: merchantsLoading } = useMerchantOptions(token, viewingOwn);
   const { sedes, loading: loadingSedes } = useSedes(
     token,
     isGlobal && hasPermission("sedes:read"),
@@ -88,7 +96,7 @@ export function PagosPage() {
     false,
   );
 
-  const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
+  const { salesReps, loading: loadingReps } = useSalesReps(token, viewingTeam);
 
   useEffect(() => {
     if (!user) return;
@@ -132,7 +140,12 @@ export function PagosPage() {
     ? `${selectedRep.first_name} ${selectedRep.last_name}`
     : t("common.dash");
   const adminLoading = loadingReps || (isGlobal && loadingSedes);
-  const pageLoading = canSupervise ? adminLoading : loading;
+  const pageLoading = viewingTeam ? adminLoading : loading;
+
+  function handleScopeChange(next: SalesToolsScope) {
+    setScope(next);
+    setSelectedRepId(null);
+  }
 
   function handleSelectSede(id: number) {
     setSelectedSedeId(id);
@@ -250,7 +263,7 @@ export function PagosPage() {
     }
   }
 
-  const pageSubtitle = canSupervise
+  const pageSubtitle = viewingTeam
     ? isGlobal
       ? t("payments.adminPageSubtitleSedes")
       : t("payments.adminPageSubtitle")
@@ -348,7 +361,7 @@ export function PagosPage() {
 
   return (
     <>
-      <Header title={t(canSupervise ? "payments.adminHeaderContext" : "payments.headerContext")} subtitle={pageSubtitle} />
+      <Header title={t(viewingTeam ? "payments.adminHeaderContext" : "payments.headerContext")} subtitle={pageSubtitle} />
       {pageLoading ? (
         <PageLoader label={t("common.loading")} />
       ) : (
@@ -357,7 +370,11 @@ export function PagosPage() {
             <p className="text-sm text-red-600">{getUserFacingErrorMessage(error, t("common.error"))}</p>
           ) : null}
 
-          {canSupervise ? (
+          {salesLeader ? (
+            <SalesToolsScopeToggle value={scope} onChange={handleScopeChange} />
+          ) : null}
+
+          {viewingTeam ? (
             renderAdminContent()
           ) : (
             <div className="space-y-6">
@@ -396,7 +413,7 @@ export function PagosPage() {
         </PageContent>
       )}
 
-      {isSalesRep ? (
+      {viewingOwn ? (
         <RegisterClientFromPaymentModal
           link={registerLink}
           merchants={merchants}
@@ -412,7 +429,7 @@ export function PagosPage() {
           token={token}
           title={t("prospects.linkToProspect")}
           emailHint={linkPayment.customer_email}
-          salesRepId={canSupervise ? selectedRepId : null}
+          salesRepId={viewingTeam ? selectedRepId : null}
           onClose={() => setLinkPayment(null)}
           onSelect={handleLinkPaymentToProspect}
         />

@@ -148,7 +148,7 @@ describe("role navigation matrix", () => {
     expect(hrefs).toContain("/pagos");
   });
 
-  it("AREA_LEADER de ventas ve prospectos, calendario, contratos, pagos y vendedores", () => {
+  it("AREA_LEADER de ventas ve prospectos, calendario, contratos, pagos, vendedores y mi equipo", () => {
     const hrefs = visibleInternalHrefs("AREA_LEADER", "VENTAS");
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/clientes");
@@ -157,6 +157,7 @@ describe("role navigation matrix", () => {
     expect(hrefs).toContain("/contratos");
     expect(hrefs).toContain("/pagos");
     expect(hrefs).toContain("/usuarios");
+    expect(hrefs).toContain("/equipo");
     expect(hrefs).not.toContain("/sedes");
     expect(hrefs).not.toContain("/comercios");
 
@@ -164,11 +165,14 @@ describe("role navigation matrix", () => {
       {
         role: { code: "AREA_LEADER" },
         area: { id: 1, code: "VENTAS", name: "Ventas" },
+        can_manage_sub_sellers: false,
       } as User,
       (perm) => hasPermission("AREA_LEADER", perm),
     );
     const usersItem = items.find((item) => item.href === "/usuarios");
     expect(usersItem?.labelKey).toBe("nav.salesReps");
+    const teamItem = items.find((item) => item.href === "/equipo");
+    expect(teamItem?.disabled).toBe(true);
   });
 
   it("AREA_LEADER sin área ventas no ve pantallas comerciales", () => {

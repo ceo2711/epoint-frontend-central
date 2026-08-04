@@ -44,9 +44,9 @@ import {
   canFilterClientsBySalesRep,
   canManageInfluencers,
   canManageSources,
+  canOwnSubSellers,
   canSuperviseSalesReps,
   isGlobalAdmin,
-  isLeadSalesRep,
   isSalesAreaLeader,
 } from "@/lib/roles";
 import type { Paginated, User } from "@/types/api";
@@ -317,6 +317,29 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
         return;
       }
 
+      if (salesLeader) {
+        await Promise.allSettled([
+          prefetchSupervisorShell(ctx, { sedes: isGlobal, salesReps: true }),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.payments.links(1, 10),
+            queryFn: () =>
+              api.get<Paginated<PaymentLink>>("/payments/links?page=1&page_size=10", token),
+            staleTime: PREFETCH_STALE_MS,
+          }),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.payments.config,
+            queryFn: () => api.get<PaymentConfig>("/payments/config", token),
+            staleTime: PREFETCH_STALE_MS,
+          }),
+          queryClient.prefetchQuery({
+            queryKey: queryKeys.merchants.options,
+            queryFn: () => fetchMerchantOptions(token),
+            staleTime: PREFETCH_STALE_MS,
+          }),
+        ]);
+        return;
+      }
+
       // Supervisores: al montar solo el picker (links van por rep).
       if (canSupervise) {
         await prefetchSupervisorShell(ctx, { sedes: isGlobal, salesReps: true });
@@ -346,8 +369,11 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     }
 
     case "/calendario": {
-      if (roleCode === "SALES_REP" || roleCode === "SUB_SELLER") {
+      if (roleCode === "SALES_REP" || roleCode === "SUB_SELLER" || salesLeader) {
         await prefetchCalendlyBundle(ctx, user.id);
+        if (salesLeader) {
+          await prefetchSupervisorShell(ctx, { sedes: isGlobal, salesReps: true });
+        }
         return;
       }
       if (canSupervise) {
@@ -358,6 +384,13 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     }
 
     case "/contratos": {
+      if (salesLeader) {
+        await Promise.allSettled([
+          prefetchDocusignForSalesRep(ctx),
+          prefetchSupervisorShell(ctx, { sedes: isGlobal, salesReps: true }),
+        ]);
+        return;
+      }
       if (canSupervise) {
         await Promise.allSettled([
           queryClient.prefetchQuery({
@@ -376,7 +409,7 @@ async function prefetchRouteData(ctx: PrefetchContext, href: string) {
     }
 
     case "/equipo":
-      if (!isLeadSalesRep(user)) return;
+      if (!canOwnSubSellers(user)) return;
       await queryClient.prefetchQuery({
         queryKey: queryKeys.subSellers.metrics(user.id),
         queryFn: () => fetchSubSellerMetrics(token),

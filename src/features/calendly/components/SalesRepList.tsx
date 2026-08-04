@@ -78,23 +78,34 @@ function SalesRepCard({
 }) {
   const { t } = useTranslation();
   const isSub = variant === "sub" || rep.parent_user_id != null;
+  const inactive = rep.is_active === false;
 
   if (isSub) {
     return (
       <button
         type="button"
         onClick={() => onSelect(rep.id)}
-        className="group flex w-full max-w-[13.5rem] items-center gap-2 rounded-lg border border-slate-200 border-l-[3px] border-l-brand/60 bg-slate-50/90 px-2.5 py-2 text-left transition hover:border-brand/40 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+        className={`group flex w-full max-w-[13.5rem] items-center gap-2 rounded-lg border border-l-[3px] px-2.5 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+          inactive
+            ? "border-amber-200 border-l-amber-500 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-50"
+            : "border-slate-200 border-l-brand/60 bg-slate-50/90 hover:border-brand/40 hover:bg-white hover:shadow-sm"
+        }`}
       >
         {rep.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={rep.avatar_url}
             alt=""
-            className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-brand/15"
+            className={`h-7 w-7 shrink-0 rounded-full object-cover ring-1 ${
+              inactive ? "opacity-70 ring-amber-200" : "ring-brand/15"
+            }`}
           />
         ) : (
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[9px] font-bold text-brand">
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+              inactive ? "bg-amber-100 text-amber-800" : "bg-brand/10 text-brand"
+            }`}
+          >
             {initialsFor(rep)}
           </div>
         )}
@@ -105,9 +116,20 @@ function SalesRepCard({
               {rep.first_name} {rep.last_name}
             </p>
           </div>
-          <span className="mt-0.5 inline-flex rounded-full bg-brand/10 px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide text-brand">
-            {t("calendly.subSellerBadge")}
-          </span>
+          <div className="mt-0.5 flex flex-wrap gap-1">
+            <span
+              className={`inline-flex rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide ${
+                inactive ? "bg-amber-100 text-amber-800" : "bg-brand/10 text-brand"
+              }`}
+            >
+              {t("calendly.subSellerBadge")}
+            </span>
+            {inactive ? (
+              <span className="inline-flex rounded-full bg-amber-200/80 px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide text-amber-900">
+                {t("common.inactive")}
+              </span>
+            ) : null}
+          </div>
           {showConnectionStatus ? (
             <p
               className={`mt-1 truncate text-[10px] font-medium ${
@@ -120,7 +142,9 @@ function SalesRepCard({
         </div>
 
         <VscChevronRight
-          className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:text-brand"
+          className={`h-3.5 w-3.5 shrink-0 transition ${
+            inactive ? "text-amber-300 group-hover:text-amber-600" : "text-slate-300 group-hover:text-brand"
+          }`}
           aria-hidden
         />
       </button>
@@ -131,7 +155,11 @@ function SalesRepCard({
     <button
       type="button"
       onClick={() => onSelect(rep.id)}
-      className="group flex min-h-[12.5rem] w-[18rem] shrink-0 flex-col rounded-2xl border border-cream-600 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      className={`group flex min-h-[12.5rem] w-[18rem] shrink-0 flex-col rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 ${
+        inactive
+          ? "border-amber-300 hover:border-amber-400"
+          : "border-cream-600 hover:border-brand/40"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         {rep.avatar_url ? (
@@ -139,15 +167,23 @@ function SalesRepCard({
           <img
             src={rep.avatar_url}
             alt=""
-            className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-brand/15"
+            className={`h-12 w-12 shrink-0 rounded-full object-cover ring-2 ${
+              inactive ? "opacity-70 ring-amber-200" : "ring-brand/15"
+            }`}
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+              inactive ? "bg-amber-100 text-amber-800" : "bg-brand/10 text-brand"
+            }`}
+          >
             {initialsFor(rep)}
           </div>
         )}
         <VscChevronRight
-          className="h-5 w-5 shrink-0 text-slate-300 transition group-hover:text-brand"
+          className={`h-5 w-5 shrink-0 transition ${
+            inactive ? "text-amber-300 group-hover:text-amber-600" : "text-slate-300 group-hover:text-brand"
+          }`}
           aria-hidden
         />
       </div>
@@ -157,6 +193,11 @@ function SalesRepCard({
           {rep.first_name} {rep.last_name}
         </p>
         <p className="mt-1 truncate text-sm text-slate-500">{rep.email}</p>
+        {inactive ? (
+          <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+            {t("common.inactive")}
+          </span>
+        ) : null}
       </div>
 
       {showConnectionStatus ? (

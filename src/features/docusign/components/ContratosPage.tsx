@@ -9,6 +9,10 @@ import { VscArrowLeft } from "react-icons/vsc";
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner, PageLoader } from "@/components/ui/LoadingSpinner";
+import {
+  SalesToolsScopeToggle,
+  type SalesToolsScope,
+} from "@/components/ui/SalesToolsScopeToggle";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
@@ -31,7 +35,7 @@ import type { Prospect } from "@/features/prospects/types";
 import type { Paginated } from "@/types/api";
 import { api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT } from "@/lib/clientEvents";
-import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { canSell, canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 
 const CONTRACT_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "SALES_REP", "SUB_SELLER", "AREA_LEADER"]);
 
@@ -45,10 +49,14 @@ export function ContratosPage() {
   const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [linkEnvelope, setLinkEnvelope] = useState<DocusignEnvelope | null>(null);
+  const [scope, setScope] = useState<SalesToolsScope>("own");
 
   const canSupervise = canSuperviseSalesReps(user);
+  const salesLeader = isSalesAreaLeader(user);
+  const canSellTools = canSell(user);
   const isGlobal = isGlobalAdmin(user?.role.code);
-  const isSalesRep = user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER";
+  const viewingTeam = canSupervise && (!canSellTools || scope === "team");
+  const viewingOwn = canSellTools && (!canSupervise || scope === "own");
   const canLinkProspect = hasPermission("prospects:update");
 
   const {
@@ -66,8 +74,8 @@ export function ContratosPage() {
     searchClients,
     loadTemplateDetail,
   } = useDocusign(token, {
-    adminView: canSupervise,
-    salesRepId: canSupervise ? selectedRepId : undefined,
+    adminView: viewingTeam,
+    salesRepId: viewingTeam ? selectedRepId : undefined,
     listenRefresh: true,
   });
 
@@ -79,7 +87,7 @@ export function ContratosPage() {
     false,
   );
 
-  const { salesReps, loading: loadingReps } = useSalesReps(token, canSupervise);
+  const { salesReps, loading: loadingReps } = useSalesReps(token, viewingTeam);
 
   const branches = useMemo(
     () =>
@@ -121,9 +129,14 @@ export function ContratosPage() {
   const selectedRep = salesReps.find((rep) => rep.id === selectedRepId);
   const adminLoading = loadingReps || (isGlobal && loadingSedes);
   // No incluir loading de envelopes: eso es carga parcial al elegir vendedor
-  const pageLoading = canSupervise
+  const pageLoading = viewingTeam
     ? adminLoading || (loading && !loadingEnvelopes)
     : loading;
+
+  function handleScopeChange(next: SalesToolsScope) {
+    setScope(next);
+    setSelectedRepId(null);
+  }
 
   function handleSelectSede(id: number) {
     setSelectedSedeId(id);
@@ -253,7 +266,7 @@ export function ContratosPage() {
     }
   }
 
-  const pageSubtitle = canSupervise
+  const pageSubtitle = viewingTeam
     ? isGlobal
       ? t("docusign.adminPageSubtitleSedes")
       : t("docusign.adminPageSubtitle")
@@ -347,7 +360,7 @@ export function ContratosPage() {
 
   return (
     <>
-      <Header title={t(canSupervise ? "docusign.adminHeaderContext" : "docusign.headerContext")} subtitle={pageSubtitle} />
+      <Header title={t(viewingTeam ? "docusign.adminHeaderContext" : "docusign.headerContext")} subtitle={pageSubtitle} />
       {pageLoading ? (
         <PageLoader label={t("common.loading")} />
       ) : (
@@ -358,7 +371,11 @@ export function ContratosPage() {
             </div>
           ) : null}
 
-          {canSupervise ? (
+          {salesLeader ? (
+            <SalesToolsScopeToggle value={scope} onChange={handleScopeChange} />
+          ) : null}
+
+          {viewingTeam ? (
             renderAdminContent()
           ) : !connection?.connected ? (
             <div className="card-flat p-6 text-sm text-slate-600">{t("docusign.notConfigured")}</div>
@@ -389,7 +406,7 @@ export function ContratosPage() {
         </PageContent>
       )}
 
-      {registerEnvelope && isSalesRep ? (
+      {registerEnvelope && viewingOwn ? (
         <RegisterClientFromContractModal
           envelope={registerEnvelope}
           token={token}
@@ -403,7 +420,7 @@ export function ContratosPage() {
           token={token}
           title={t("prospects.linkToProspect")}
           emailHint={linkEnvelope.signer_email}
-          salesRepId={canSupervise ? selectedRepId : null}
+          salesRepId={viewingTeam ? selectedRepId : null}
           onClose={() => setLinkEnvelope(null)}
           onSelect={handleLinkEnvelopeToProspect}
         />

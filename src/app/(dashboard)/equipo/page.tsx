@@ -25,6 +25,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
 import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
 import { queryKeys } from "@/lib/queryKeys";
+import { canOwnSubSellers } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
 
@@ -78,7 +79,7 @@ export default function SubSellersPage() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
-  const canAccess = Boolean(user?.role.code === "SALES_REP" && !user.is_sub_seller);
+  const canAccess = canOwnSubSellers(user);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: queryKeys.subSellers.metrics(user?.id),
@@ -88,7 +89,7 @@ export default function SubSellersPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (user.role.code !== "SALES_REP" || user.is_sub_seller || !user.can_manage_sub_sellers) {
+    if (!canOwnSubSellers(user) || !user.can_manage_sub_sellers) {
       router.replace("/dashboard");
     }
   }, [user, router]);

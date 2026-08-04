@@ -21,7 +21,7 @@ import { EMPTY_PROSPECT_FORM, type ProspectFormData } from "@/features/prospects
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import type { MerchantBrief } from "@/types/api";
 import { api } from "@/lib/api";
-import { canSuperviseSalesReps, isGlobalAdmin } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ProspectCreateModalProps {
@@ -48,11 +48,13 @@ export function ProspectCreateModal({
   const { user, hasPermission } = useAuth();
   const roleCode = user?.role.code;
   const isGlobal = isGlobalAdmin(roleCode);
+  const salesLeader = isSalesAreaLeader(user);
   const needsSalesRep = isGlobal || canSuperviseSalesReps(user);
 
   const [form, setForm] = useState<ProspectFormData>(() => ({
     ...EMPTY_PROSPECT_FORM,
     sede_id: initialSedeId != null ? String(initialSedeId) : "",
+    assigned_to_user_id: salesLeader && user ? String(user.id) : "",
   }));
   const [submitting, setSubmitting] = useState(false);
 
@@ -86,8 +88,9 @@ export function ProspectCreateModal({
   const influencersForRep = useMemo(() => {
     if (!needsSalesRep || !form.assigned_to_user_id) return influencerOptions;
     const repId = Number(form.assigned_to_user_id);
+    if (salesLeader && user && repId === user.id) return influencerOptions;
     return influencerOptions.filter((item) => item.sales_rep_user_id === repId);
-  }, [influencerOptions, needsSalesRep, form.assigned_to_user_id]);
+  }, [influencerOptions, needsSalesRep, form.assigned_to_user_id, salesLeader, user]);
 
   const noSedeInfluencers =
     influencersQueryEnabled && !influencersLoading && influencerOptions.length === 0;
@@ -340,7 +343,12 @@ export function ProspectCreateModal({
                   ? t("prospects.selectSedeFirst")
                   : t("prospects.selectSalesRep")}
               </option>
-              {repsForSede.map((rep) => (
+              {salesLeader && user ? (
+                <option value={user.id}>{t("common.assignToMe")}</option>
+              ) : null}
+              {repsForSede
+                .filter((rep) => !(salesLeader && user && rep.id === user.id))
+                .map((rep) => (
                 <option key={rep.id} value={rep.id}>
                   {rep.first_name} {rep.last_name}
                   {rep.parent_name
