@@ -61,6 +61,7 @@ export function ClientSalesPipelineSection({ pipeline, locale }: ClientSalesPipe
         envelopes={pipeline.docusign_envelopes}
         payment={pipeline.payment_link}
         payments={paymentLinks}
+        history={pipeline.history}
         canManage={false}
         clientView
         contactNote={contactHistory?.note ?? null}

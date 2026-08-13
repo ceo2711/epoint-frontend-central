@@ -6,18 +6,28 @@ import type {
   ProspectStatus,
 } from "@/features/prospects/types";
 
-const MEETING_DONE_STATUSES = new Set<ProspectStatus>([
+/** Estados donde el vendedor ya marcó contacto en el flujo normal. */
+const CONTACT_DONE_STATUSES = new Set<ProspectStatus>([
   "LEAD_CONTACTADO",
   "CONTRATO_ENVIADO",
-  "PAGO_COMPLETADO",
 ]);
+
+export function sellerMarkedContacted(
+  status: ProspectStatus,
+  history?: ProspectHistoryEntry[] | null,
+): boolean {
+  if (CONTACT_DONE_STATUSES.has(status)) return true;
+  // PAGO_COMPLETADO (u otros) solo cuentan si el vendedor pasó por LEAD_CONTACTADO.
+  return Boolean(history?.some((entry) => entry.to_status === "LEAD_CONTACTADO"));
+}
 
 export function isMeetingStepComplete(
   _calendly: ProspectCalendlyBrief | null,
   status: ProspectStatus,
+  history?: ProspectHistoryEntry[] | null,
 ): boolean {
-  // Contactado vale con o sin reunión Calendly (café, Meet, WhatsApp, etc.).
-  return MEETING_DONE_STATUSES.has(status);
+  // Nunca asumir contacto por el pago: lo marca el vendedor.
+  return sellerMarkedContacted(status, history);
 }
 
 export function findContactHistory(
@@ -67,9 +77,10 @@ export function isReadyForClientConversion(
   envelopes: ProspectEnvelopeBrief[],
   payment: ProspectPaymentBrief | null,
   payments: ProspectPaymentBrief[] = [],
+  history?: ProspectHistoryEntry[] | null,
 ): boolean {
   return (
-    isMeetingStepComplete(calendly, status) &&
+    isMeetingStepComplete(calendly, status, history) &&
     isContractStepComplete(envelopes) &&
     isPaymentStepComplete(payment, payments)
   );

@@ -33,7 +33,7 @@ import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectP
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
-import { findContactHistory, isReadyForClientConversion } from "@/features/prospects/utils/pipeline";
+import { findContactHistory, isReadyForClientConversion, sellerMarkedContacted } from "@/features/prospects/utils/pipeline";
 import type { ProspectDetail, ProspectStatus } from "@/features/prospects/types";
 import { api } from "@/lib/api";
 import { fetchCalendlyConnection } from "@/lib/queryFetchers";
@@ -160,6 +160,7 @@ export default function ProspectoDetailPage() {
       prospect.docusign_envelopes,
       prospect.payment_link,
       prospect.payment_links ?? [],
+      prospect.history ?? [],
     );
   }, [prospect]);
 
@@ -622,8 +623,12 @@ export default function ProspectoDetailPage() {
   const canMarkContacted =
     canUpdate &&
     !isConverted &&
-    prospect.status === "PENDIENTE_CONTACTAR" &&
-    allowedStatuses.includes("LEAD_CONTACTADO");
+    (prospect.status === "PENDIENTE_CONTACTAR" ||
+      (prospect.status === "PAGO_COMPLETADO" &&
+        !sellerMarkedContacted(prospect.status, prospect.history ?? []))) &&
+    (prospect.status === "PENDIENTE_CONTACTAR"
+      ? allowedStatuses.includes("LEAD_CONTACTADO")
+      : true);
   const contactHistory = findContactHistory(prospect.history ?? []);
 
   async function handleSaveBasic(e: FormEvent) {
@@ -840,6 +845,7 @@ export default function ProspectoDetailPage() {
             envelopes={prospect.docusign_envelopes}
             payment={prospect.payment_link}
             payments={prospect.payment_links ?? []}
+            history={prospect.history ?? []}
             canManage={canUpdate}
             canMarkContacted={canMarkContacted}
             contactNote={contactHistory?.note ?? null}

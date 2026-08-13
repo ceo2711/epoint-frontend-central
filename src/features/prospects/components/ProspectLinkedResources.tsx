@@ -10,6 +10,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import type {
   ProspectCalendlyBrief,
   ProspectEnvelopeBrief,
+  ProspectHistoryEntry,
   ProspectPaymentBrief,
   ProspectStatus,
 } from "@/features/prospects/types";
@@ -29,6 +30,7 @@ interface ProspectLinkedResourcesProps {
   envelopes: ProspectEnvelopeBrief[];
   payment: ProspectPaymentBrief | null;
   payments?: ProspectPaymentBrief[];
+  history?: ProspectHistoryEntry[] | null;
   canManage: boolean;
   /** Vista de cliente convertido: sin banner de conversión, sin unirse a reunión, copiar link de pago. */
   clientView?: boolean;
@@ -103,6 +105,7 @@ export function ProspectLinkedResources({
   envelopes,
   payment,
   payments = [],
+  history = null,
   canManage,
   clientView = false,
   canMarkContacted = false,
@@ -122,7 +125,7 @@ export function ProspectLinkedResources({
   const latestEnvelope = envelopes[0] ?? null;
   const paymentLinks = payments.length > 0 ? payments : payment ? [payment] : [];
   const displayPayment = pickPreferredPayment(payment, paymentLinks);
-  const meetingComplete = isMeetingStepComplete(calendly, prospectStatus);
+  const meetingComplete = isMeetingStepComplete(calendly, prospectStatus, history);
   const contractComplete = isContractStepComplete(envelopes);
   const paymentComplete = isPaymentStepComplete(displayPayment, paymentLinks);
   const readyForConversion = isReadyForClientConversion(
@@ -131,6 +134,7 @@ export function ProspectLinkedResources({
     envelopes,
     displayPayment,
     paymentLinks,
+    history,
   );
   const showViewContracts =
     envelopes.length > 0 && onViewContracts && (canManage || clientView);
