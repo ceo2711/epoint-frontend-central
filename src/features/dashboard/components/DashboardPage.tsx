@@ -242,7 +242,7 @@ function DashboardPageContent() {
                     className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
                   >
                     <VscArrowLeft className="h-4 w-4" aria-hidden />
-                    {t("users.backToVendors")}
+                    {t("dashboard.backToGeneralPanel")}
                   </button>
                 ) : null}
 

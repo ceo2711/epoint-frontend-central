@@ -100,7 +100,9 @@ export function ProspectExistingPaymentModal({
 
   const candidates = links.filter(
     (link) =>
-      link.customer_email.toLowerCase() === prospectEmail.toLowerCase() && !link.prospect_id,
+      link.customer_email.toLowerCase() === prospectEmail.toLowerCase() &&
+      link.status === "pending" &&
+      !link.prospect_id,
   );
 
   async function handleSubmit() {

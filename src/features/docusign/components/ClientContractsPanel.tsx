@@ -69,6 +69,8 @@ export function ClientContractsPanel({
   const [sendOpen, setSendOpen] = useState(false);
   const syncInFlightRef = useRef(false);
   const lastSyncAtRef = useRef(0);
+  const aliveRef = useRef(true);
+  const clientGoneRef = useRef(false);
 
   const {
     connection,
@@ -81,25 +83,34 @@ export function ClientContractsPanel({
   const canSendContract = !!connection?.connected && templates.length > 0;
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token || !aliveRef.current || clientGoneRef.current) return;
     setLoading(true);
     setError(null);
     try {
       const data = await api.get<DocusignEnvelope[]>(
         `/docusign/clients/${clientId}/envelopes`,
         token,
+        { silentHttpErrors: true },
       );
+      if (!aliveRef.current) return;
       setEnvelopes(data);
     } catch (err) {
+      if (!aliveRef.current) return;
+      if (err instanceof ApiError && err.status === 404) {
+        clientGoneRef.current = true;
+        setEnvelopes([]);
+        setError(null);
+        return;
+      }
       setError(getUserFacingErrorMessage(err, t("docusign.clientContractsError")));
       setEnvelopes([]);
     } finally {
-      setLoading(false);
+      if (aliveRef.current) setLoading(false);
     }
   }, [clientId, token, t]);
 
   const syncAll = useCallback(async (options?: { force?: boolean }) => {
-    if (!token) return;
+    if (!token || !aliveRef.current || clientGoneRef.current) return;
     const now = Date.now();
     if (
       !options?.force &&
@@ -111,22 +122,37 @@ export function ClientContractsPanel({
     syncInFlightRef.current = true;
     setSyncingAll(true);
     try {
-      await api.post<DocusignEnvelope[]>("/docusign/envelopes/sync-pending", {}, token);
+      await api.post<DocusignEnvelope[]>(
+        "/docusign/envelopes/sync-pending",
+        {},
+        token,
+        { silentHttpErrors: true },
+      );
+      if (!aliveRef.current || clientGoneRef.current) return;
       lastSyncAtRef.current = Date.now();
       await load();
     } catch (err) {
+      if (!aliveRef.current || clientGoneRef.current) return;
       onError?.(getUserFacingErrorMessage(err, t("docusign.syncError")));
     } finally {
       syncInFlightRef.current = false;
-      setSyncingAll(false);
+      if (aliveRef.current) setSyncingAll(false);
     }
   }, [token, load, onError, t]);
 
-  const shouldPoll = useMemo(() => hasPendingEnvelopes(envelopes), [envelopes]);
+  const shouldPoll = useMemo(
+    () => !clientGoneRef.current && hasPendingEnvelopes(envelopes),
+    [envelopes],
+  );
 
   useEffect(() => {
+    aliveRef.current = true;
+    clientGoneRef.current = false;
     lastSyncAtRef.current = 0;
     void syncAll();
+    return () => {
+      aliveRef.current = false;
+    };
   }, [clientId, token]);
 
   useEffect(() => {

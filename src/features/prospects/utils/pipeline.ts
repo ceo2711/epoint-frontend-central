@@ -44,7 +44,10 @@ export function findContactHistory(
 }
 
 export function isContractStepComplete(envelopes: ProspectEnvelopeBrief[]): boolean {
-  return envelopes.some((envelope) => envelope.status.toLowerCase() === "completed");
+  return envelopes.some((envelope) => {
+    const status = envelope.status.toLowerCase();
+    return status === "completed" || status === "signed";
+  });
 }
 
 export function isPaymentStepComplete(

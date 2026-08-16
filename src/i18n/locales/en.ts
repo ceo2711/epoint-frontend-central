@@ -588,6 +588,10 @@ export const en: Messages = {
     markContactedTitle: "Client contacted",
     markContactedConfirm:
       "Confirm that you already contacted {name}?\n\nThis action cannot be undone.\nDescribe how you met (cafe, Meet, WhatsApp, phone call, etc.).",
+    markContactedNoMeetingHint:
+      "{name} has no calendar meeting linked. You can link a meeting or describe how you contacted them (cafe, call, WhatsApp, etc.).",
+    markContactedLinkMeeting: "Link meeting",
+    markContactedOtherChannel: "Contacted another way",
     markContactedChannelPlaceholder:
       "E.g. In-person meeting at a cafe / WhatsApp call / Google Meet…",
     markContactedNote: "Client contacted after the meeting",
@@ -596,10 +600,10 @@ export const en: Messages = {
     markContactedBy: "Logged by {name}",
     markContactedPickMeetingTitle: "Choose the completed meeting",
     markContactedPickMeetingHint:
-      "Select a free meeting from your calendar to link it and mark the prospect as contacted.",
+      "Select a free meeting from your calendar to link it and mark the prospect as contacted. If you met outside the calendar, describe how you contacted them.",
     markContactedPickMeetingAction: "Link and mark contacted",
     markContactedNoFreeMeetings:
-      "There are no free meetings on the calendar (all are already linked to a prospect). Schedule or free a meeting and try again.",
+      "There are no free meetings on the calendar. You can still mark the prospect as contacted by describing how you met (cafe, call, WhatsApp, etc.).",
     markContactedConfirmWithMeeting:
       "Confirm that you already contacted {name}?\n\nThis action cannot be undone.",
     scheduleAnotherMeeting: "Schedule another meeting",
@@ -754,6 +758,7 @@ export const en: Messages = {
     leadershipHeaderContext: "your sales team dashboard",
     leadershipTitle: "Team metrics",
     leadershipSubtitle: "Results for every sales rep in your branch this month",
+    backToGeneralPanel: "Back to overview",
     leadershipActiveReps: "Active sales reps",
     leadershipTeamSales: "Team sales",
     leadershipTeamCommission: "Team commission",
@@ -1026,10 +1031,19 @@ export const en: Messages = {
     detailTitle: "User details",
     vendorsHeaderContext: "these are your sales reps",
     vendorsSubtitle: "Select a sales rep to view their sales metrics and commission",
-    vendorsTeamSubtitle: "Choose a sales rep to see their metrics",
+    vendorsTeamSubtitle: "Choose a sales rep to view or edit their account",
     vendorsListTitle: "Sales reps",
-    vendorsListHint: "Tap a sales rep to open their personal dashboard",
+    vendorsListHint: "Tap a sales rep or sub-seller to view their profile",
     backToVendors: "Back to sales reps",
+    vendorPhone: "Phone",
+    vendorParent: "Lead sales rep",
+    vendorLastLogin: "Last login",
+    vendorNeverLogin: "Never signed in",
+    vendorActivate: "Activate",
+    vendorDeactivate: "Deactivate",
+    vendorActivateConfirm: "Reactivate {name}?",
+    vendorDeactivateConfirm: "Deactivate {name}? They won’t be able to sign in.",
+    vendorToggleError: "Could not update the account status",
   },
   merchant: {
     activeWorkspace: "Active merchant",
@@ -1224,7 +1238,7 @@ export const en: Messages = {
       subtitle: "Sale closed",
       headline: "{name} is now your client",
       body:
-        "The prospect paid and became a client. That sale counts toward your commission.",
+        "The prospect paid and is now a client. Your USD 500 commission was recorded.",
       paidLabel: "Payment received",
       commissionLabel: "Your commission",
       footerHint: "Keep going: each conversion adds to your monthly total.",

@@ -19,6 +19,8 @@ interface ProspectCalendlyLinkModalProps {
   /** Flujo al marcar contactado: títulos y CTA distintos. */
   markContactedMode?: boolean;
   onClose: () => void;
+  /** Si no hay reunión (o se reunieron fuera del calendario), continuar con comentario. */
+  onSkipToNote?: () => void;
   onLink: (calendlyEventId: number) => Promise<void>;
 }
 
@@ -37,6 +39,7 @@ export function ProspectCalendlyLinkModal({
   onlyUnlinked = false,
   markContactedMode = false,
   onClose,
+  onSkipToNote,
   onLink,
 }: ProspectCalendlyLinkModalProps) {
   const { t, locale } = useTranslation();
@@ -128,10 +131,15 @@ export function ProspectCalendlyLinkModal({
           ))}
         </div>
       )}
-      <div className="mt-4 flex justify-end gap-2">
+      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
           {t("common.cancel")}
         </Button>
+        {markContactedMode && onSkipToNote ? (
+          <Button type="button" variant="secondary" onClick={onSkipToNote} disabled={submitting}>
+            {t("prospects.markContactedOtherChannel")}
+          </Button>
+        ) : null}
         <Button type="button" onClick={() => void handleSubmit()} disabled={!selectedId || submitting}>
           {submitting ? t("common.loading") : submitLabel}
         </Button>

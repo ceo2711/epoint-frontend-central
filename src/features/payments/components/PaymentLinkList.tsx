@@ -152,7 +152,7 @@ export function PaymentLinkList({
                         onClick={() => onRegisterClient(link)}
                       />
                     ) : null}
-                    {!link.prospect_id && onLinkProspect ? (
+                    {!link.prospect_id && link.status === "pending" && onLinkProspect ? (
                       <IconActionButton
                         label={t("prospects.linkToProspect")}
                         icon={<HiOutlineLink />}

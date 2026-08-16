@@ -219,8 +219,11 @@ async function uploadRequest<T>(
 }
 
 export const api = {
-  get: <T>(path: string, token?: string | null) =>
-    request<T>(path, { method: "GET", token }),
+  get: <T>(
+    path: string,
+    token?: string | null,
+    options?: Pick<RequestOptions, "silentHttpErrors" | "skipAuthRefresh">,
+  ) => request<T>(path, { method: "GET", token, ...options }),
 
   getBlob: (path: string, token?: string | null) =>
     requestBlob(path, { token }),

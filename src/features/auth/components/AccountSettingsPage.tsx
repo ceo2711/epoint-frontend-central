@@ -222,6 +222,12 @@ export function AccountSettingsPage() {
                     <p className="input-label">{t("common.role")}</p>
                     <p className="text-sm font-medium text-slate-900">{user.role.name}</p>
                   </div>
+                  {user.sede?.name ? (
+                    <div>
+                      <p className="input-label">{t("users.sede")}</p>
+                      <p className="text-sm font-medium text-slate-900">{user.sede.name}</p>
+                    </div>
+                  ) : null}
                   <Button type="submit" disabled={profileBusy}>
                     {profileBusy ? t("account.profileSaving") : t("account.profileSave")}
                   </Button>
@@ -254,6 +260,14 @@ export function AccountSettingsPage() {
                       </dt>
                       <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
                     </div>
+                    {user.sede?.name ? (
+                      <div>
+                        <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {t("users.sede")}
+                        </dt>
+                        <dd className="mt-1 text-sm font-medium text-slate-900">{user.sede.name}</dd>
+                      </div>
+                    ) : null}
                   </dl>
                 </>
               )}

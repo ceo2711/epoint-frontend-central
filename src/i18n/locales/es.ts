@@ -587,6 +587,10 @@ export const es = {
     markContactedTitle: "Cliente contactado",
     markContactedConfirm:
       "¿Confirmás que ya contactaste a {name}?\n\nEsta acción no tiene vuelta atrás.\nIndicá por qué medio se reunieron (café, Meet, WhatsApp, llamada, etc.).",
+    markContactedNoMeetingHint:
+      "{name} no tiene una reunión del calendario vinculada. Podés vincular una reunión o indicar cómo se contactaron (café, llamada, WhatsApp, etc.).",
+    markContactedLinkMeeting: "Vincular reunión",
+    markContactedOtherChannel: "Contacté por otro medio",
     markContactedChannelPlaceholder:
       "Ej.: Reunión presencial en un café / Llamada de WhatsApp / Google Meet…",
     markContactedNote: "Cliente contactado tras la reunión",
@@ -595,10 +599,10 @@ export const es = {
     markContactedBy: "Registrado por {name}",
     markContactedPickMeetingTitle: "Elegí la reunión concretada",
     markContactedPickMeetingHint:
-      "Seleccioná una reunión libre de tu calendario para vincularla y marcar al prospecto como contactado.",
+      "Seleccioná una reunión libre de tu calendario para vincularla y marcar al prospecto como contactado. Si se reunieron fuera del calendario, indicá el medio de contacto.",
     markContactedPickMeetingAction: "Vincular y marcar contactado",
     markContactedNoFreeMeetings:
-      "No hay reuniones libres en el calendario (todas ya tienen un prospecto vinculado). Agendá o liberá una reunión e intentá de nuevo.",
+      "No hay reuniones libres en el calendario. Podés marcar contactado indicando cómo se reunieron (café, llamada, WhatsApp, etc.).",
     markContactedConfirmWithMeeting:
       "¿Confirmás que ya contactaste a {name}?\n\nEsta acción no tiene vuelta atrás.",
     scheduleAnotherMeeting: "Agendar otra reunión",
@@ -753,6 +757,7 @@ export const es = {
     leadershipHeaderContext: "panel de tu equipo de ventas",
     leadershipTitle: "Métricas del equipo",
     leadershipSubtitle: "Resultados de todos los vendedores de tu sucursal este mes",
+    backToGeneralPanel: "Volver a panel general",
     leadershipActiveReps: "Vendedores activos",
     leadershipTeamSales: "Ventas del equipo",
     leadershipTeamCommission: "Comisión del equipo",
@@ -1025,10 +1030,19 @@ export const es = {
     detailTitle: "Detalle del usuario",
     vendorsHeaderContext: "estos son tus vendedores",
     vendorsSubtitle: "Seleccioná un vendedor para ver sus métricas de ventas y comisión",
-    vendorsTeamSubtitle: "Elegí un vendedor para ver sus métricas",
+    vendorsTeamSubtitle: "Elegí un vendedor para ver o editar su cuenta",
     vendorsListTitle: "Vendedores",
-    vendorsListHint: "Tocá un vendedor para ver su panel personal",
+    vendorsListHint: "Tocá un vendedor o subvendedor para ver sus datos",
     backToVendors: "Volver a vendedores",
+    vendorPhone: "Teléfono",
+    vendorParent: "Vendedor titular",
+    vendorLastLogin: "Último ingreso",
+    vendorNeverLogin: "Nunca ingresó",
+    vendorActivate: "Activar",
+    vendorDeactivate: "Desactivar",
+    vendorActivateConfirm: "¿Reactivás a {name}?",
+    vendorDeactivateConfirm: "¿Desactivás a {name}? No podrá iniciar sesión.",
+    vendorToggleError: "No se pudo actualizar el estado",
   },
   merchant: {
     activeWorkspace: "Comercio activo",
@@ -1224,7 +1238,7 @@ export const es = {
       subtitle: "Venta concretada",
       headline: "{name} ya es tu cliente",
       body:
-        "El prospecto pagó y pasó a cliente. Esa venta queda registrada para tu comisión.",
+        "El prospecto pagó y ya es cliente. Tu comisión de USD 500 quedó registrada.",
       paidLabel: "Pago recibido",
       commissionLabel: "Tu comisión",
       footerHint: "Seguí así: cada conversión suma a tu acumulado del mes.",

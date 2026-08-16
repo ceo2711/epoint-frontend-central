@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { VscArrowLeft } from "react-icons/vsc";
 
@@ -9,14 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { PageContent } from "@/components/ui/Card";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
-import { useMerchant } from "@/contexts/MerchantContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { SalesRepList } from "@/features/calendly/components/SalesRepList";
 import { useSalesReps } from "@/features/calendly/hooks/useSalesReps";
 import type { CalendlySalesRep } from "@/features/calendly/types";
-import { AreaMetricsPanel } from "@/features/dashboard/components/DashboardPanels";
-import { useDashboardMetrics } from "@/features/dashboard/hooks/useDashboardMetrics";
 import { ReassignSubSellerModal } from "@/features/users/components/ReassignSubSellerModal";
 import { api } from "@/lib/api";
 import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
@@ -49,15 +46,14 @@ function salesRepToUserStub(rep: CalendlySalesRep): User {
 export function SalesLeaderVendorsPage() {
   const queryClient = useQueryClient();
   const modal = useModal();
-  const { token, user, hasPermission } = useAuth();
-  const { activeMerchantId } = useMerchant();
-  const { t } = useTranslation();
+  const { token } = useAuth();
+  const { t, locale } = useTranslation();
   const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<User | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [reassigning, setReassigning] = useState<CalendlySalesRep | null>(null);
   const [toggling, setToggling] = useState(false);
-
-  const canViewMetrics = hasPermission("clients:read");
-  const roleCode = user?.role.code ?? null;
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const { salesReps, loading: loadingReps, reload: reloadReps } = useSalesReps(token, !!token);
 
@@ -66,31 +62,53 @@ export function SalesLeaderVendorsPage() {
     [salesReps, selectedRepId],
   );
 
-  const {
-    metrics: repMetrics,
-    loading: loadingRep,
-    error: repError,
-  } = useDashboardMetrics(
-    token,
-    canViewMetrics && selectedRepId != null,
-    activeMerchantId,
-    roleCode,
-    null,
-    selectedRepId,
-  );
+  useEffect(() => {
+    if (!token || selectedRepId == null) {
+      setDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetail(true);
+    setDetailError(null);
+    void api
+      .get<User>(`/users/${selectedRepId}`, token)
+      .then((user) => {
+        if (!cancelled) setDetail(user);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setDetailError(getUserFacingErrorMessage(err, t("users.loadError")));
+          setDetail(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetail(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, selectedRepId, t]);
 
-  const repSalesArea = repMetrics?.areas.find((area) => area.code === "VENTAS") ?? null;
-  const selectedIsSub = Boolean(selectedRep?.parent_user_id);
-  const selectedInactive = selectedRep?.is_active === false;
+  const selectedName = selectedRep
+    ? `${selectedRep.first_name} ${selectedRep.last_name}`.trim()
+    : detail
+      ? `${detail.first_name} ${detail.last_name}`.trim()
+      : "";
+  const selectedIsSub = Boolean(detail?.parent_user_id ?? selectedRep?.parent_user_id);
+  const selectedInactive = detail ? !detail.is_active : selectedRep?.is_active === false;
+  const parentName = detail?.parent
+    ? `${detail.parent.first_name} ${detail.parent.last_name}`.trim()
+    : selectedRep?.parent_name ?? "";
 
   async function handleToggleActive() {
-    if (!token || !selectedRep || !selectedIsSub) return;
+    if (!token || selectedRepId == null) return;
     const next = selectedInactive;
-    const name = `${selectedRep.first_name} ${selectedRep.last_name}`.trim();
     const confirmed = await modal.confirm({
-      title: t(next ? "subSellers.activateTitle" : "subSellers.deactivateTitle"),
-      message: t(next ? "subSellers.activateConfirm" : "subSellers.deactivateConfirm", { name }),
-      confirmLabel: t(next ? "subSellers.reactivateAccount" : "subSellers.deactivate"),
+      title: t(next ? "users.vendorActivate" : "users.vendorDeactivate"),
+      message: t(next ? "users.vendorActivateConfirm" : "users.vendorDeactivateConfirm", {
+        name: selectedName,
+      }),
+      confirmLabel: t(next ? "users.vendorActivate" : "users.vendorDeactivate"),
       cancelLabel: t("common.cancel"),
       variant: next ? "primary" : "danger",
     });
@@ -98,15 +116,19 @@ export function SalesLeaderVendorsPage() {
 
     setToggling(true);
     try {
-      await api.patch(`/sub-sellers/${selectedRep.id}`, { is_active: next }, token, {
-        silentHttpErrors: true,
-      });
+      const updated = await api.patch<User>(
+        `/users/${selectedRepId}/active`,
+        { is_active: next },
+        token,
+        { silentHttpErrors: true },
+      );
+      setDetail(updated);
       await invalidateStaffDirectoryCaches(queryClient);
       await reloadReps();
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
-        message: getUserFacingErrorMessage(err, t("subSellers.loadError")),
+        message: getUserFacingErrorMessage(err, t("users.vendorToggleError")),
         variant: "error",
       });
     } finally {
@@ -114,75 +136,94 @@ export function SalesLeaderVendorsPage() {
     }
   }
 
-  if (selectedRepId != null && selectedRep) {
+  if (selectedRepId != null && (selectedRep || detail)) {
+    const lastLogin = detail?.last_login_at
+      ? new Date(detail.last_login_at).toLocaleString(locale === "en" ? "en-US" : "es")
+      : t("users.vendorNeverLogin");
+
     return (
       <>
-        <Header
-          title={t("users.vendorsHeaderContext")}
-          subtitle={`${selectedRep.first_name} ${selectedRep.last_name}`}
-        />
+        <Header title={t("users.vendorsHeaderContext")} subtitle={selectedName} />
         <PageContent>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => setSelectedRepId(null)}
+              onClick={() => {
+                setSelectedRepId(null);
+                setDetail(null);
+              }}
               className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-dark"
             >
               <VscArrowLeft className="h-4 w-4" aria-hidden />
               {t("users.backToVendors")}
             </button>
-            {selectedIsSub && token ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedInactive ? (
-                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                    {t("common.inactive")}
-                  </span>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={selectedInactive ? "primary" : "secondary"}
-                  disabled={toggling}
-                  onClick={() => void handleToggleActive()}
-                >
-                  {toggling
-                    ? t("common.saving")
-                    : t(selectedInactive ? "subSellers.reactivateAccount" : "subSellers.deactivate")}
-                </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedInactive ? (
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                  {t("common.inactive")}
+                </span>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant={selectedInactive ? "primary" : "secondary"}
+                disabled={toggling}
+                onClick={() => void handleToggleActive()}
+              >
+                {toggling
+                  ? t("common.saving")
+                  : t(selectedInactive ? "users.vendorActivate" : "users.vendorDeactivate")}
+              </Button>
+              {selectedIsSub && token ? (
                 <Button
                   type="button"
                   size="sm"
                   variant="secondary"
-                  onClick={() => setReassigning(selectedRep)}
+                  onClick={() => selectedRep && setReassigning(selectedRep)}
                 >
                   {t("subSellers.reassignAction")}
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
 
-          {selectedIsSub && selectedInactive ? (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              {t("subSellers.statusInactiveNeedsReactivate")}
-            </div>
-          ) : null}
-
-          {loadingRep ? (
+          {detailError ? <div className="alert alert-error">{detailError}</div> : null}
+          {loadingDetail && !detail ? (
             <div className="flex justify-center py-16">
               <LoadingSpinner />
             </div>
-          ) : null}
-
-          {repError ? <div className="alert alert-error">{t("dashboard.statsError")}</div> : null}
-
-          {!loadingRep && !repError && repMetrics && repSalesArea ? (
-            <AreaMetricsPanel
-              area={repSalesArea}
-              metrics={repMetrics}
-              onBack={() => setSelectedRepId(null)}
-              showBack={false}
-            />
-          ) : null}
+          ) : (
+            <div className="card-flat space-y-3 p-5">
+              <p className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">{t("common.email")}: </span>
+                {detail?.email ?? selectedRep?.email}
+              </p>
+              <p className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">{t("users.vendorPhone")}: </span>
+                {detail?.phone || t("common.dash")}
+              </p>
+              <p className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">{t("common.role")}: </span>
+                {detail?.role.name || (selectedIsSub ? t("subSellers.subSeller") : t("common.dash"))}
+              </p>
+              {detail?.sede?.name ? (
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">{t("users.sede")}: </span>
+                  {detail.sede.name}
+                </p>
+              ) : null}
+              {selectedIsSub ? (
+                <p className="text-sm text-slate-600">
+                  <span className="font-semibold text-slate-900">{t("users.vendorParent")}: </span>
+                  {parentName || t("common.dash")}
+                </p>
+              ) : null}
+              <p className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">{t("users.vendorLastLogin")}: </span>
+                {lastLogin}
+              </p>
+            </div>
+          )}
         </PageContent>
 
         {reassigning && token ? (

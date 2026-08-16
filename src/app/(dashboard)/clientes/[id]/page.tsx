@@ -130,6 +130,7 @@ function ClienteDetailPageContent() {
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
+  const [removing, setRemoving] = useState(false);
   const loadInFlight = useRef(false);
   const deletedRef = useRef(false);
   const { merchants, loading: merchantsLoading } = useMerchantOptions(
@@ -225,6 +226,7 @@ function ClienteDetailPageContent() {
       const detail = (event as CustomEvent<ClientsRefreshDetail>).detail;
       if (detail?.deleted && detail.clientId === id) {
         deletedRef.current = true;
+        setRemoving(true);
         router.push(clientsHref);
         return;
       }
@@ -365,11 +367,13 @@ function ClienteDetailPageContent() {
   async function handleDelete() {
     if (!client) return;
     deletedRef.current = true;
+    setRemoving(true);
     const ok = await deleteClient(client.id, clientName);
     if (ok) {
       router.push(clientsHref);
     } else {
       deletedRef.current = false;
+      setRemoving(false);
     }
   }
 
@@ -536,7 +540,7 @@ function ClienteDetailPageContent() {
           </Card>
         ) : null}
 
-        {showApprovedWorkspace && (
+        {showApprovedWorkspace && !removing && (
           <Card className="p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
               {t("docusign.clientContractsTitle")}

@@ -22,8 +22,9 @@ import { SendContractModal } from "@/features/docusign/components/SendContractMo
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
+import type { PaymentLink } from "@/features/payments/types";
 import { PAYMENT_COMPLETED_EVENT, type PaymentCompletedDetail } from "@/features/payments/payment-events";
-import { usePayments } from "@/features/payments/hooks/usePayments";
+import { usePayments, fetchLinkablePaymentLinks } from "@/features/payments/hooks/usePayments";
 import { ProspectCalendlyLinkModal } from "@/features/prospects/components/ProspectCalendlyLinkModal";
 import { ProspectContractsModal } from "@/features/prospects/components/ProspectContractsModal";
 import { ProspectExistingPaymentModal } from "@/features/prospects/components/ProspectExistingResourceModals";
@@ -32,11 +33,10 @@ import { ProspectLinkedResources } from "@/features/prospects/components/Prospec
 import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectPaymentsModal";
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
-import { getAllowedNextStatuses, getManualStatusOptions } from "@/features/prospects/utils/transitions";
+import { getAllowedNextStatuses } from "@/features/prospects/utils/transitions";
 import { findContactHistory, isReadyForClientConversion, sellerMarkedContacted } from "@/features/prospects/utils/pipeline";
-import type { ProspectDetail, ProspectStatus } from "@/features/prospects/types";
+import type { ProspectDetail } from "@/features/prospects/types";
 import { api } from "@/lib/api";
-import { fetchCalendlyConnection } from "@/lib/queryFetchers";
 
 const PENDING_CONTRACT_SYNC_MS = 15_000;
 const PIPELINE_POLL_MS = 10_000;
@@ -79,7 +79,7 @@ export default function ProspectoDetailPage() {
   const id = typeof rawId === "string" ? Number(rawId) : NaN;
   const idValid = Number.isFinite(id) && id > 0;
 
-  const { token, hasPermission, user } = useAuth();
+  const { token, hasPermission } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
   const { prospect, loading, reload } = useProspectDetail(token, idValid ? id : 0);
@@ -90,18 +90,17 @@ export default function ProspectoDetailPage() {
   }>({ hydrated: false, ready: false, convertedId: null });
   const conversionModalKeyRef = useRef<string | null>(null);
 
-  const [statusTarget, setStatusTarget] = useState<ProspectStatus | "">("");
-  const [statusNote, setStatusNote] = useState("");
-  const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [calendlyOpen, setCalendlyOpen] = useState(false);
   const [calendlyMarkContactedOpen, setCalendlyMarkContactedOpen] = useState(false);
+  const [markChoiceOpen, setMarkChoiceOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentsListOpen, setPaymentsListOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
+  const [linkablePayments, setLinkablePayments] = useState<PaymentLink[]>([]);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<ProspectEditForm | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -110,9 +109,6 @@ export default function ProspectoDetailPage() {
   const isConverted = !!prospect?.converted_client_id;
   const canEditBasic = canUpdate && !isConverted;
   const allowedStatuses = prospect ? getAllowedNextStatuses(prospect.status) : [];
-  const manualStatuses = prospect
-    ? getManualStatusOptions(user?.role.code, prospect.status)
-    : [];
 
   useEffect(() => {
     if (prospect && !editing) {
@@ -130,7 +126,7 @@ export default function ProspectoDetailPage() {
     downloadSentDocument,
   } = useDocusign(token, { loadEnvelopes: false, listenRefresh: false });
 
-  const { config, links, createLink, isCreating } = usePayments(token);
+  const { config, createLink, isCreating } = usePayments(token);
 
   const hasPendingContracts = useMemo(() => {
     if (!prospect?.docusign_envelopes.length) return false;
@@ -298,30 +294,6 @@ export default function ProspectoDetailPage() {
     }
   }, [prospect, pipelineComplete, modal, t, router]);
 
-  async function handleStatusUpdate(e: FormEvent) {
-    e.preventDefault();
-    if (!token || !prospect || !statusTarget || !canUpdate) return;
-    setStatusSubmitting(true);
-    try {
-      await api.post(
-        `/prospects/${prospect.id}/status`,
-        { status: statusTarget, note: statusNote.trim() || undefined },
-        token,
-      );
-      setStatusTarget("");
-      setStatusNote("");
-      await reload({ silent: true });
-    } catch (err) {
-      await modal.alert({
-        title: t("common.error"),
-        message: getUserFacingErrorMessage(err, t("prospects.statusUpdateError")),
-        variant: "error",
-      });
-    } finally {
-      setStatusSubmitting(false);
-    }
-  }
-
   async function handleAddNote(e: FormEvent) {
     e.preventDefault();
     if (!token || !prospect || !noteText.trim() || !canUpdate) return;
@@ -371,21 +343,18 @@ export default function ProspectoDetailPage() {
       return;
     }
 
-    // Sin reunión: si el vendedor tiene Calendly, elegir una reunión libre.
-    const salesRepId = prospect.assigned_to_user_id;
-    if (salesRepId) {
-      try {
-        const connection = await fetchCalendlyConnection(token, salesRepId);
-        if (connection.connected) {
-          setCalendlyMarkContactedOpen(true);
-          return;
-        }
-      } catch {
-        // Si falla la consulta, caemos al comentario manual.
-      }
+    // Sin reunión: elegir vincular una del calendario o marcar con comentario.
+    if (prospect.assigned_to_user_id) {
+      setMarkChoiceOpen(true);
+      return;
     }
+    await startManualContactNote();
+  }
 
-    // Sin Calendly: pedir medio de contacto.
+  async function startManualContactNote() {
+    if (!token || !prospect || !canUpdate) return;
+    setMarkChoiceOpen(false);
+    setCalendlyMarkContactedOpen(false);
     const note = await modal.prompt({
       title: t("prospects.markContactedTitle"),
       label: t("prospects.markContactedConfirm", { name: prospect.full_name }),
@@ -513,6 +482,17 @@ export default function ProspectoDetailPage() {
       message: t("prospects.linkPaymentSuccessMessage"),
       variant: "success",
     });
+  }
+
+  async function openPaymentPicker() {
+    if (!token || !prospect) return;
+    try {
+      const items = await fetchLinkablePaymentLinks(token, prospect.email);
+      setLinkablePayments(items);
+    } catch {
+      setLinkablePayments([]);
+    }
+    setPaymentPickerOpen(true);
   }
 
   async function handleViewSigned(envelopeId: number) {
@@ -863,54 +843,8 @@ export default function ProspectoDetailPage() {
                 : undefined
             }
             onCreatePayment={showPaymentAction ? () => void handleCreatePaymentClick() : undefined}
-            onLinkPayment={() => setPaymentPickerOpen(true)}
+            onLinkPayment={() => void openPaymentPicker()}
           />
-        ) : null}
-
-        {canUpdate && !isConverted && manualStatuses.length > 0 ? (
-          <Card className="p-4 sm:p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">
-              {(user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER")
-                ? t("prospects.closeProspect")
-                : t("prospects.updateStatus")}
-            </h2>
-            {(user?.role.code === "SALES_REP" || user?.role.code === "SUB_SELLER") ? (
-              <p className="mb-3 text-sm text-slate-500">{t("prospects.salesRepStatusHint")}</p>
-            ) : null}
-            <form onSubmit={(e) => void handleStatusUpdate(e)} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-slate-700">
-                  {t("prospects.newStatus")}
-                  <select
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    value={statusTarget}
-                    onChange={(e) => setStatusTarget(e.target.value as ProspectStatus)}
-                    required
-                  >
-                    <option value="">{t("prospects.selectStatus")}</option>
-                    {manualStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {t(`prospects.status.${status}` as never)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
-                  {t("prospects.statusNote")}
-                  <textarea
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                    rows={2}
-                    value={statusNote}
-                    onChange={(e) => setStatusNote(e.target.value)}
-                    placeholder={t("prospects.statusNotePlaceholder")}
-                  />
-                </label>
-              </div>
-              <Button type="submit" size="sm" disabled={!statusTarget || statusSubmitting}>
-                {statusSubmitting ? t("common.loading") : t("prospects.updateStatusAction")}
-              </Button>
-            </form>
-          </Card>
         ) : null}
 
         {canUpdate && !isConverted ? (
@@ -953,6 +887,38 @@ export default function ProspectoDetailPage() {
         />
       ) : null}
 
+      {markChoiceOpen ? (
+        <Modal
+          title={t("prospects.markContactedTitle")}
+          onClose={() => setMarkChoiceOpen(false)}
+        >
+          <p className="text-sm text-slate-600">
+            {t("prospects.markContactedNoMeetingHint", { name: prospect.full_name })}
+          </p>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setMarkChoiceOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void startManualContactNote()}
+            >
+              {t("prospects.markContactedOtherChannel")}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setMarkChoiceOpen(false);
+                setCalendlyMarkContactedOpen(true);
+              }}
+            >
+              {t("prospects.markContactedLinkMeeting")}
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
+
       {calendlyMarkContactedOpen && prospect.assigned_to_user_id ? (
         <ProspectCalendlyLinkModal
           token={token}
@@ -960,6 +926,7 @@ export default function ProspectoDetailPage() {
           onlyUnlinked
           markContactedMode
           onClose={() => setCalendlyMarkContactedOpen(false)}
+          onSkipToNote={() => void startManualContactNote()}
           onLink={handleLinkCalendlyAndMarkContacted}
         />
       ) : null}
@@ -1034,7 +1001,7 @@ export default function ProspectoDetailPage() {
 
       {paymentPickerOpen ? (
         <ProspectExistingPaymentModal
-          links={links}
+          links={linkablePayments}
           prospectEmail={prospect.email}
           onClose={() => setPaymentPickerOpen(false)}
           onLink={handleLinkPayment}
