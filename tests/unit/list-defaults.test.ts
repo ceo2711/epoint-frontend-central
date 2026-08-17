@@ -50,6 +50,14 @@ describe("defaultClientsListParams", () => {
     expect(defaultClientsListParams(user, 10).enabled).toBe(false);
   });
 
+    it("ADVISOR no usa el listado de cola de onboarding", () => {
+    const user = makeUser({
+      role: { id: 6, code: "ADVISOR", name: "Asesor", permissions: [] },
+      area: { id: 3, code: "ASESORES", name: "Asesores" },
+    } as Partial<User>);
+    expect(defaultClientsListParams(user, 10).onboardingOnly).toBe(false);
+  });
+
   it("la key del prefetch coincide con la que arma la vista", () => {
     const params = defaultClientsListParams(makeUser(), 10);
     const prefetchKey = queryKeys.clients.list(

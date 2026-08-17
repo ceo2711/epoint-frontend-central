@@ -17,6 +17,7 @@ interface DocumentViewerModalProps {
   title?: string;
   loading?: boolean;
   pdfSource?: PdfContentSource;
+  onDownload?: () => void;
   onClose: () => void;
 }
 
@@ -27,6 +28,7 @@ export function DocumentViewerModal({
   title,
   loading = false,
   pdfSource,
+  onDownload,
   onClose,
 }: DocumentViewerModalProps) {
   const { t } = useTranslation();
@@ -62,22 +64,23 @@ export function DocumentViewerModal({
             {isPdf && !pdfSource && (
               <div className="flex h-[50vh] flex-col items-center justify-center gap-3 p-8 text-center">
                 <p className="text-sm text-slate-600">{t("portalDocs.pdfLoadError")}</p>
-                <a href={url} download={filename} className="btn btn-primary btn-sm">
-                  {t("portalDocs.downloadDocument")}
-                </a>
               </div>
             )}
             {!isImage && !isPdf && (
               <div className="flex flex-col items-center gap-4 p-10 text-center">
                 <p className="text-sm text-slate-600">{filename}</p>
-                <a href={url} download={filename} className="btn btn-primary btn-sm">
-                  {t("portalDocs.downloadDocument")}
-                </a>
               </div>
             )}
           </>
         )}
       </div>
+      {onDownload ? (
+        <div className="mt-4 flex justify-end">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onDownload}>
+            {t("portalDocs.downloadDocument")}
+          </button>
+        </div>
+      ) : null}
     </Modal>
   );
 }

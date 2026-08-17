@@ -26,6 +26,7 @@ interface DocumentRequirementsPanelProps {
   t: (key: string) => string;
   onUpload: (docType: string, file: File) => void;
   variant?: "portal" | "staff";
+  canUpload?: boolean;
   onViewDocument?: (doc: DocumentBrief) => void;
   onDownloadDocument?: (doc: DocumentBrief) => void;
   formatDate?: (value: string | null) => string;
@@ -59,6 +60,7 @@ function DocumentUploadRow({
   uploading,
   t,
   variant,
+  canUpload,
   onUpload,
   onViewDocument,
   onDownloadDocument,
@@ -70,6 +72,7 @@ function DocumentUploadRow({
   uploading: string | null;
   t: (key: string) => string;
   variant: "portal" | "staff";
+  canUpload: boolean;
   onUpload: (docType: string, file: File) => void;
   onViewDocument?: (doc: DocumentBrief) => void;
   onDownloadDocument?: (doc: DocumentBrief) => void;
@@ -143,26 +146,28 @@ function DocumentUploadRow({
             )}
           </div>
         </div>
-        <label className="block w-full md:w-auto md:justify-self-end">
-          <span
-            className={`btn btn-primary btn-sm w-full md:inline-flex md:w-auto md:whitespace-nowrap ${
-              uploading ? "pointer-events-none opacity-60" : ""
-            }`}
-          >
-            {uploading === slot.type ? t("common.uploading") : uploadLabel}
-          </span>
-          <input
-            type="file"
-            accept="image/*,.pdf,application/pdf"
-            className="hidden"
-            disabled={!!uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onUpload(slot.type, file);
-              e.target.value = "";
-            }}
-          />
-        </label>
+        {canUpload ? (
+          <label className="block w-full md:w-auto md:justify-self-end">
+            <span
+              className={`btn btn-primary btn-sm w-full md:inline-flex md:w-auto md:whitespace-nowrap ${
+                uploading ? "pointer-events-none opacity-60" : ""
+              }`}
+            >
+              {uploading === slot.type ? t("common.uploading") : uploadLabel}
+            </span>
+            <input
+              type="file"
+              accept="image/*,.pdf,application/pdf"
+              className="hidden"
+              disabled={!!uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onUpload(slot.type, file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        ) : null}
       </div>
     </Wrapper>
   );
@@ -177,6 +182,7 @@ function SelectableDocumentSection({
   uploading,
   t,
   variant,
+  canUpload,
   onUpload,
   onViewDocument,
   onDownloadDocument,
@@ -191,6 +197,7 @@ function SelectableDocumentSection({
   uploading: string | null;
   t: (key: string) => string;
   variant: "portal" | "staff";
+  canUpload: boolean;
   onUpload: (docType: string, file: File) => void;
   onViewDocument?: (doc: DocumentBrief) => void;
   onDownloadDocument?: (doc: DocumentBrief) => void;
@@ -230,6 +237,7 @@ function SelectableDocumentSection({
             uploading={uploading}
             t={t}
             variant={variant}
+            canUpload={canUpload}
             onUpload={onUpload}
             onViewDocument={onViewDocument}
             onDownloadDocument={onDownloadDocument}
@@ -264,6 +272,7 @@ export function DocumentRequirementsPanel({
   t,
   onUpload,
   variant = "portal",
+  canUpload = true,
   onViewDocument,
   onDownloadDocument,
   formatDate,
@@ -288,6 +297,7 @@ export function DocumentRequirementsPanel({
               uploading={uploading}
               t={t}
               variant={variant}
+              canUpload={canUpload}
               onUpload={onUpload}
               onViewDocument={onViewDocument}
               onDownloadDocument={onDownloadDocument}
@@ -306,6 +316,7 @@ export function DocumentRequirementsPanel({
         uploading={uploading}
         t={t}
         variant={variant}
+        canUpload={canUpload}
         onUpload={onUpload}
         onViewDocument={onViewDocument}
         onDownloadDocument={onDownloadDocument}
@@ -322,6 +333,7 @@ export function DocumentRequirementsPanel({
         uploading={uploading}
         t={t}
         variant={variant}
+        canUpload={canUpload}
         onUpload={onUpload}
         onViewDocument={onViewDocument}
         onDownloadDocument={onDownloadDocument}

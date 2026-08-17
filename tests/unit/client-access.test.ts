@@ -5,7 +5,8 @@ import {
   canViewApprovedClientWorkspace,
   canViewClientOnboardingWorkspace,
 } from "@/features/clients/client-access";
-import type { AreaBrief, RoleBrief } from "@/types/api";
+import { canDownloadClientDocuments, canUploadClientDocuments } from "@/lib/roles";
+import type { AreaBrief, RoleBrief, User } from "@/types/api";
 
 function role(code: string): RoleBrief {
   return { id: 1, code, name: code };
@@ -63,12 +64,46 @@ describe("canEditClientProfile", () => {
   const onboardingUser = { role: role("AREA_LEADER"), area: area(2, "ONBOARDING", "Onboarding") };
   const salesUser = { role: role("SALES_REP"), area: null };
 
-  it("onboarding puede editar clientes aprobados", () => {
-    expect(canEditClientProfile(onboardingUser, { status: "EN_CARGA_DATOS" }, true)).toBe(true);
+  it("asesor puede editar clientes aprobados como onboarding", () => {
+    const advisor = { role: role("ADVISOR"), area: area(3, "ASESORES", "Asesores") };
+    expect(canEditClientProfile(advisor, { status: "EN_CARGA_DATOS" }, true)).toBe(true);
   });
 
   it("vendedor solo edita pendiente o rechazado", () => {
     expect(canEditClientProfile(salesUser, { status: "EN_CARGA_DATOS" }, true)).toBe(false);
     expect(canEditClientProfile(salesUser, { status: "PENDIENTE_DE_REVISION" }, true)).toBe(true);
+  });
+});
+
+describe("canUploadClientDocuments", () => {
+  it("niega al asesor y permite a onboarding", () => {
+    const advisor = { role: role("ADVISOR"), area: area(3, "ASESORES", "Asesores") } as User;
+    const onboarding = {
+      role: role("AREA_LEADER"),
+      area: area(2, "ONBOARDING", "Onboarding"),
+    } as User;
+    expect(canUploadClientDocuments(advisor)).toBe(false);
+    expect(canUploadClientDocuments(onboarding)).toBe(true);
+  });
+});
+
+describe("canDownloadClientDocuments", () => {
+  it("permite admin, gerente y asesor; niega onboarding", () => {
+    expect(canDownloadClientDocuments({ role: role("ADMIN"), area: null } as User)).toBe(true);
+    expect(
+      canDownloadClientDocuments({ role: role("BRANCH_MANAGER"), area: null } as User),
+    ).toBe(true);
+    expect(
+      canDownloadClientDocuments({
+        role: role("ADVISOR"),
+        area: area(3, "ASESORES", "Asesores"),
+      } as User),
+    ).toBe(true);
+    expect(
+      canDownloadClientDocuments({
+        role: role("AREA_LEADER"),
+        area: area(2, "ONBOARDING", "Onboarding"),
+      } as User),
+    ).toBe(false);
   });
 });

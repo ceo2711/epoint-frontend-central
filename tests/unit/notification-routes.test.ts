@@ -39,6 +39,28 @@ describe("getNotificationHref", () => {
     expect(href).toBe("/portal/tablero");
   });
 
+  it("routes staff board mentions to the client card", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        event_type: "TASK_COMMENTED",
+        payload: { client_id: 42, card_id: 7 },
+      }),
+      "ADVISOR",
+    );
+    expect(href).toBe("/clientes/42?tab=board&card=7");
+  });
+
+  it("routes client board mentions to the portal card", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        event_type: "TASK_COMMENTED",
+        payload: { client_id: 42, card_id: 7 },
+      }),
+      "CLIENT",
+    );
+    expect(href).toBe("/portal/tablero?card=7");
+  });
+
   it("routes staff calendly events to calendar", () => {
     const href = getNotificationHref(
       makeNotification({ event_type: "CALENDLY_EVENT_SCHEDULED", payload: { calendly_event_id: 7 } }),

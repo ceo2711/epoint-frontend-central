@@ -29,7 +29,14 @@ import {
 } from "@/features/sedes/utils/sedeBranches";
 import { onClientsRefresh } from "@/lib/clientEvents";
 import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
-import { canFilterClientsBySalesRep, canManageOnboarding, isGlobalAdmin, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
+import {
+  canFilterClientsBySalesRep,
+  canRunOnboardingReminders,
+  isAdvisor,
+  isGlobalAdmin,
+  isSedeAdmin,
+  seesOnboardingDashboard,
+} from "@/lib/roles";
 
 export function ClientesPage() {
   const { t } = useTranslation();
@@ -56,14 +63,14 @@ function ClientesPageContent() {
   const roleCode = user?.role.code;
   const sedeAdmin = isSedeAdmin(roleCode);
   const canFilterBySalesRep = canFilterClientsBySalesRep(user);
-  const onboardingAreaLeader = isOnboardingAreaLeader(user);
+  const lineAdvisor = isAdvisor(user);
+  const onboardingStaff = seesOnboardingDashboard(user) && !lineAdvisor;
   const isGlobal = isGlobalAdmin(roleCode);
-  const clientsSubtitle =
-    roleCode === "ADVISOR"
-      ? t("clients.subtitleAdvisor")
-      : onboardingAreaLeader
-        ? t("clients.subtitleOnboarding")
-        : t("clients.subtitle");
+  const clientsSubtitle = lineAdvisor
+    ? t("clients.subtitleAdvisor")
+    : onboardingStaff
+      ? t("clients.subtitleOnboarding")
+      : t("clients.subtitle");
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -83,7 +90,7 @@ function ClientesPageContent() {
   const canBulkDelete = sedeAdmin && hasPermission("clients:delete");
   const showSedePicker = isGlobal && selectedSedeId === null;
   const listEnabled = !isGlobal || selectedSedeId != null;
-  const onboardingOnly = roleCode === "BRANCH_MANAGER" || onboardingAreaLeader;
+  const onboardingOnly = roleCode === "BRANCH_MANAGER" || onboardingStaff;
 
   const { sedes, loading: loadingSedes } = useSedes(
     token,
@@ -200,8 +207,7 @@ function ClientesPageContent() {
     router.replace(clientsListPath(null));
   }
 
-  const canRunReminders =
-    canManageOnboarding(user);
+  const canRunReminders = canRunOnboardingReminders(user);
 
   const headerTitle = isGlobal ? t("clients.adminHeaderContext") : t("clients.headerContext");
   const headerSubtitle = isGlobal ? t("clients.adminPageSubtitleSedes") : clientsSubtitle;

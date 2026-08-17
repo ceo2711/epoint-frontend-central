@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { mobileOpen, closeMobile } = useShell();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const showStaffNotifications = user?.role.code !== "CLIENT";
+  const showStaffNotifications = Boolean(user);
   const showChatWidgetForRole = Boolean(user);
   const [mounted, setMounted] = useState(false);
   const [showChatWidget, setShowChatWidget] = useState(false);

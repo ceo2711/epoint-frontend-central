@@ -1,5 +1,32 @@
 import type { Notification } from "@/types/api";
 
+const BOARD_EVENT_TYPES = new Set([
+  "TASK_COMMENTED",
+  "TASK_COMPLETED",
+  "BOARD_ATTACHMENT_REJECTED",
+]);
+
+export function payloadPositiveInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    const parsed = Number(value);
+    return parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+function boardHref(payload: Notification["payload"], isClient: boolean): string | null {
+  const clientId = payloadPositiveInt(payload?.client_id);
+  const cardId = payloadPositiveInt(payload?.card_id);
+  if (isClient) {
+    return cardId ? `/portal/tablero?card=${cardId}` : "/portal/tablero";
+  }
+  if (!clientId) return null;
+  const params = new URLSearchParams({ tab: "board" });
+  if (cardId) params.set("card", String(cardId));
+  return `/clientes/${clientId}?${params.toString()}`;
+}
+
 /** Resuelve la ruta interna según el tipo de notificación y el rol del usuario. */
 export function getNotificationHref(
   notification: Notification,
@@ -7,7 +34,11 @@ export function getNotificationHref(
 ): string | null {
   const payload = notification.payload;
   const isClient = roleCode === "CLIENT";
-  const clientId = payload?.client_id;
+  const clientId = payloadPositiveInt(payload?.client_id);
+
+  if (BOARD_EVENT_TYPES.has(notification.event_type)) {
+    return boardHref(payload, isClient);
+  }
 
   if (notification.event_type === "CALENDLY_EVENT_SCHEDULED" && !isClient) {
     return "/calendario";
@@ -19,16 +50,16 @@ export function getNotificationHref(
   }
 
   if (notification.event_type === "PAYMENT_LINK_COMPLETED" && !isClient) {
-    if (typeof clientId === "number") return `/clientes/${clientId}`;
-    const prospectId = payload?.prospect_id;
-    if (typeof prospectId === "number") return `/prospectos/${prospectId}`;
+    if (clientId) return `/clientes/${clientId}`;
+    const prospectId = payloadPositiveInt(payload?.prospect_id);
+    if (prospectId) return `/prospectos/${prospectId}`;
     return "/pagos";
   }
 
   if (notification.event_type === "PROSPECT_CONVERTED" && !isClient) {
-    if (typeof clientId === "number") return `/clientes/${clientId}`;
-    const prospectId = payload?.prospect_id;
-    if (typeof prospectId === "number") return `/prospectos/${prospectId}`;
+    if (clientId) return `/clientes/${clientId}`;
+    const prospectId = payloadPositiveInt(payload?.prospect_id);
+    if (prospectId) return `/prospectos/${prospectId}`;
     return "/prospectos";
   }
 
@@ -38,9 +69,6 @@ export function getNotificationHref(
         case "DOCUMENT_REJECTED":
         case "DOCUMENT_EXPIRING_SOON":
           return "/portal/documentos";
-        case "TASK_COMPLETED":
-        case "TASK_COMMENTED":
-          return "/portal/tablero";
         case "CLIENT_APPROVED":
         case "CLIENT_DATA_COMPLETE":
         default:
@@ -55,9 +83,6 @@ export function getNotificationHref(
       case "DOCUMENT_REJECTED":
       case "DOCUMENT_EXPIRING_SOON":
         return "/portal/documentos";
-      case "TASK_COMPLETED":
-      case "TASK_COMMENTED":
-        return "/portal/tablero";
       default:
         return null;
     }

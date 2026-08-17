@@ -9,8 +9,9 @@
 import type { ClientMerchantFilter } from "@/features/clients/components/ClientListFilters";
 import {
   canSuperviseSalesReps,
+  isAdvisor,
   isGlobalAdmin,
-  isOnboardingAreaLeader,
+  seesOnboardingDashboard,
 } from "@/lib/roles";
 import type { User } from "@/types/api";
 
@@ -60,7 +61,8 @@ export function defaultClientsListParams(user: User, pageSize: number): ClientsL
   const showMerchantFilter = (user.merchants ?? []).length > 1;
 
   return {
-    onboardingOnly: roleCode === "BRANCH_MANAGER" || isOnboardingAreaLeader(user),
+    onboardingOnly:
+      roleCode === "BRANCH_MANAGER" || (seesOnboardingDashboard(user) && !isAdvisor(user)),
     page: 1,
     pageSize,
     search: "",

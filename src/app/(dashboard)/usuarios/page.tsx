@@ -3,6 +3,7 @@
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Header } from "@/components/layout/Header";
@@ -23,7 +24,7 @@ import { UsersTable } from "@/features/users/components/UsersTable";
 import { useUsers } from "@/features/users/hooks/useUsers";
 import type { User } from "@/features/users/types";
 import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
-import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader } from "@/lib/roles";
+import { canSuperviseSalesReps, isGlobalAdmin, isSalesAreaLeader, seesOnboardingDashboard } from "@/lib/roles";
 import { api } from "@/lib/api";
 import { ReassignSubSellerModal } from "@/features/users/components/ReassignSubSellerModal";
 
@@ -36,10 +37,18 @@ const HIDDEN_FILTER_ROLE_CODES = new Set([
 
 export default function UsuariosPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { token, hasPermission, user: currentUser } = useAuth();
   const { t } = useTranslation();
   const modal = useModal();
   const showSedeFilter = isGlobalAdmin(currentUser?.role.code);
+  const onboardingDashboard = seesOnboardingDashboard(currentUser);
+
+  useEffect(() => {
+    if (onboardingDashboard) {
+      router.replace("/dashboard");
+    }
+  }, [onboardingDashboard, router]);
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -53,7 +62,7 @@ export default function UsuariosPage() {
 
   const { users, loading, error, reload } = useUsers(
     token,
-    hasPermission("users:read") && !isSalesAreaLeader(currentUser),
+    hasPermission("users:read") && !isSalesAreaLeader(currentUser) && !onboardingDashboard,
     t("users.loadError"),
     t("users.noPermission"),
     {
@@ -84,6 +93,14 @@ export default function UsuariosPage() {
   const [viewing, setViewing] = useState<User | null>(null);
   const [reassigning, setReassigning] = useState<User | null>(null);
   const canReassign = canSuperviseSalesReps(currentUser);
+
+  if (onboardingDashboard) {
+    return (
+      <div className="flex justify-center py-12">
+        <LoadingSpinner label={t("common.loading")} />
+      </div>
+    );
+  }
 
   if (isSalesAreaLeader(currentUser)) {
     return <SalesLeaderVendorsPage />;

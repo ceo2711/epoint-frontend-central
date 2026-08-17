@@ -184,10 +184,11 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/contratos");
   });
 
-  it("AREA_LEADER de onboarding ve clientes y usuarios, no pantallas comerciales", () => {
+  it("AREA_LEADER de onboarding ve panel y clientes, no usuarios ni pantallas comerciales", () => {
     const hrefs = visibleInternalHrefs("AREA_LEADER", "ONBOARDING");
+    expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/clientes");
-    expect(hrefs).toContain("/usuarios");
+    expect(hrefs).not.toContain("/usuarios");
     expect(hrefs).not.toContain("/comercios");
     expect(hrefs).not.toContain("/roles");
     expect(hrefs).not.toContain("/prospectos");

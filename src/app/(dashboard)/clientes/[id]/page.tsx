@@ -11,6 +11,7 @@ import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorP
 import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
+import { payloadPositiveInt } from "@/features/notifications/notification-routes";
 import {
   LazyClientBoardPanel,
   LazyClientContractsPanel,
@@ -38,10 +39,10 @@ import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
-import { getDocumentViewerUrl, prefetchDocuments } from "@/lib/contentBlobCache";
+import { prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
-import { canManageOnboarding, isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
+import { canDownloadClientDocuments, canManageOnboarding, canUploadClientDocuments, isSedeAdmin, seesOnboardingDashboard } from "@/lib/roles";
 import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
 
 function buildClientForm(client: Client) {
@@ -130,6 +131,7 @@ function ClienteDetailPageContent() {
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
+  const requestedCardId = payloadPositiveInt(searchParams.get("card"));
   const [removing, setRemoving] = useState(false);
   const loadInFlight = useRef(false);
   const deletedRef = useRef(false);
@@ -160,6 +162,15 @@ function ClienteDetailPageContent() {
     if (activeTab !== "documents") return;
     prefetchDocuments(client.documents, token, 3);
   }, [client, token, activeTab, user]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "overview" || tab === "documents" || tab === "board") {
+      setActiveTab(tab);
+      return;
+    }
+    if (requestedCardId) setActiveTab("board");
+  }, [searchParams, requestedCardId]);
 
   const emailError = availability?.email
     ? formatClientConflict(t, "email", availability.email)
@@ -293,12 +304,16 @@ function ClienteDetailPageContent() {
   async function handleDownloadDocument(doc: DocumentBrief) {
     if (!token) return;
     try {
-      const url = await getDocumentViewerUrl(doc.id, token, doc.mime_type, doc.original_filename);
+      const blob = await api.getBlob(`/documents/${doc.id}/content?download=true`, token);
+      const file = new Blob([blob.data], {
+        type: blob.mimeType || doc.mime_type || "application/octet-stream",
+      });
+      const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
       link.download = doc.original_filename;
       link.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
       await modal.alert({
         title: t("common.error"),
@@ -411,12 +426,10 @@ function ClienteDetailPageContent() {
   const showOverviewSection = !canViewOnboarding || !isApproved || activeTab === "overview";
   const showOnboardingOverviewExtras = showApprovedWorkspace && activeTab === "overview";
   const showDocumentsSection = showApprovedWorkspace && activeTab === "documents";
-  const workspaceHint =
-    user?.role.code === "ADVISOR"
-      ? t("clientDetail.workspaceHintAdvisor")
-      : isOnboardingAreaLeader(user)
-        ? t("clientDetail.workspaceHintOnboarding")
-        : null;
+  const canDownloadDocs = canDownloadClientDocuments(user);
+  const workspaceHint = seesOnboardingDashboard(user)
+    ? t("clientDetail.workspaceHintOnboarding")
+    : null;
 
   return (
     <>
@@ -691,11 +704,10 @@ function ClienteDetailPageContent() {
               documents={client.documents}
               token={token}
               locale={locale}
+              canUpload={canUploadClientDocuments(user)}
               onUploaded={() => void refreshDocuments()}
               onViewDocument={setViewingDoc}
-              onDownloadDocument={
-                isSedeAdmin(user?.role.code) ? handleDownloadDocument : undefined
-              }
+              onDownloadDocument={canDownloadDocs ? handleDownloadDocument : undefined}
             />
           </Card>
         )}
@@ -703,7 +715,7 @@ function ClienteDetailPageContent() {
         {showApprovedWorkspace && activeTab === "board" && (
           <Card className="overflow-hidden p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.board")}</h2>
-            <LazyClientBoardPanel token={token} clientId={client.id} />
+            <LazyClientBoardPanel token={token} clientId={client.id} initialCardId={requestedCardId} />
           </Card>
         )}
       </PageContent>
@@ -727,6 +739,9 @@ function ClienteDetailPageContent() {
               : undefined
           }
           onClose={() => setViewingDoc(null)}
+          onDownload={
+            canDownloadDocs ? () => void handleDownloadDocument(viewingDoc) : undefined
+          }
         />
       )}
     </>

@@ -15,6 +15,7 @@ interface StaffClientDocumentsPanelProps {
   documents: DocumentBrief[] | undefined;
   token: string | null;
   locale: Locale;
+  canUpload?: boolean;
   onUploaded: () => void;
   onViewDocument: (doc: DocumentBrief) => void;
   onDownloadDocument?: (doc: DocumentBrief) => void;
@@ -30,6 +31,7 @@ export function StaffClientDocumentsPanel({
   documents,
   token,
   locale,
+  canUpload = true,
   onUploaded,
   onViewDocument,
   onDownloadDocument,
@@ -77,7 +79,9 @@ export function StaffClientDocumentsPanel({
 
   return (
     <div className="min-w-0 max-w-full space-y-4">
-      <p className="text-sm leading-relaxed text-slate-600">{t("clientDetail.documentsUploadHint")}</p>
+      <p className="text-sm leading-relaxed text-slate-600">
+        {t(canUpload ? "clientDetail.documentsUploadHint" : "clientDetail.documentsViewHint")}
+      </p>
 
       {message && (
         <div className={`alert ${isError ? "alert-error" : "alert-success"}`}>{message}</div>
@@ -90,6 +94,7 @@ export function StaffClientDocumentsPanel({
         t={t}
         onUpload={handleUpload}
         variant="staff"
+        canUpload={canUpload}
         onViewDocument={onViewDocument}
         onDownloadDocument={onDownloadDocument}
         formatDate={(value) => formatDate(value, locale)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -19,6 +19,8 @@ interface ClientBoardPanelProps {
   token: string | null;
   clientId: number | null | undefined;
   isClientPortal?: boolean;
+  /** Abre esta tarjeta al cargar (p. ej. desde una notificación de mención). */
+  initialCardId?: number | null;
 }
 
 function normalizeCard(card: BoardCard): BoardCard {
@@ -32,7 +34,12 @@ function normalizeCard(card: BoardCard): BoardCard {
 
 const BOARD_STAFF_ROLES = new Set(["ADMIN", "BRANCH_MANAGER", "ADVISOR", "AREA_LEADER"]);
 
-export function ClientBoardPanel({ token, clientId, isClientPortal = false }: ClientBoardPanelProps) {
+export function ClientBoardPanel({
+  token,
+  clientId,
+  isClientPortal = false,
+  initialCardId = null,
+}: ClientBoardPanelProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const modal = useModal();
@@ -49,6 +56,7 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
+  const openedCardRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!selected || !board) return;
@@ -61,6 +69,19 @@ export function ClientBoardPanel({ token, clientId, isClientPortal = false }: Cl
     }
     setSelected(null);
   }, [board, selected?.id]);
+
+  useEffect(() => {
+    if (!board || !initialCardId) return;
+    if (openedCardRef.current === initialCardId) return;
+    for (const list of board.lists) {
+      const found = list.cards.find((card) => card.id === initialCardId);
+      if (found) {
+        openedCardRef.current = initialCardId;
+        setSelected(found);
+        return;
+      }
+    }
+  }, [board, initialCardId]);
 
   const isVerifyingAttachments = board?.lists.some((list) =>
     list.cards.some((card) =>

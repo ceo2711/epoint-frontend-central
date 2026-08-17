@@ -18,7 +18,7 @@ export function Header({
   const { user } = useAuth();
   const { t } = useTranslation();
   const { toggleMobile } = useShell();
-  const showNotifications = user?.role.code !== "CLIENT";
+  const showNotifications = Boolean(user);
 
   const displayName =
     user?.first_name?.trim() ||
