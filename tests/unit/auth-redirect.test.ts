@@ -13,4 +13,13 @@ describe("auth-redirect", () => {
     expect(mustForcePasswordChange({ must_change_password: false })).toBe(false);
     expect(mustForcePasswordChange(null)).toBe(false);
   });
+
+  it("does not force password change for the App Review account", () => {
+    expect(
+      mustForcePasswordChange({
+        must_change_password: true,
+        email: "appreview@epoint.com",
+      }),
+    ).toBe(false);
+  });
 });

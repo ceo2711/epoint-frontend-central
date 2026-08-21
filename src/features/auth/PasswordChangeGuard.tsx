@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { mustForcePasswordChange } from "@/features/auth/auth-redirect";
 
 export function useRequirePasswordChanged(
-  user: { must_change_password: boolean } | null,
+  user: { must_change_password: boolean; email?: string } | null,
   isLoading: boolean,
 ) {
   const router = useRouter();

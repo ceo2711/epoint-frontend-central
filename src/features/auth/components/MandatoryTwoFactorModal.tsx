@@ -11,6 +11,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { isAppReviewEmail } from "@/lib/app-review";
 import type { TotpSetupResponse } from "@/types/api";
 
 /**
@@ -27,7 +28,16 @@ export function MandatoryTwoFactorModal() {
   const [busy, setBusy] = useState(false);
 
   // Primero cambio de contraseña obligatorio; el 2FA viene después.
-  if (!user || !token || user.totp_enabled || user.must_change_password) return null;
+  // App Review (Apple) queda exceptuado; el resto de clientes sigue obligado.
+  if (
+    !user ||
+    !token ||
+    user.totp_enabled ||
+    user.must_change_password ||
+    isAppReviewEmail(user.email)
+  ) {
+    return null;
+  }
 
   async function handleStart() {
     setError("");
