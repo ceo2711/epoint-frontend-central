@@ -11,6 +11,10 @@ Antes de cambios no triviales, seguí:
 - `agent/CONTEXT.md`
 - `agent/RULES.md`
 
+Cursos/mentorías: rama `feature/cursos-mentorias`. No tocar `release/1.0.0`.
+Portal: locks por entitlement (credit / course / mentorship). Staff `/cursos` = `courses:manage`.
+App Review: `appreview@epoint.com` no 2FA.
+
 Next 16: no asumir APIs de versiones viejas; ver `node_modules/next/dist/docs/` si hace falta.
 
 Respuestas al usuario en español salvo que pida otro idioma.

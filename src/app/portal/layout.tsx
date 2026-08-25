@@ -9,6 +9,7 @@ import { ShellProvider } from "@/contexts/ShellContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useRequirePasswordChanged } from "@/features/auth/PasswordChangeGuard";
 import { PortalBoardUnlockGate } from "@/features/portal/components/PortalBoardUnlockGate";
+import { PortalProductGate } from "@/features/portal/components/PortalProductGate";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -31,7 +32,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <ShellProvider>
       <PortalBoardUnlockGate>
-        <AppShell>{children}</AppShell>
+        <AppShell>
+          <PortalProductGate>{children}</PortalProductGate>
+        </AppShell>
       </PortalBoardUnlockGate>
     </ShellProvider>
   );

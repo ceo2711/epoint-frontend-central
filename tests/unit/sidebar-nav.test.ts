@@ -4,6 +4,8 @@ import { resolveActiveHref } from "@/components/layout/sidebarNav";
 
 const portalHrefs = [
   "/portal",
+  "/portal/cursos",
+  "/portal/mentorias",
   "/portal/datos",
   "/portal/documentos",
   "/portal/tablero",

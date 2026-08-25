@@ -49,6 +49,11 @@ export interface User {
   merchants?: MerchantBrief[];
   active_merchant_id?: number | null;
   active_merchant?: MerchantBrief | null;
+  entitlements?: {
+    credit: boolean;
+    course: boolean;
+    mentorship: boolean;
+  };
 }
 
 export interface Area {

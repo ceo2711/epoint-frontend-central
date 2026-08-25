@@ -1,7 +1,21 @@
 # Contexto — Frontend ePoint CRM
 
-Repo git independiente. App Heroku: **`dev-epoint-crm-frontend`**.  
-URL: `https://dev-epoint-crm-frontend-4985af85e0a2.herokuapp.com`
+Repo git independiente: `https://github.com/ceo2711/epoint-frontend-central.git`
+
+| Ambiente | App Heroku | Remote git | URL |
+|----------|------------|------------|-----|
+| Dev | `dev-epoint-crm-frontend` | `heroku` | `https://dev-epoint-crm-frontend-4985af85e0a2.herokuapp.com` |
+| Prod | `epoint-crm-frontend` | `heroku-prod` | `https://epoint-crm-frontend-8a88c1924ab8.herokuapp.com` |
+
+## Estado actual (ago 2026)
+
+- Rama de cursos/mentorías: `feature/cursos-mentorias`. **No** desplegar sobre `release/1.0.0` (store / prod).
+- Portal cliente: tres áreas con lock por entitlement — Asesoría (`credit`), Cursos (`course`), Mentorías (`mentorship`). Gate: `PortalProductGate` + `ProductLockScreen`.
+- Staff: `/cursos` (permiso `courses:manage`) para cargar/publicar videos. Player del cliente: `/portal/cursos`. Mentoría Calendly en `/portal/mentorias` **pendiente**.
+- `User.entitlements` viene de `/auth/me`. Sin `CREDIT` no hay onboarding/tablero aunque el portal esté activo por curso.
+- Cuenta App Review `appreview@epoint.com`: `src/lib/app-review.ts` — no exigir 2FA ni cambio de password en UI. No usar `guaniquediaz@gmail.com` ni otras cuentas con TOTP en Notes de Apple.
+- No hay IAP. Los cobros son `/pagar/[token]` del CRM. La landing (otro repo) redirige ahí tras el checkout público.
+- Next 16: no asumir APIs de 13/14.
 
 ## Stack
 
@@ -33,8 +47,8 @@ Seed: `admin@epoint.com` / `Admin123!`
 src/
   app/
     (auth)/          # login, 2FA, recuperar/cambiar password
-    (dashboard)/     # backoffice staff
-    portal/          # portal CLIENT
+    (dashboard)/     # backoffice staff (+ /cursos staff)
+    portal/          # portal CLIENT (+ /cursos player, /mentorias)
     pagar/[token]/  # pago público
   components/        # UI + shell
   contexts/          # Language, Merchant, Modal, Shell
@@ -48,7 +62,7 @@ emails/              # react-email
 
 ### Features (`src/features/`)
 
-`auth`, `boards`, `calendly`, `chat`, `clients`, `dashboard`, `documents`, `docusign`, `emails`, `influencers`, `merchants`, `notifications`, `payments`, `portal`, `prospects`, `roles`, `sedes`, `sources`, `users`, `areas`
+`auth`, `boards`, `calendly`, `chat`, `clients`, `courses`, `dashboard`, `documents`, `docusign`, `emails`, `influencers`, `merchants`, `notifications`, `payments`, `portal`, `prospects`, `roles`, `sedes`, `sources`, `users`, `areas`
 
 ## Auth y roles
 
@@ -56,14 +70,16 @@ emails/              # react-email
 - `AuthContext` + refresh en 401 (`lib/api.ts`)
 - `CLIENT` → `/portal`; resto → `/dashboard`
 - Multi-comercio: `MerchantContext` → header `X-Merchant-Id`
-- Nav filtrada: `lib/appNavigation.ts` + permisos
+- Nav filtrada: `lib/appNavigation.ts` + permisos + `entitlement` (portal)
+- App Review: `isAppReviewEmail` saltea 2FA / must_change_password en UI
 
 ## Flujos importantes
 
 | Flujo | Dónde |
 |-------|--------|
 | Login / 2FA / password | `app/(auth)/`, `features/auth/` |
-| Portal cliente | `/portal`, `/portal/datos|documentos|tablero|cuenta` |
+| Portal cliente | `/portal`, `/portal/datos|documentos|tablero|cuenta|cursos|mentorias` (locks por entitlement) |
+| Cursos staff | `/cursos` — `features/courses/` |
 | Clientes + onboarding | `features/clients/`, detalle en `(dashboard)/clientes/[id]` |
 | Documentos IA | `features/documents/` — `inferActiveGroupId` prioriza alternativa resuelta |
 | Board Kanban | `features/boards/` |
@@ -81,8 +97,11 @@ emails/              # react-email
 
 ```bash
 git push origin HEAD
-git push heroku HEAD:main   # remote: https://git.heroku.com/dev-epoint-crm-frontend.git
+git push heroku HEAD:main        # SOLO dev
+# git push heroku-prod HEAD:main # SOLO si se pide prod
 ```
+
+- **No desplegar** `feature/cursos-mentorias` a prod/`release/1.0.0` salvo pedido explícito.
 
 - `Procfile`: `web: npm run start`
 - `heroku-postbuild`: `npm run build`

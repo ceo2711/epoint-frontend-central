@@ -10,6 +10,8 @@ import type { User } from "@/types/api";
 
 const clientNav = [
   "/portal",
+  "/portal/cursos",
+  "/portal/mentorias",
   "/portal/datos",
   "/portal/documentos",
   "/portal/tablero",
@@ -53,6 +55,7 @@ const ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
     "boards:read",
     "boards:manage",
     "credentials:read",
+    "courses:manage",
   ],
 };
 
@@ -194,28 +197,35 @@ describe("role navigation matrix", () => {
     expect(hrefs).not.toContain("/prospectos");
   });
 
-  it("ADVISOR ve dashboard y clientes", () => {
+  it("ADVISOR ve dashboard, clientes y cursos", () => {
     const hrefs = visibleInternalHrefs("ADVISOR");
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/clientes");
+    expect(hrefs).toContain("/cursos");
     expect(hrefs).not.toContain("/usuarios");
     expect(hrefs).not.toContain("/comercios");
   });
 
-  it("CLIENT usa rutas de portal y oculta tablero hasta desbloquear", () => {
-    const locked = getAccessibleNavItems(
+  it("CLIENT usa rutas de portal y deja tablero visible pero bloqueado", () => {
+    const lockedItems = getAccessibleNavItems(
       { role: { code: "CLIENT" } } as never,
       () => false,
       { boardUnlocked: false },
-    ).map((item) => item.href);
+    );
+    const locked = lockedItems.map((item) => item.href);
     expect(locked).toContain("/portal");
     expect(locked).toContain("/portal/datos");
     expect(locked).toContain("/portal/documentos");
-    expect(locked).not.toContain("/portal/tablero");
+    expect(locked).toContain("/portal/cursos");
+    expect(locked).toContain("/portal/tablero");
+    expect(lockedItems.find((item) => item.href === "/portal/tablero")?.disabled).toBe(true);
     expect(locked).not.toContain("/dashboard");
 
     const unlocked = getAccessibleNavItems(
-      { role: { code: "CLIENT" } } as never,
+      {
+        role: { code: "CLIENT" },
+        entitlements: { credit: true, course: true, mentorship: true },
+      } as never,
       () => false,
       { boardUnlocked: true },
     ).map((item) => item.href);

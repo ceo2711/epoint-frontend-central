@@ -15,8 +15,13 @@ Esta carpeta viaja con el repositorio. Si clonás solo el frontend en otra PC, e
 2. El `AGENTS.md` de la raíz apunta acá.
 3. Si falta contexto: *“Leé agent/CONTEXT.md y agent/RULES.md”*.
 
+## Rama de trabajo
+
+Cursos/mentorías: `feature/cursos-mentorias`. Store/prod: `release/1.0.0`. Ciclo 2: `release/2.0.0`.
+
 ## Repo hermano
 
-- Backend: `epoint-central-backend` → Heroku `dev-epoint-crm-backend`
-- Mobile: `epoint-central-mobile`
-- Este frontend: GitHub `epoint-central-frontend` → Heroku `dev-epoint-crm-frontend`
+- Backend: `epoint-backend-central` → Heroku `dev-epoint-crm-backend` / `epoint-crm-backend`
+- Mobile: `epoint-mobile-central`
+- Landing: `AlexisGuanique/epoint-credits` (checkout público → `/pagar/{token}`)
+- Este frontend: GitHub `ceo2711/epoint-frontend-central` → Heroku `dev-epoint-crm-frontend` / `epoint-crm-frontend`

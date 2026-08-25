@@ -9,6 +9,7 @@ const KNOWN_PATH_PATTERNS: RegExp[] = [
   /^\/dashboard$/,
   /^\/clientes$/,
   /^\/clientes\/\d+$/,
+  /^\/cursos$/,
   /^\/prospectos$/,
   /^\/prospectos\/\d+$/,
   /^\/calendario$/,
@@ -29,6 +30,8 @@ const KNOWN_PATH_PATTERNS: RegExp[] = [
   /^\/portal\/documentos$/,
   /^\/portal\/tablero$/,
   /^\/portal\/cuenta$/,
+  /^\/portal\/cursos$/,
+  /^\/portal\/mentorias$/,
 ];
 
 export function normalizePathname(pathname: string): string {
