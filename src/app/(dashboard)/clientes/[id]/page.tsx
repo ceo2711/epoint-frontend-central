@@ -682,7 +682,10 @@ function ClienteDetailPageContent() {
                   {client.vehicles.map((v: Vehicle) => (
                     <div key={v.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
                       <p className="text-xs font-bold uppercase text-slate-400">{t("clientDetail.vehicleN", { n: v.order })}</p>
-                      <p className="mt-1 text-sm font-medium text-slate-800">{v.model} · {v.year} · {v.color}</p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        {v.model} · {v.year} · {v.color}
+                        {v.license_plate ? ` · ${v.license_plate}` : ""}
+                      </p>
                     </div>
                   ))}
                 </div>

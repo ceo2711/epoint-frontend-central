@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
 import { Input, PasswordInput } from "@/components/ui/Input";
+import { DataSavedCongratsModal } from "@/features/portal/components/DataSavedCongratsModal";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { AddressAutocomplete } from "@/features/portal/components/AddressAutocomplete";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
@@ -34,14 +35,43 @@ function currentYear() {
   return new Date().getFullYear();
 }
 
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function digitsOnly(value: string, maxLen: number): string {
+  return value.replace(/\D/g, "").slice(0, maxLen);
+}
+
+function sanitizeMonth(value: string): string {
+  const digits = digitsOnly(value, 2);
+  if (!digits) return "";
+  const n = Number(digits);
+  if (n > 12) return digits.slice(0, 1);
+  return digits;
+}
+
 function emptyStreetAddr() {
   return { street: "", city: "", state: "", zip_code: "" };
 }
 
-function residenceLessThanTwoYears(monthStr: string, yearStr: string): boolean {
+function isValidUsZip(value: string): boolean {
+  return /^\d{5}(-\d{4})?$/.test(value.trim());
+}
+
+function isValidResidencePeriod(monthStr: string, yearStr: string): boolean {
   const month = parseOptionalInt(monthStr);
   const year = parseOptionalInt(yearStr);
-  if (!month || !year || Number.isNaN(month) || Number.isNaN(year)) return false;
+  if (month === null || year === null || Number.isNaN(month) || Number.isNaN(year)) return false;
+  if (month < 1 || month > 12) return false;
+  if (year < 1900 || year > currentYear()) return false;
+  return true;
+}
+
+function residenceLessThanTwoYears(monthStr: string, yearStr: string): boolean {
+  if (!isValidResidencePeriod(monthStr, yearStr)) return false;
+  const month = parseOptionalInt(monthStr) as number;
+  const year = parseOptionalInt(yearStr) as number;
   const now = new Date();
   const months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
   return months < 24;
@@ -77,16 +107,21 @@ export default function PortalDatosPage() {
     residence_since_month: "",
     residence_since_year: "",
   });
-  const [addrErrors, setAddrErrors] = useState<{ month?: string; year?: string }>({});
+  const [addrErrors, setAddrErrors] = useState<{
+    zip?: string;
+    month?: string;
+    year?: string;
+  }>({});
   const [prevAddr, setPrevAddr] = useState(emptyStreetAddr());
   const [prevAddrError, setPrevAddrError] = useState("");
-  const [vehicle, setVehicle] = useState({ model: "", year: "", color: "" });
-  const [vehicleErrors, setVehicleErrors] = useState<{ year?: string }>({});
+  const [vehicle, setVehicle] = useState({ model: "", year: "", color: "", license_plate: "" });
+  const [vehicleErrors, setVehicleErrors] = useState<{ model?: string; year?: string; color?: string }>({});
   const [profileErrors, setProfileErrors] = useState<{ ssn?: string; dob?: string }>({});
   const [storedSsn, setStoredSsn] = useState<string | null>(null);
   const [ssnVisible, setSsnVisible] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showSavedModal, setShowSavedModal] = useState(false);
 
   async function loadStoredSsn(hasSsn: boolean) {
     if (!token || !hasSsn) {
@@ -129,7 +164,14 @@ export default function PortalDatosPage() {
       });
     }
     const v = c.vehicles?.find((x) => x.order === 1);
-    if (v) setVehicle({ model: v.model, year: String(v.year), color: v.color });
+    if (v) {
+      setVehicle({
+        model: v.model,
+        year: String(v.year),
+        color: v.color,
+        license_plate: v.license_plate ?? "",
+      });
+    }
     void loadStoredSsn(c.has_ssn).finally(() => setHydrated(true));
     // loadStoredSsn cierra sobre token; no hace falta re-hidratar en cada render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,15 +185,29 @@ export default function PortalDatosPage() {
   }
 
   function validateAddressFields() {
-    const next: { month?: string; year?: string } = {};
-    const month = parseOptionalInt(addr.residence_since_month);
-    const year = parseOptionalInt(addr.residence_since_year);
+    const next: { zip?: string; month?: string; year?: string } = {};
+    const monthRaw = addr.residence_since_month.trim();
+    const yearRaw = addr.residence_since_year.trim();
+    const month = parseOptionalInt(monthRaw);
+    const year = parseOptionalInt(yearRaw);
+    const maxYear = currentYear();
 
-    if (addr.residence_since_month.trim() && (Number.isNaN(month) || month === null || month < 1 || month > 12)) {
+    if (addr.zip_code.trim() && !isValidUsZip(addr.zip_code)) {
+      next.zip = t("portalData.zipInvalid");
+    }
+    if (monthRaw && (Number.isNaN(month) || month === null || month < 1 || month > 12)) {
       next.month = t("portalData.monthInvalid");
     }
-    if (addr.residence_since_year.trim() && (Number.isNaN(year) || year === null || year < 1900 || year > 2100)) {
-      next.year = t("portalData.yearInvalid");
+    if (yearRaw) {
+      if (yearRaw.length !== 4 || Number.isNaN(year) || year === null) {
+        next.year = t("portalData.yearFourDigits");
+      } else if (year < 1900 || year > maxYear) {
+        next.year = t("portalData.yearInvalid", { year: String(maxYear) });
+      }
+    }
+    if ((monthRaw && !yearRaw) || (!monthRaw && yearRaw)) {
+      if (!next.month && !monthRaw) next.month = t("portalData.monthYearPair");
+      if (!next.year && !yearRaw) next.year = t("portalData.monthYearPair");
     }
 
     setAddrErrors(next);
@@ -159,13 +215,25 @@ export default function PortalDatosPage() {
   }
 
   function validateVehicleFields() {
-    const next: { year?: string } = {};
+    const next: { model?: string; year?: string; color?: string } = {};
     const maxYear = currentYear();
     const year = parseRequiredInt(vehicle.year);
 
+    if (!vehicle.model.trim()) {
+      next.model = t("portalData.vehicleModelRequired");
+    }
+    if (!vehicle.color.trim()) {
+      next.color = t("portalData.vehicleColorRequired");
+    }
     if (!vehicle.year.trim()) {
       next.year = t("portalData.vehicleYearRequired");
-    } else if (Number.isNaN(year) || year === null || year < 1900 || year > maxYear) {
+    } else if (
+      vehicle.year.trim().length !== 4 ||
+      Number.isNaN(year) ||
+      year === null ||
+      year < 1900 ||
+      year > maxYear
+    ) {
       next.year = t("portalData.vehicleYearInvalid", { year: String(maxYear) });
     }
 
@@ -181,8 +249,25 @@ export default function PortalDatosPage() {
     if (ssnTrimmed && ssnDigits.length !== 9) {
       next.ssn = t("portalData.ssnInvalid");
     }
-    if (dob.trim() && Number.isNaN(Date.parse(dob))) {
-      next.dob = t("portalData.dateOfBirthInvalid");
+    if (dob.trim()) {
+      if (Number.isNaN(Date.parse(dob))) {
+        next.dob = t("portalData.dateOfBirthInvalid");
+      } else {
+        const parsed = new Date(`${dob}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (parsed > today) {
+          next.dob = t("portalData.dateOfBirthFuture");
+        } else if (parsed.getFullYear() < 1900) {
+          next.dob = t("portalData.dateOfBirthTooOld");
+        } else {
+          const oldest = new Date(today);
+          oldest.setFullYear(today.getFullYear() - 120);
+          if (parsed < oldest) {
+            next.dob = t("portalData.dateOfBirthTooOld");
+          }
+        }
+      }
     }
 
     setProfileErrors(next);
@@ -206,6 +291,9 @@ export default function PortalDatosPage() {
         !prevAddr.zip_code.trim();
       if (missing) {
         setPrevAddrError(t("portalData.previousAddressRequired"));
+        previousOk = false;
+      } else if (!isValidUsZip(prevAddr.zip_code)) {
+        setPrevAddrError(t("portalData.zipInvalid"));
         previousOk = false;
       } else {
         setPrevAddrError("");
@@ -274,7 +362,13 @@ export default function PortalDatosPage() {
 
       await api.post(
         "/portal/vehicles",
-        { order: 1, model: vehicle.model, year, color: vehicle.color },
+        {
+          order: 1,
+          model: vehicle.model,
+          year,
+          color: vehicle.color,
+          license_plate: vehicle.license_plate.trim() || null,
+        },
         token,
       );
 
@@ -284,9 +378,9 @@ export default function PortalDatosPage() {
       setSsnVisible(false);
       await loadStoredSsn(updated.has_ssn);
       await refreshUser();
-      setMessage(wasFirstSave ? t("portalData.redirectingToDocuments") : t("portalData.dataSaved"));
+      setMessage(wasFirstSave ? "" : t("portalData.dataSaved"));
       if (wasFirstSave) {
-        window.setTimeout(() => router.push("/portal/documentos"), 1200);
+        setShowSavedModal(true);
       }
     } catch (err) {
       setError(getUserFacingErrorMessage(err, t("portalData.saveError")));
@@ -390,8 +484,13 @@ export default function PortalDatosPage() {
                     <Input
                       id="portal-dob"
                       type="date"
+                      min="1900-01-01"
+                      max={todayIsoDate()}
                       value={dob}
-                      onChange={(e) => setDob(e.target.value)}
+                      onChange={(e) => {
+                        setDob(e.target.value);
+                        if (profileErrors.dob) setProfileErrors((prev) => ({ ...prev, dob: undefined }));
+                      }}
                       error={profileErrors.dob}
                     />
                   </div>
@@ -439,21 +538,25 @@ export default function PortalDatosPage() {
                     label={t("portalData.zip")}
                     name="portal-addr-zip"
                     autoComplete="one-time-code"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={addr.zip_code}
-                    onChange={(e) => setAddr({ ...addr, zip_code: e.target.value })}
+                    onChange={(e) => {
+                      setAddr({ ...addr, zip_code: e.target.value });
+                      if (addrErrors.zip) setAddrErrors((prev) => ({ ...prev, zip: undefined }));
+                    }}
+                    error={addrErrors.zip}
                     required
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
                     label={t("portalData.monthSince")}
-                    type="number"
-                    min={1}
-                    max={12}
                     inputMode="numeric"
+                    maxLength={2}
                     value={addr.residence_since_month}
                     onChange={(e) => {
-                      setAddr({ ...addr, residence_since_month: e.target.value });
+                      setAddr({ ...addr, residence_since_month: sanitizeMonth(e.target.value) });
                       if (addrErrors.month) setAddrErrors((prev) => ({ ...prev, month: undefined }));
                     }}
                     placeholder={t("portalData.monthPlaceholder")}
@@ -461,13 +564,11 @@ export default function PortalDatosPage() {
                   />
                   <Input
                     label={t("portalData.yearSince")}
-                    type="number"
-                    min={1900}
-                    max={2100}
                     inputMode="numeric"
+                    maxLength={4}
                     value={addr.residence_since_year}
                     onChange={(e) => {
-                      setAddr({ ...addr, residence_since_year: e.target.value });
+                      setAddr({ ...addr, residence_since_year: digitsOnly(e.target.value, 4) });
                       if (addrErrors.year) setAddrErrors((prev) => ({ ...prev, year: undefined }));
                     }}
                     placeholder={t("portalData.yearPlaceholder")}
@@ -531,19 +632,21 @@ export default function PortalDatosPage() {
                   <Input
                     label={t("portalData.model")}
                     value={vehicle.model}
-                    onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
+                    onChange={(e) => {
+                      setVehicle({ ...vehicle, model: e.target.value });
+                      if (vehicleErrors.model) setVehicleErrors((prev) => ({ ...prev, model: undefined }));
+                    }}
+                    error={vehicleErrors.model}
                     required
                   />
                   <Input
                     label={t("portalData.year")}
-                    type="number"
-                    min={1900}
-                    max={currentYear()}
                     inputMode="numeric"
+                    maxLength={4}
                     value={vehicle.year}
                     onChange={(e) => {
-                      setVehicle({ ...vehicle, year: e.target.value });
-                      if (vehicleErrors.year) setVehicleErrors({});
+                      setVehicle({ ...vehicle, year: digitsOnly(e.target.value, 4) });
+                      if (vehicleErrors.year) setVehicleErrors((prev) => ({ ...prev, year: undefined }));
                     }}
                     placeholder={t("portalData.vehicleYearPlaceholder")}
                     error={vehicleErrors.year}
@@ -552,9 +655,22 @@ export default function PortalDatosPage() {
                   <Input
                     label={t("portalData.color")}
                     value={vehicle.color}
-                    onChange={(e) => setVehicle({ ...vehicle, color: e.target.value })}
+                    onChange={(e) => {
+                      setVehicle({ ...vehicle, color: e.target.value });
+                      if (vehicleErrors.color) setVehicleErrors((prev) => ({ ...prev, color: undefined }));
+                    }}
+                    error={vehicleErrors.color}
                     required
                   />
+                </div>
+                <div>
+                  <Input
+                    label={t("portalData.licensePlate")}
+                    value={vehicle.license_plate}
+                    onChange={(e) => setVehicle({ ...vehicle, license_plate: e.target.value })}
+                    placeholder={t("portalData.licensePlatePlaceholder")}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">{t("portalData.licensePlateHint")}</p>
                 </div>
               </section>
             </form>
@@ -572,6 +688,16 @@ export default function PortalDatosPage() {
           </div>
         </div>
       )}
+
+      {showSavedModal ? (
+        <DataSavedCongratsModal
+          onClose={() => setShowSavedModal(false)}
+          onGoToDocuments={() => {
+            setShowSavedModal(false);
+            router.push("/portal/documentos");
+          }}
+        />
+      ) : null}
     </div>
   );
 }

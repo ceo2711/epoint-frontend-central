@@ -239,6 +239,7 @@ export interface Vehicle {
   model: string;
   year: number;
   color: string;
+  license_plate?: string | null;
 }
 
 export interface LocalizedStringList {
