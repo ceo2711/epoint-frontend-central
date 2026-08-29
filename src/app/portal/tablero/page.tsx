@@ -40,6 +40,7 @@ function PortalTableroPageContent() {
   const { data: client, isLoading } = usePortalMe(token);
   const boardUnlocked = usePortalBoardUnlocked();
   const initialCardId = payloadPositiveInt(searchParams.get("card"));
+  const openNonce = searchParams.get("n");
 
   useEffect(() => {
     if (!isLoading && client && !boardUnlocked) {
@@ -80,6 +81,7 @@ function PortalTableroPageContent() {
           clientId={user?.client_id}
           isClientPortal
           initialCardId={initialCardId}
+          openNonce={openNonce}
         />
       </PageContent>
     </>

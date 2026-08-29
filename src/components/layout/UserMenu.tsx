@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { translateRole } from "@/i18n";
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -26,7 +27,7 @@ function ChevronDown({ open }: { open: boolean }) {
 
 export function UserMenu() {
   const { user, logout } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [entered, setEntered] = useState(false);
@@ -103,7 +104,9 @@ export function UserMenu() {
         >
           <div className="rounded-xl bg-cream-100/80 px-3 py-3">
             <p className="truncate text-sm font-semibold text-slate-900">{fullName}</p>
-            <p className="mt-0.5 truncate text-xs text-slate-500">{user.role.name}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              {translateRole(locale, user.role.code, user.role.name)}
+            </p>
           </div>
 
           <div className="mt-1 space-y-0.5">

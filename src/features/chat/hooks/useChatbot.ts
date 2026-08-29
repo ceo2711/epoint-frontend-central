@@ -277,7 +277,9 @@ export function useChatbot(
       if (!token) return [];
       setBoardCardsLoading(true);
       try {
-        const board = await api.get<Board>(`/boards/client/${clientId}`, token);
+        const board = await api.get<Board>(`/boards/client/${clientId}`, token, {
+          silentHttpErrors: true,
+        });
         const cards: BoardCardOption[] = [];
         for (const list of board.lists) {
           for (const card of list.cards) {

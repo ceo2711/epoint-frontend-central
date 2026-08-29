@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { ApiError } from "@/lib/api-error";
 import { fetchClientBoard } from "@/lib/queryFetchers";
 import { queryKeys } from "@/lib/queryKeys";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
@@ -40,6 +41,10 @@ export function useBoard(
     queryKey: queryKeys.boards.client(clientId ?? 0),
     queryFn: () => fetchClientBoard(token!, clientId!),
     enabled: !!token && !!clientId,
+    retry: (count, error) => {
+      if (error instanceof ApiError && error.status === 404) return false;
+      return count < 1;
+    },
   });
 
   const load = useCallback(

@@ -41,4 +41,9 @@ export function translateStatus(
   return groupMessages[code] ?? code;
 }
 
+export function translateRole(locale: Locale, code: string, fallback?: string): string {
+  const roleMessages = getMessages(locale).roleNames as Record<string, string> | undefined;
+  return roleMessages?.[code] ?? fallback ?? code;
+}
+
 export const LOCALE_STORAGE_KEY = "epoint-crm-locale";

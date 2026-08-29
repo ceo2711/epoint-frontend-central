@@ -36,7 +36,7 @@ export function WelcomeEmail({
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>{"{{MERCHANT_LINE}}"}</Text>
       <Text style={paragraphStyle}>
-        Tu solicitud fue aprobada. Ya podés ingresar al portal del cliente para completar tus datos
+        Tu solicitud fue aprobada. Ya puedes ingresar al portal del cliente para completar tus datos
         personales y subir la documentación requerida.
       </Text>
 
@@ -70,7 +70,7 @@ export function WelcomeEmail({
 
         <Text style={appStoreTitleStyle}>Descargá la app móvil</Text>
         <Text style={appStoreHintStyle}>
-          Usá las mismas credenciales para ingresar desde tu teléfono.
+          Usa las mismas credenciales para ingresar desde tu teléfono.
         </Text>
         <Link href={androidAppStoreUrl} style={badgeLinkStyle}>
           <Img

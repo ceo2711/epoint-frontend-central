@@ -132,6 +132,7 @@ function ClienteDetailPageContent() {
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
   const requestedCardId = payloadPositiveInt(searchParams.get("card"));
+  const openNonce = searchParams.get("n");
   const [removing, setRemoving] = useState(false);
   const loadInFlight = useRef(false);
   const deletedRef = useRef(false);
@@ -715,7 +716,7 @@ function ClienteDetailPageContent() {
         {showApprovedWorkspace && activeTab === "board" && (
           <Card className="overflow-hidden p-4 sm:p-6">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.board")}</h2>
-            <LazyClientBoardPanel token={token} clientId={client.id} initialCardId={requestedCardId} />
+            <LazyClientBoardPanel token={token} clientId={client.id} initialCardId={requestedCardId} openNonce={openNonce} />
           </Card>
         )}
       </PageContent>

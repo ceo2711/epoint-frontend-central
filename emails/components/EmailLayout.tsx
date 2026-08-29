@@ -41,7 +41,7 @@ export function EmailLayout({ preview, logoUrl, children, footerNote }: EmailLay
 
           <Hr style={hrStyle} />
           <Text style={footerStyle}>
-            {footerNote ?? "Si tenés alguna consulta, respondé a este correo o contactá a tu asesor Epoint."}
+            {footerNote ?? "Si tienes alguna consulta, responde a este correo o contacta a tu asesor Epoint."}
           </Text>
           <Text style={footerBrandStyle}>
             © <span translate="no">{BRAND_NAME}</span>

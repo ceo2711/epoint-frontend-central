@@ -84,10 +84,27 @@ function SortableKanbanCard({
   return (
     <div ref={setNodeRef} style={style} className="touch-manipulation">
       <div
-        className={`kanban-card w-full text-left ${kanbanCardLabelClass(card.label)} ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
-        {...(canDrag ? { ...attributes, ...listeners } : {})}
+        className={`kanban-card w-full text-left ${kanbanCardLabelClass(card.label)}`}
       >
         <div className="flex items-start gap-1">
+          {canDrag ? (
+            <button
+              type="button"
+              className="mt-0.5 shrink-0 cursor-grab rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing"
+              aria-label="Mover"
+              {...attributes}
+              {...listeners}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
+                <circle cx="5" cy="3.5" r="1.1" />
+                <circle cx="11" cy="3.5" r="1.1" />
+                <circle cx="5" cy="8" r="1.1" />
+                <circle cx="11" cy="8" r="1.1" />
+                <circle cx="5" cy="12.5" r="1.1" />
+                <circle cx="11" cy="12.5" r="1.1" />
+              </svg>
+            </button>
+          ) : null}
           <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
             <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
             <div className="mt-1.5">

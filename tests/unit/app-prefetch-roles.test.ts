@@ -293,6 +293,6 @@ describe("prefetchAppData por rol", () => {
 
     expect(queryClient.getQueryData(queryKeys.portal.me)).toBeDefined();
     expect(queryClient.getQueryData(queryKeys.portal.documents)).toBeDefined();
-    expect(queryClient.getQueryData(queryKeys.boards.client(9))).toBeDefined();
+    expect(queryClient.getQueryData(queryKeys.boards.client(9))).toBeUndefined();
   });
 });

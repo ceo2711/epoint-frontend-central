@@ -19,7 +19,7 @@ export function ClientConversionWelcomeEmail({
     <EmailLayout
       preview={`¡Bienvenido/a a Epoint, ${firstName}! Tu perfil está en revisión`}
       logoUrl={logoUrl}
-      footerNote="Si tenés alguna consulta, respondé a este correo o contactá a tu asesor Epoint."
+      footerNote="Si tienes alguna consulta, responde a este correo o contacta a tu asesor Epoint."
     >
       <Heading style={headingStyle}>¡Bienvenido/a a Epoint!</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>

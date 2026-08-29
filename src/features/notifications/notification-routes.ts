@@ -15,6 +15,17 @@ export function payloadPositiveInt(value: unknown): number | null {
   return null;
 }
 
+function withNoticeQuery(href: string | null, notification: Notification): string | null {
+  if (!href) return null;
+  const [path, query] = href.split("?");
+  const search = new URLSearchParams(query || "");
+  search.set("n", String(notification.id));
+  const attachmentId = payloadPositiveInt(notification.payload?.attachment_id);
+  if (attachmentId) search.set("attachment", String(attachmentId));
+  const qs = search.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
 function boardHref(payload: Notification["payload"], isClient: boolean): string | null {
   const clientId = payloadPositiveInt(payload?.client_id);
   const cardId = payloadPositiveInt(payload?.card_id);
@@ -27,8 +38,7 @@ function boardHref(payload: Notification["payload"], isClient: boolean): string 
   return `/clientes/${clientId}?${params.toString()}`;
 }
 
-/** Resuelve la ruta interna según el tipo de notificación y el rol del usuario. */
-export function getNotificationHref(
+function resolveNotificationHref(
   notification: Notification,
   roleCode: string | undefined,
 ): string | null {
@@ -89,6 +99,14 @@ export function getNotificationHref(
   }
 
   return null;
+}
+
+/** Resuelve la ruta interna según el tipo de notificación y el rol del usuario. */
+export function getNotificationHref(
+  notification: Notification,
+  roleCode: string | undefined,
+): string | null {
+  return withNoticeQuery(resolveNotificationHref(notification, roleCode), notification);
 }
 
 export function isNotificationNavigable(notification: Notification, roleCode: string | undefined): boolean {

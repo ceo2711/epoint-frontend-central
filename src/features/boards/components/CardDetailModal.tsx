@@ -47,6 +47,7 @@ interface CardDetailModalProps {
   onUploadAttachment: (cardId: number, file: File) => Promise<void>;
   onSubmitCredentials?: (cardId: number, username: string, password: string) => Promise<void>;
   onDeleteCard?: (cardId: number) => Promise<void>;
+  onDeleteAttachment?: (attachmentId: number) => Promise<void>;
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
   canSetLabel?: boolean;
@@ -84,6 +85,7 @@ export function CardDetailModal({
   onUploadAttachment,
   onSubmitCredentials,
   onDeleteCard,
+  onDeleteAttachment,
   canPostInternalComments = false,
   canEditDescription = false,
   canSetLabel = false,
@@ -99,6 +101,7 @@ export function CardDetailModal({
   const [internalComment, setInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<number | null>(null);
   const [creds, setCreds] = useState({ username: "", password: "" });
   const [viewingAttachment, setViewingAttachment] = useState<CardAttachment | null>(null);
   const viewingAttachmentUrl = useAttachmentContentUrl(
@@ -191,6 +194,16 @@ export function CardDetailModal({
       });
     } finally {
       setUploadingAttachment(false);
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: number) {
+    if (!onDeleteAttachment) return;
+    setDeletingAttachmentId(attachmentId);
+    try {
+      await onDeleteAttachment(attachmentId);
+    } finally {
+      setDeletingAttachmentId(null);
     }
   }
 
@@ -340,6 +353,14 @@ export function CardDetailModal({
                       </Button>
                     </div>
                   </div>
+                ) : canEditDescription && !description.trim() ? (
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-brand hover:underline"
+                    onClick={() => setEditingDescription(true)}
+                  >
+                    {t("portalBoard.addDescription")}
+                  </button>
                 ) : (
                   <RichTextContent content={description || t("portalBoard.noDescription")} />
                 )}
@@ -353,13 +374,26 @@ export function CardDetailModal({
                 {cardAttachments.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
                     {cardAttachments.map((attachment) => (
-                      <div key={attachment.id} className="flex flex-col gap-1">
+                      <div key={attachment.id} className="relative flex flex-col gap-1">
                         <CardAttachmentThumbnail
                           attachment={attachment}
                           token={token}
                           size="md"
                           onView={() => setViewingAttachment(attachment)}
                         />
+                        {onDeleteAttachment &&
+                          (attachment.verification_status === "RECHAZADO" || !attachment.verification_status) && (
+                          <button
+                            type="button"
+                            className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600 shadow hover:bg-red-600 hover:text-white disabled:opacity-50"
+                            title={t("portalBoard.deleteAttachment")}
+                            aria-label={t("portalBoard.deleteAttachment")}
+                            disabled={deletingAttachmentId === attachment.id}
+                            onClick={() => void handleDeleteAttachment(attachment.id)}
+                          >
+                            <HiOutlineTrash className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         {attachment.verification_status && (
                           <div className="flex flex-wrap items-center gap-1 px-0.5">
                             <VerificationBadge status={attachment.verification_status} />
@@ -391,6 +425,11 @@ export function CardDetailModal({
               {card.requires_credentials && onSubmitCredentials && (
                 <section className="mt-8 space-y-3 border-t border-slate-100 pt-6">
                   <SectionLabel>{t("portalBoard.credentialsTitle")}</SectionLabel>
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    {/freeze/i.test(card.title)
+                      ? t("portalBoard.credentialsHintFreeze")
+                      : t("portalBoard.credentialsHintBureau")}
+                  </p>
                   <Input
                     placeholder={t("portalBoard.username")}
                     value={creds.username}

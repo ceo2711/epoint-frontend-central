@@ -20,7 +20,7 @@ function makeNotification(overrides: Partial<Notification> = {}): Notification {
 describe("getNotificationHref", () => {
   it("routes staff to client detail when client_id is present", () => {
     const href = getNotificationHref(makeNotification(), "ADMIN");
-    expect(href).toBe("/clientes/42");
+    expect(href).toBe("/clientes/42?n=1");
   });
 
   it("routes client document events to portal documents", () => {
@@ -28,7 +28,7 @@ describe("getNotificationHref", () => {
       makeNotification({ event_type: "DOCUMENT_REJECTED" }),
       "CLIENT",
     );
-    expect(href).toBe("/portal/documentos");
+    expect(href).toBe("/portal/documentos?n=1");
   });
 
   it("routes client task events to portal board", () => {
@@ -36,7 +36,7 @@ describe("getNotificationHref", () => {
       makeNotification({ event_type: "TASK_COMMENTED" }),
       "CLIENT",
     );
-    expect(href).toBe("/portal/tablero");
+    expect(href).toBe("/portal/tablero?n=1");
   });
 
   it("routes staff board mentions to the client card", () => {
@@ -47,7 +47,7 @@ describe("getNotificationHref", () => {
       }),
       "ADVISOR",
     );
-    expect(href).toBe("/clientes/42?tab=board&card=7");
+    expect(href).toBe("/clientes/42?tab=board&card=7&n=1");
   });
 
   it("routes client board mentions to the portal card", () => {
@@ -58,7 +58,19 @@ describe("getNotificationHref", () => {
       }),
       "CLIENT",
     );
-    expect(href).toBe("/portal/tablero?card=7");
+    expect(href).toBe("/portal/tablero?card=7&n=1");
+  });
+
+  it("routes rejected board attachments to the same card with a unique notice id", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        id: 9,
+        event_type: "BOARD_ATTACHMENT_REJECTED",
+        payload: { client_id: 42, card_id: 7, attachment_id: 15 },
+      }),
+      "CLIENT",
+    );
+    expect(href).toBe("/portal/tablero?card=7&n=9&attachment=15");
   });
 
   it("routes staff calendly events to calendar", () => {
@@ -66,7 +78,7 @@ describe("getNotificationHref", () => {
       makeNotification({ event_type: "CALENDLY_EVENT_SCHEDULED", payload: { calendly_event_id: 7 } }),
       "SALES_REP",
     );
-    expect(href).toBe("/calendario");
+    expect(href).toBe("/calendario?n=1");
   });
 
   it("routes staff payment events to pagos", () => {
@@ -74,7 +86,7 @@ describe("getNotificationHref", () => {
       makeNotification({ event_type: "PAYMENT_LINK_COMPLETED", payload: { payment_link_id: 3 } }),
       "SALES_REP",
     );
-    expect(href).toBe("/pagos");
+    expect(href).toBe("/pagos?n=1");
   });
 
   it("routes staff payment+conversion events to client detail", () => {
@@ -85,7 +97,7 @@ describe("getNotificationHref", () => {
       }),
       "SALES_REP",
     );
-    expect(href).toBe("/clientes/42");
+    expect(href).toBe("/clientes/42?n=1");
   });
 
   it("routes prospect conversion events to client detail", () => {
@@ -96,7 +108,7 @@ describe("getNotificationHref", () => {
       }),
       "SALES_REP",
     );
-    expect(href).toBe("/clientes/42");
+    expect(href).toBe("/clientes/42?n=1");
   });
 
   it("returns null for staff when no client_id", () => {

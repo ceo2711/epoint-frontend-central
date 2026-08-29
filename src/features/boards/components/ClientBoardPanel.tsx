@@ -21,6 +21,8 @@ interface ClientBoardPanelProps {
   isClientPortal?: boolean;
   /** Abre esta tarjeta al cargar (p. ej. desde una notificación de mención). */
   initialCardId?: number | null;
+  /** Cambia con cada notificación para reabrir aunque sea la misma card. */
+  openNonce?: string | null;
 }
 
 function normalizeCard(card: BoardCard): BoardCard {
@@ -39,6 +41,7 @@ export function ClientBoardPanel({
   clientId,
   isClientPortal = false,
   initialCardId = null,
+  openNonce = null,
 }: ClientBoardPanelProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -67,21 +70,23 @@ export function ClientBoardPanel({
         return;
       }
     }
+    if (selected.id < 0) return;
     setSelected(null);
   }, [board, selected?.id]);
 
   useEffect(() => {
     if (!board || !initialCardId) return;
-    if (openedCardRef.current === initialCardId) return;
+    const openToken = `${initialCardId}:${openNonce ?? ""}`;
+    if (openedCardRef.current === openToken) return;
     for (const list of board.lists) {
       const found = list.cards.find((card) => card.id === initialCardId);
       if (found) {
-        openedCardRef.current = initialCardId;
+        openedCardRef.current = openToken;
         setSelected(found);
         return;
       }
     }
-  }, [board, initialCardId]);
+  }, [board, initialCardId, openNonce]);
 
   const isVerifyingAttachments = board?.lists.some((list) =>
     list.cards.some((card) =>
@@ -108,8 +113,12 @@ export function ClientBoardPanel({
 
   async function createCard(listId: number, title: string, position?: number): Promise<BoardCard> {
     if (!token) throw new Error("missing token");
-    const created = await api.post<BoardCard>(`/boards/lists/${listId}/cards`, { title, position }, token);
-    return normalizeCard(created);
+    const created = normalizeCard(
+      await api.post<BoardCard>(`/boards/lists/${listId}/cards`, { title, position }, token),
+    );
+    await refresh();
+    setSelected(created);
+    return created;
   }
 
   async function deleteCard(cardId: number) {
@@ -160,6 +169,27 @@ export function ClientBoardPanel({
     formData.append("file", file);
     if (commentId) formData.append("comment_id", String(commentId));
     await api.upload(`/boards/cards/${cardId}/attachments`, formData, token);
+  }
+
+  async function deleteAttachment(attachmentId: number) {
+    if (!token) return;
+    const confirmed = await modal.confirm({
+      title: t("portalBoard.deleteAttachment"),
+      message: t("portalBoard.deleteAttachmentConfirm"),
+      confirmLabel: t("portalBoard.deleteAttachment"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/boards/attachments/${attachmentId}`, token);
+      await refresh();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.deleteAttachmentError")),
+        variant: "error",
+      });
+    }
   }
 
   async function submitComment(cardId: number, body: string, files: File[], isInternal: boolean) {
@@ -232,6 +262,7 @@ export function ClientBoardPanel({
           }}
           onSubmitCredentials={isClientPortal ? submitCredentials : undefined}
           onDeleteCard={canDeleteCard ? deleteCard : undefined}
+          onDeleteAttachment={deleteAttachment}
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
           canSetLabel={canSetLabel}

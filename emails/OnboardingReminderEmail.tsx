@@ -19,14 +19,14 @@ export function OnboardingReminderEmail({
 }: OnboardingReminderEmailProps) {
   return (
     <EmailLayout
-      preview={`${firstName}, tenés pendientes en tu onboarding de Epoint`}
+      preview={`${firstName}, tienes pendientes en tu onboarding de Epoint`}
       logoUrl={logoUrl}
     >
-      <Heading style={headingStyle}>Completá tu onboarding</Heading>
+      <Heading style={headingStyle}>Completa tu onboarding</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>
-        Te recordamos amablemente que aún tenés pendiente completar tu onboarding en la plataforma.
-        Ingresá al portal y completá lo siguiente:
+        Te recordamos amablemente que aún tienes pendiente completar tu onboarding en la plataforma.
+        Ingresa al portal y completa lo siguiente:
       </Text>
 
       <Section style={listBoxStyle}>
@@ -40,7 +40,7 @@ export function OnboardingReminderEmail({
       </Section>
 
       <Text style={noteStyle}>
-        Si ya subiste algún documento, puede estar en revisión. Si fue rechazado, volvé a subirlo
+        Si ya subiste algún documento, puede estar en revisión. Si fue rechazado, vuelve a subirlo
         desde la sección de documentos.
       </Text>
     </EmailLayout>

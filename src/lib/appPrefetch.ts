@@ -49,7 +49,7 @@ import {
   isGlobalAdmin,
   isSalesAreaLeader,
 } from "@/lib/roles";
-import type { Paginated, User } from "@/types/api";
+import type { Client, Paginated, User } from "@/types/api";
 
 /** Alineado con el staleTime global del QueryProvider. */
 export const PREFETCH_STALE_MS = 5 * 60_000;
@@ -68,6 +68,11 @@ interface PrefetchContext {
   token: string;
   user: User;
   hasPermission: (permission: string) => boolean;
+}
+
+function clientBoardUnlocked(queryClient: QueryClient): boolean {
+  const me = queryClient.getQueryData<Client>(queryKeys.portal.me);
+  return Boolean(me?.board_unlocked);
 }
 
 /** Ordena hrefs: ruta actual, luego vistas pesadas, luego el resto. */
@@ -578,9 +583,8 @@ export async function prefetchAppData(
   options?: { skipHref?: string; currentPathname?: string },
 ) {
   const hrefs = getAccessibleHrefs(user, hasPermission, {
-    // Si el cliente tiene board, prefetcheamos tablero aunque el nav lo oculte
-    // hasta desbloquear; los datos quedan listos al abrir.
-    boardUnlocked: user.role.code === "CLIENT" && !!user.client_id,
+    boardUnlocked:
+      user.role.code === "CLIENT" ? clientBoardUnlocked(queryClient) : true,
   }).filter((href) => href !== options?.skipHref);
   const ordered = sortHrefsForPrefetch(hrefs, options?.currentPathname);
   const ctx: PrefetchContext = { queryClient, token, user, hasPermission };
@@ -597,7 +601,8 @@ export async function prefetchCurrentRouteData(
   pathname: string,
 ) {
   const href = getAccessibleHrefs(user, hasPermission, {
-    boardUnlocked: user.role.code === "CLIENT" && !!user.client_id,
+    boardUnlocked:
+      user.role.code === "CLIENT" ? clientBoardUnlocked(queryClient) : true,
   }).find((item) => pathname === item || pathname.startsWith(`${item}/`));
   if (!href) return;
   await prefetchRouteData({ queryClient, token, user, hasPermission }, href);

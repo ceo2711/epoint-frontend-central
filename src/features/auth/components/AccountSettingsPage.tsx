@@ -17,6 +17,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { isSedeAdmin } from "@/lib/roles";
+import { translateRole } from "@/i18n";
 import type { TotpSetupResponse, User } from "@/types/api";
 
 function profileFromUser(user: User) {
@@ -29,8 +30,9 @@ function profileFromUser(user: User) {
 
 export function AccountSettingsPage() {
   const { user, token, refreshUser } = useAuth();
-  const { t } = useTranslation();
-  const canEditProfile = isSedeAdmin(user?.role.code);
+  const { t, locale } = useTranslation();
+  const canEditFullProfile = isSedeAdmin(user?.role.code);
+  const canEditNames = canEditFullProfile || user?.role.code === "CLIENT";
 
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", email: "" });
   const [setupData, setSetupData] = useState<TotpSetupResponse | null>(null);
@@ -191,7 +193,7 @@ export function AccountSettingsPage() {
 
           <div className="mt-6 flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
-              {canEditProfile ? (
+              {canEditFullProfile ? (
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Input
@@ -220,7 +222,9 @@ export function AccountSettingsPage() {
                   />
                   <div>
                     <p className="input-label">{t("common.role")}</p>
-                    <p className="text-sm font-medium text-slate-900">{user.role.name}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {translateRole(locale, user.role.code, user.role.name)}
+                    </p>
                   </div>
                   {user.sede?.name ? (
                     <div>
@@ -228,6 +232,39 @@ export function AccountSettingsPage() {
                       <p className="text-sm font-medium text-slate-900">{user.sede.name}</p>
                     </div>
                   ) : null}
+                  <Button type="submit" disabled={profileBusy}>
+                    {profileBusy ? t("account.profileSaving") : t("account.profileSave")}
+                  </Button>
+                </form>
+              ) : canEditNames ? (
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  <p className="text-sm text-slate-500">{t("account.profileNamesHint")}</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                      id="profile-first-name"
+                      label={t("common.firstName")}
+                      required
+                      value={profileForm.first_name}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, first_name: e.target.value }))}
+                    />
+                    <Input
+                      id="profile-last-name"
+                      label={t("common.lastName")}
+                      required
+                      value={profileForm.last_name}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, last_name: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <p className="input-label">{t("common.email")}</p>
+                    <p className="text-sm font-medium text-slate-900">{user.email}</p>
+                  </div>
+                  <div>
+                    <p className="input-label">{t("common.role")}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {translateRole(locale, user.role.code, user.role.name)}
+                    </p>
+                  </div>
                   <Button type="submit" disabled={profileBusy}>
                     {profileBusy ? t("account.profileSaving") : t("account.profileSave")}
                   </Button>
@@ -258,7 +295,9 @@ export function AccountSettingsPage() {
                       <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         {t("common.role")}
                       </dt>
-                      <dd className="mt-1 text-sm font-medium text-slate-900">{user.role.name}</dd>
+                      <dd className="mt-1 text-sm font-medium text-slate-900">
+                        {translateRole(locale, user.role.code, user.role.name)}
+                      </dd>
                     </div>
                     {user.sede?.name ? (
                       <div>

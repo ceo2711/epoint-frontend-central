@@ -220,5 +220,7 @@ export function fetchPortalDocuments(token: string) {
 }
 
 export function fetchClientBoard(token: string, clientId: number) {
-  return api.get<Board>(`/boards/client/${clientId}`, token);
+  return api.get<Board>(`/boards/client/${clientId}`, token, {
+    silentHttpErrors: true,
+  });
 }

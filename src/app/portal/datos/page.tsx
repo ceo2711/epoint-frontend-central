@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -33,15 +34,41 @@ function currentYear() {
   return new Date().getFullYear();
 }
 
+function emptyStreetAddr() {
+  return { street: "", city: "", state: "", zip_code: "" };
+}
+
+function residenceLessThanTwoYears(monthStr: string, yearStr: string): boolean {
+  const month = parseOptionalInt(monthStr);
+  const year = parseOptionalInt(yearStr);
+  if (!month || !year || Number.isNaN(month) || Number.isNaN(year)) return false;
+  const now = new Date();
+  const months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
+  return months < 24;
+}
+
+function hadPersonalDataSaved(client: Client | null): boolean {
+  if (!client) return false;
+  return Boolean(
+    client.has_ssn ||
+      client.date_of_birth ||
+      client.addresses?.some((item) => item.type === "CURRENT") ||
+      client.vehicles?.some((item) => item.order === 1),
+  );
+}
+
 export default function PortalDatosPage() {
-  const { token } = useAuth();
+  const { token, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
   const profileQuery = usePortalMe(token);
   const [client, setClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [ssn, setSsn] = useState("");
   const [dob, setDob] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [addr, setAddr] = useState({
     street: "",
     city: "",
@@ -51,6 +78,8 @@ export default function PortalDatosPage() {
     residence_since_year: "",
   });
   const [addrErrors, setAddrErrors] = useState<{ month?: string; year?: string }>({});
+  const [prevAddr, setPrevAddr] = useState(emptyStreetAddr());
+  const [prevAddrError, setPrevAddrError] = useState("");
   const [vehicle, setVehicle] = useState({ model: "", year: "", color: "" });
   const [vehicleErrors, setVehicleErrors] = useState<{ year?: string }>({});
   const [profileErrors, setProfileErrors] = useState<{ ssn?: string; dob?: string }>({});
@@ -76,6 +105,8 @@ export default function PortalDatosPage() {
     const c = profileQuery.data;
     if (!c || hydrated) return;
     setClient(c);
+    setFirstName(c.first_name ?? "");
+    setLastName(c.last_name ?? "");
     if (c.date_of_birth) setDob(c.date_of_birth);
     const a = c.addresses?.find((x) => x.type === "CURRENT");
     if (a) {
@@ -86,6 +117,15 @@ export default function PortalDatosPage() {
         zip_code: a.zip_code,
         residence_since_month: String(a.residence_since_month ?? ""),
         residence_since_year: String(a.residence_since_year ?? ""),
+      });
+    }
+    const previous = c.addresses?.find((x) => x.type === "PREVIOUS");
+    if (previous) {
+      setPrevAddr({
+        street: previous.street,
+        city: previous.city,
+        state: previous.state,
+        zip_code: previous.zip_code,
       });
     }
     const v = c.vehicles?.find((x) => x.order === 1);
@@ -153,7 +193,27 @@ export default function PortalDatosPage() {
     const profileOk = validateProfileFields();
     const addressOk = validateAddressFields();
     const vehicleOk = validateVehicleFields();
-    return profileOk && addressOk && vehicleOk;
+    const needsPrevious = residenceLessThanTwoYears(
+      addr.residence_since_month,
+      addr.residence_since_year,
+    );
+    let previousOk = true;
+    if (needsPrevious) {
+      const missing =
+        !prevAddr.street.trim() ||
+        !prevAddr.city.trim() ||
+        !prevAddr.state.trim() ||
+        !prevAddr.zip_code.trim();
+      if (missing) {
+        setPrevAddrError(t("portalData.previousAddressRequired"));
+        previousOk = false;
+      } else {
+        setPrevAddrError("");
+      }
+    } else {
+      setPrevAddrError("");
+    }
+    return profileOk && addressOk && vehicleOk && previousOk;
   }
 
   async function saveAll(e: FormEvent) {
@@ -166,7 +226,17 @@ export default function PortalDatosPage() {
     if (year === null || Number.isNaN(year)) return;
 
     const month = parseOptionalInt(addr.residence_since_month);
-    const profilePayload: { ssn?: string; date_of_birth?: string } = {};
+    const wasFirstSave = !hadPersonalDataSaved(client);
+    const needsPrevious = residenceLessThanTwoYears(
+      addr.residence_since_month,
+      addr.residence_since_year,
+    );
+    const profilePayload: {
+      ssn?: string;
+      date_of_birth?: string;
+      first_name?: string;
+      last_name?: string;
+    } = {};
     const ssnTrimmed = ssn.trim();
     if (ssnTrimmed) {
       profilePayload.ssn = ssnTrimmed;
@@ -174,6 +244,8 @@ export default function PortalDatosPage() {
     if (dob.trim()) {
       profilePayload.date_of_birth = dob;
     }
+    if (firstName.trim()) profilePayload.first_name = firstName.trim();
+    if (lastName.trim()) profilePayload.last_name = lastName.trim();
 
     setSaving(true);
     try {
@@ -192,6 +264,14 @@ export default function PortalDatosPage() {
         token,
       );
 
+      if (needsPrevious) {
+        await api.post(
+          "/portal/addresses",
+          { type: "PREVIOUS", ...prevAddr },
+          token,
+        );
+      }
+
       await api.post(
         "/portal/vehicles",
         { order: 1, model: vehicle.model, year, color: vehicle.color },
@@ -203,7 +283,11 @@ export default function PortalDatosPage() {
       setSsn("");
       setSsnVisible(false);
       await loadStoredSsn(updated.has_ssn);
-      setMessage(t("portalData.dataSaved"));
+      await refreshUser();
+      setMessage(wasFirstSave ? t("portalData.redirectingToDocuments") : t("portalData.dataSaved"));
+      if (wasFirstSave) {
+        window.setTimeout(() => router.push("/portal/documentos"), 1200);
+      }
     } catch (err) {
       setError(getUserFacingErrorMessage(err, t("portalData.saveError")));
     } finally {
@@ -229,6 +313,18 @@ export default function PortalDatosPage() {
                   {t("portalData.basicData")}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label={t("common.firstName")}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                  <Input
+                    label={t("common.lastName")}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
                   <div>
                     <div className="mb-2 sm:min-h-[4.5rem]">
                       <label htmlFor="portal-ssn" className="input-label">
@@ -378,6 +474,53 @@ export default function PortalDatosPage() {
                     error={addrErrors.year}
                   />
                 </div>
+                {residenceLessThanTwoYears(addr.residence_since_month, addr.residence_since_year) && (
+                  <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800">{t("portalData.previousAddress")}</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                        {t("portalData.previousAddressHint")}
+                      </p>
+                    </div>
+                    <AddressAutocomplete
+                      label={t("portalData.street")}
+                      value={prevAddr.street}
+                      onChange={(street) => setPrevAddr((prev) => ({ ...prev, street }))}
+                      onSelect={(resolved) =>
+                        setPrevAddr((prev) => ({
+                          ...prev,
+                          street: resolved.street,
+                          city: resolved.city || prev.city,
+                          state: resolved.state || prev.state,
+                          zip_code: resolved.zip_code || prev.zip_code,
+                        }))
+                      }
+                      placeholder={t("portalData.streetPlaceholder")}
+                      required
+                    />
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <Input
+                        label={t("portalData.city")}
+                        value={prevAddr.city}
+                        onChange={(e) => setPrevAddr({ ...prevAddr, city: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label={t("portalData.state")}
+                        value={prevAddr.state}
+                        onChange={(e) => setPrevAddr({ ...prevAddr, state: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label={t("portalData.zip")}
+                        value={prevAddr.zip_code}
+                        onChange={(e) => setPrevAddr({ ...prevAddr, zip_code: e.target.value })}
+                        required
+                      />
+                    </div>
+                    {prevAddrError ? <p className="text-sm text-red-600">{prevAddrError}</p> : null}
+                  </div>
+                )}
               </section>
 
               <section className="space-y-4 border-t border-slate-100 pt-8">
