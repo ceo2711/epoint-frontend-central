@@ -59,7 +59,7 @@ export function ClientBoardPanel({
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
-  const openedCardRef = useRef<number | null>(null);
+  const openedCardRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!selected || !board) return;
