@@ -5,6 +5,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -17,10 +18,41 @@ interface EmailLayoutProps {
   preview: string;
   logoUrl: string;
   children: React.ReactNode;
-  footerNote?: string;
+  footerNote?: React.ReactNode;
+  supportUrl?: string;
 }
 
-export function EmailLayout({ preview, logoUrl, children, footerNote }: EmailLayoutProps) {
+export function defaultEmailSupportFooter(supportUrl: string, locale: "es" | "en" = "es") {
+  const href = supportUrl || "https://epointsolution.com/";
+  if (locale === "en") {
+    return (
+      <>
+        For platform questions, visit{" "}
+        <Link href={href} style={footerLinkStyle}>
+          technical support
+        </Link>{" "}
+        or reply to this email: your message reaches the Epoint team in the app.
+      </>
+    );
+  }
+  return (
+    <>
+      Si tienes dudas de la plataforma, visita{" "}
+      <Link href={href} style={footerLinkStyle}>
+        soporte técnico
+      </Link>{" "}
+      o responde este correo: tu mensaje llega al equipo en Epoint.
+    </>
+  );
+}
+
+export function EmailLayout({
+  preview,
+  logoUrl,
+  children,
+  footerNote,
+  supportUrl = "{{SUPPORT_URL}}",
+}: EmailLayoutProps) {
   return (
     <Html lang="es">
       <Head>
@@ -40,9 +72,7 @@ export function EmailLayout({ preview, logoUrl, children, footerNote }: EmailLay
           <Section style={contentStyle}>{children}</Section>
 
           <Hr style={hrStyle} />
-          <Text style={footerStyle}>
-            {footerNote ?? "Si tienes alguna consulta, responde a este correo o contacta a tu asesor Epoint."}
-          </Text>
+          <Text style={footerStyle}>{footerNote ?? defaultEmailSupportFooter(supportUrl)}</Text>
           <Text style={footerBrandStyle}>
             © <span translate="no">{BRAND_NAME}</span>
           </Text>
@@ -120,6 +150,11 @@ const footerStyle: React.CSSProperties = {
   lineHeight: "1.5",
   margin: "20px 40px 8px",
   textAlign: "center" as const,
+};
+
+const footerLinkStyle: React.CSSProperties = {
+  color: t.brand,
+  textDecoration: "underline",
 };
 
 const footerBrandStyle: React.CSSProperties = {

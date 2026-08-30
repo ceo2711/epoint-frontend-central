@@ -303,6 +303,9 @@ function ClientesPageContent() {
                 total={total}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                onInboxOpened={() => {
+                  void load({ bustCache: true });
+                }}
               />
             )}
           </>

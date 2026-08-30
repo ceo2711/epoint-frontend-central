@@ -192,6 +192,7 @@ export interface Client {
   source_prospect?: import("@/features/prospects/types").ProspectPipelineSummary | null;
   /** True cuando el portal ya puede mostrar el tablero (datos + docs OK). */
   board_unlocked?: boolean;
+  has_unread_inbound_email?: boolean;
 }
 
 export interface ClientPortalPassword {

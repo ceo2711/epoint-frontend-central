@@ -1,7 +1,7 @@
 import { Button, Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
 
-import { EmailLayout } from "./components/EmailLayout";
+import { EmailLayout, defaultEmailSupportFooter } from "./components/EmailLayout";
 import { emailTheme as t } from "./theme";
 
 export interface PaymentLinkEmailProps {
@@ -23,7 +23,7 @@ export function PaymentLinkEmail({
     <EmailLayout
       preview={`Completa tu pago de ${amountFormatted} en Epoint, ${firstName}`}
       logoUrl={logoUrl}
-      footerNote="Si tienes alguna consulta sobre este pago, responde a este correo o contacta a tu asesor Epoint."
+      footerNote={defaultEmailSupportFooter("{{SUPPORT_URL}}")}
     >
       <Heading style={headingStyle}>Tu link de pago</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>

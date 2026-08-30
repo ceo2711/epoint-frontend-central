@@ -1,7 +1,7 @@
 import { Button, Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
 
-import { EmailLayout } from "./components/EmailLayout";
+import { EmailLayout, defaultEmailSupportFooter } from "./components/EmailLayout";
 import { emailTheme as t } from "./theme";
 
 export interface OnboardingReminderEmailEnProps {
@@ -21,7 +21,7 @@ export function OnboardingReminderEmailEn({
     <EmailLayout
       preview={`${firstName}, you have pending onboarding items at Epoint`}
       logoUrl={logoUrl}
-      footerNote="If you have any questions, reply to this email or contact your Epoint advisor."
+      footerNote={defaultEmailSupportFooter("{{SUPPORT_URL}}", "en")}
     >
       <Heading style={headingStyle}>Complete your onboarding</Heading>
       <Text style={paragraphStyle}>Hi {firstName},</Text>

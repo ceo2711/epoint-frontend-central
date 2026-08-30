@@ -73,6 +73,10 @@ function resolveNotificationHref(
     return "/prospectos";
   }
 
+  if (notification.event_type === "CLIENT_EMAIL_RECEIVED" && !isClient && clientId) {
+    return `/clientes/${clientId}?email=1`;
+  }
+
   if (clientId) {
     if (isClient) {
       switch (notification.event_type) {

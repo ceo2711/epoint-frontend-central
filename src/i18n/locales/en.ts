@@ -1575,5 +1575,12 @@ export const en: Messages = {
     historyEmpty: "No emails have been sent to this contact yet.",
     historySentBy: "by {name}",
     historyView: "View message",
+    threadTitle: "Email thread",
+    threadEmpty: "There are no messages in this thread yet.",
+    staffLabel: "Epoint team",
+    unreadInbox: "Unread client reply",
+    composeAction: "Compose email",
+    inboundBadge: "Received",
+    outboundBadge: "Sent",
   },
 };

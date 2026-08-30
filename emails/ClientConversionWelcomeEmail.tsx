@@ -1,7 +1,7 @@
 import { Heading, Section, Text } from "@react-email/components";
 import * as React from "react";
 
-import { EmailLayout } from "./components/EmailLayout";
+import { EmailLayout, defaultEmailSupportFooter } from "./components/EmailLayout";
 import { BRAND_NAME, emailTheme as t } from "./theme";
 
 export interface ClientConversionWelcomeEmailProps {
@@ -19,7 +19,7 @@ export function ClientConversionWelcomeEmail({
     <EmailLayout
       preview={`¡Bienvenido/a a Epoint, ${firstName}! Tu perfil está en revisión`}
       logoUrl={logoUrl}
-      footerNote="Si tienes alguna consulta, responde a este correo o contacta a tu asesor Epoint."
+      footerNote={defaultEmailSupportFooter("{{SUPPORT_URL}}")}
     >
       <Heading style={headingStyle}>¡Bienvenido/a a Epoint!</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>

@@ -100,6 +100,17 @@ describe("getNotificationHref", () => {
     expect(href).toBe("/clientes/42?n=1");
   });
 
+  it("routes inbound client email to the client thread", () => {
+    const href = getNotificationHref(
+      makeNotification({
+        event_type: "CLIENT_EMAIL_RECEIVED",
+        payload: { client_id: 42, email_id: 9 },
+      }),
+      "ADVISOR",
+    );
+    expect(href).toBe("/clientes/42?email=1&n=1");
+  });
+
   it("routes prospect conversion events to client detail", () => {
     const href = getNotificationHref(
       makeNotification({

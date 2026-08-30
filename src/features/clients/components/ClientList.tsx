@@ -30,6 +30,18 @@ interface ClientListProps {
   total: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  onInboxOpened?: () => void;
+}
+
+function EmailInboxIcon({ unread }: { unread: boolean }) {
+  return (
+    <span className="relative inline-flex">
+      <HiOutlineEnvelope className="h-4 w-4" />
+      {unread ? (
+        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+      ) : null}
+    </span>
+  );
 }
 
 function salesRepLabel(client: Client, dash: string) {
@@ -63,6 +75,7 @@ export function ClientList({
   total,
   pageSize,
   onPageChange,
+  onInboxOpened,
 }: ClientListProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -146,8 +159,12 @@ export function ClientList({
                   <div className="mt-3" onClick={(event) => event.stopPropagation()}>
                     <TableActions>
                       <IconActionButton
-                        label={t("emailCompose.action")}
-                        icon={<HiOutlineEnvelope className="h-4 w-4" />}
+                        label={
+                          c.has_unread_inbound_email
+                            ? t("emailCompose.unreadInbox")
+                            : t("emailCompose.action")
+                        }
+                        icon={<EmailInboxIcon unread={!!c.has_unread_inbound_email} />}
                         onClick={() => setEmailTarget(c)}
                       />
                     </TableActions>
@@ -235,8 +252,12 @@ export function ClientList({
                   <td onClick={(event) => event.stopPropagation()}>
                     <TableActions>
                       <IconActionButton
-                        label={t("emailCompose.action")}
-                        icon={<HiOutlineEnvelope className="h-4 w-4" />}
+                        label={
+                          c.has_unread_inbound_email
+                            ? t("emailCompose.unreadInbox")
+                            : t("emailCompose.action")
+                        }
+                        icon={<EmailInboxIcon unread={!!c.has_unread_inbound_email} />}
                         onClick={() => setEmailTarget(c)}
                       />
                     </TableActions>
@@ -268,6 +289,8 @@ export function ClientList({
           recipientName={`${emailTarget.first_name} ${emailTarget.last_name}`}
           recipientEmail={emailTarget.email}
           basePath={`/clients/${emailTarget.id}`}
+          threadMode
+          onThreadOpened={onInboxOpened}
           onClose={() => setEmailTarget(null)}
         />
       ) : null}

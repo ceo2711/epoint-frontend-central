@@ -11,6 +11,7 @@ import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorP
 import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
+import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
 import { payloadPositiveInt } from "@/features/notifications/notification-routes";
 import {
   LazyClientBoardPanel,
@@ -131,8 +132,10 @@ function ClienteDetailPageContent() {
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<DocumentBrief | null>(null);
   const [activeTab, setActiveTab] = useState<ClientWorkspaceTab>("overview");
+  const [emailOpen, setEmailOpen] = useState(false);
   const requestedCardId = payloadPositiveInt(searchParams.get("card"));
   const openNonce = searchParams.get("n");
+  const openEmailThread = searchParams.get("email") === "1";
   const [removing, setRemoving] = useState(false);
   const loadInFlight = useRef(false);
   const deletedRef = useRef(false);
@@ -172,6 +175,10 @@ function ClienteDetailPageContent() {
     }
     if (requestedCardId) setActiveTab("board");
   }, [searchParams, requestedCardId]);
+
+  useEffect(() => {
+    if (openEmailThread) setEmailOpen(true);
+  }, [openEmailThread]);
 
   const emailError = availability?.email
     ? formatClientConflict(t, "email", availability.email)
@@ -461,6 +468,9 @@ function ClienteDetailPageContent() {
             {canDelete && (
               <Button size="sm" variant="danger" onClick={handleDelete}>{t("clients.delete")}</Button>
             )}
+            <Button size="sm" variant="secondary" onClick={() => setEmailOpen(true)}>
+              {t("emailCompose.action")}
+            </Button>
             <Link href={clientsHref} className="btn btn-secondary btn-sm">← {t("common.back")}</Link>
           </div>
         </div>
@@ -748,6 +758,16 @@ function ClienteDetailPageContent() {
           }
         />
       )}
+
+      {emailOpen ? (
+        <SendEmailModal
+          recipientName={clientName}
+          recipientEmail={client.email}
+          basePath={`/clients/${client.id}`}
+          threadMode
+          onClose={() => setEmailOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

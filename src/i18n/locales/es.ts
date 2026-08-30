@@ -1577,6 +1577,13 @@ export const es = {
     historyEmpty: "Todavía no se enviaron emails a este contacto.",
     historySentBy: "por {name}",
     historyView: "Ver mensaje",
+    threadTitle: "Correo con el cliente",
+    threadEmpty: "Todavía no hay mensajes en este hilo.",
+    staffLabel: "Equipo Epoint",
+    unreadInbox: "Hay una respuesta sin leer",
+    composeAction: "Redactar email",
+    inboundBadge: "Recibido",
+    outboundBadge: "Enviado",
   },
 };
 
