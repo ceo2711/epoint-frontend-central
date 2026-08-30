@@ -22,6 +22,7 @@ import {
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
+import { DateInput } from "@/components/ui/DateInput";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -34,10 +35,11 @@ import { MerchantSelect } from "@/features/clients/components/MerchantSelect";
 import { canEditClientProfile, canViewApprovedClientWorkspace, canViewClientOnboardingWorkspace } from "@/features/clients/client-access";
 import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
 import { useMerchantOptions } from "@/features/clients/hooks/useMerchantOptions";
-import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
+import { ProspectQualificationBadge, ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { translateStatus } from "@/i18n";
 import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
+import { formatDate } from "@/lib/format-datetime";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { prefetchDocuments } from "@/lib/contentBlobCache";
@@ -55,7 +57,6 @@ function buildClientForm(client: Client) {
     source: client.source ?? "",
     merchant_id: client.merchant ? String(client.merchant.id) : "",
     date_of_birth: client.date_of_birth ?? "",
-    ssn: "",
   };
 }
 
@@ -126,7 +127,6 @@ function ClienteDetailPageContent() {
     source: "",
     merchant_id: "",
     date_of_birth: "",
-    ssn: "",
   });
   const [saving, setSaving] = useState(false);
   const [portalPassword, setPortalPassword] = useState<string | null>(null);
@@ -346,7 +346,6 @@ function ClienteDetailPageContent() {
       };
       if (client && canViewApprovedClientWorkspace(user, client)) {
         if (form.date_of_birth) payload.date_of_birth = form.date_of_birth;
-        if (form.ssn.trim()) payload.ssn = form.ssn.trim();
       }
       const updated = await api.patch<Client>(`/clients/${client.id}`, payload, token);
       setClient((prev) => (prev ? { ...prev, ...updated } : updated));
@@ -480,6 +479,9 @@ function ClienteDetailPageContent() {
               <p className="section-label">{t("common.status")}</p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <StatusBadge status={client.status} />
+                {client.source_prospect_status ? (
+                  <ProspectStatusBadge status={client.source_prospect_status} />
+                ) : null}
                 <ProspectQualificationBadge isQualified={client.is_qualified ?? true} />
               </div>
             </div>
@@ -611,25 +613,18 @@ function ClienteDetailPageContent() {
                   />
                   {showApprovedWorkspace ? (
                     <>
-                      <Input
+                      <DateInput
                         label={t("clientDetail.dateOfBirth")}
-                        type="date"
                         value={form.date_of_birth}
-                        onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+                        onChange={(date_of_birth) => setForm({ ...form, date_of_birth })}
+                        hint={t("clientDetail.dateOfBirthHint")}
                       />
-                      <div>
-                        <Input
-                          label={t("portal.ssn")}
-                          value={form.ssn}
-                          onChange={(e) => setForm({ ...form, ssn: e.target.value })}
-                          placeholder={
-                            client.has_ssn ? t("portal.ssnPlaceholderUpdate") : t("portal.ssnPlaceholder")
-                          }
-                        />
-                        {client.has_ssn ? (
-                          <p className="mt-1 text-xs text-slate-500">{t("portal.ssnHint")}</p>
-                        ) : null}
-                      </div>
+                      <Input
+                        label={t("clientDetail.hasSsn")}
+                        value={client.has_ssn ? t("common.yes") : t("common.no")}
+                        disabled
+                        readOnly
+                      />
                     </>
                   ) : null}
                   <div className="flex flex-wrap items-center gap-2 pe-[4.75rem] sm:col-span-2 sm:pe-[5.75rem]">
@@ -657,7 +652,7 @@ function ClienteDetailPageContent() {
                   <InfoRow label={t("clients.merchant")} value={client.merchant?.name ?? "—"} />
                   {showApprovedWorkspace ? (
                     <>
-                      <InfoRow label={t("clientDetail.dateOfBirth")} value={client.date_of_birth ?? "—"} />
+                      <InfoRow label={t("clientDetail.dateOfBirth")} value={formatDate(client.date_of_birth)} />
                       <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
                     </>
                   ) : null}

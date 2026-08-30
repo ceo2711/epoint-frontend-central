@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
+import { DateInput } from "@/components/ui/DateInput";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { DataSavedCongratsModal } from "@/features/portal/components/DataSavedCongratsModal";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
@@ -33,10 +34,6 @@ function parseRequiredInt(value: string): number | null {
 
 function currentYear() {
   return new Date().getFullYear();
-}
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function digitsOnly(value: string, maxLen: number): string {
@@ -481,17 +478,15 @@ export default function PortalDatosPage() {
                         {t("portalData.dateOfBirth")}
                       </label>
                     </div>
-                    <Input
+                    <DateInput
                       id="portal-dob"
-                      type="date"
-                      min="1900-01-01"
-                      max={todayIsoDate()}
                       value={dob}
-                      onChange={(e) => {
-                        setDob(e.target.value);
+                      onChange={(value) => {
+                        setDob(value);
                         if (profileErrors.dob) setProfileErrors((prev) => ({ ...prev, dob: undefined }));
                       }}
                       error={profileErrors.dob}
+                      hint={t("portalData.dateOfBirthHint")}
                     />
                   </div>
                 </div>

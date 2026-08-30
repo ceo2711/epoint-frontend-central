@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentConfig, PaymentLinkCreatePayload } from "@/features/payments/types";
-import { EMPTY_PAYMENT_FORM } from "@/features/payments/types";
+import { DEFAULT_PAYMENT_AMOUNT, EMPTY_PAYMENT_FORM } from "@/features/payments/types";
 import { getConfiguredProviders, getDefaultProvider, getProviderLabel } from "@/features/payments/utils/providers";
 import {
   ProspectSearchSelect,
@@ -53,8 +53,11 @@ export function PaymentLinkForm({
     ...EMPTY_PAYMENT_FORM,
     provider: getDefaultProvider(config),
     ...initialData,
+    amount: initialData?.allow_partial ? (initialData.amount ?? DEFAULT_PAYMENT_AMOUNT) : DEFAULT_PAYMENT_AMOUNT,
+    allow_partial: initialData?.allow_partial === true,
   });
   const [linkedProspect, setLinkedProspect] = useState<Prospect | null>(null);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const showProspectSearch = !hideProspectSearch && Boolean(onSearchProspects);
   const externalProspectSearch = useMemo(
@@ -103,10 +106,18 @@ export function PaymentLinkForm({
     if (!form.customer_first_name || !form.customer_last_name || !form.customer_email || !form.customer_phone) {
       return;
     }
-    if (!form.amount || form.amount <= 0) return;
+    const isPartial = form.allow_partial === true;
+    const amount = isPartial ? Number(form.amount) : DEFAULT_PAYMENT_AMOUNT;
+    if (!amount || amount <= 0) return;
+    if (isPartial && amount >= DEFAULT_PAYMENT_AMOUNT) {
+      setAmountError(t("payments.form.amountPartialError"));
+      return;
+    }
+    setAmountError(null);
     await onSubmit({
       ...form,
-      amount: Number(form.amount),
+      amount,
+      allow_partial: isPartial,
       description: form.description?.trim() || undefined,
       prospect_id: linkedProspect?.id ?? initialData?.prospect_id,
     });
@@ -114,6 +125,8 @@ export function PaymentLinkForm({
       ...EMPTY_PAYMENT_FORM,
       provider: getDefaultProvider(config),
       ...initialData,
+      amount: DEFAULT_PAYMENT_AMOUNT,
+      allow_partial: false,
     });
     setLinkedProspect(null);
   }
@@ -165,16 +178,54 @@ export function PaymentLinkForm({
         />
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          label={t("payments.form.amount")}
-          type="number"
-          min="0.01"
-          step="0.01"
-          value={form.amount || ""}
-          onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
-          required
+      <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-muted)] px-3 py-3">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-[var(--color-border)]"
+          checked={form.allow_partial === true}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            setAmountError(null);
+            setForm((f) => ({
+              ...f,
+              allow_partial: checked,
+              amount: checked ? f.amount : DEFAULT_PAYMENT_AMOUNT,
+            }));
+          }}
+          disabled={disabled}
         />
+        <span>
+          <span className="block text-sm font-medium text-[var(--color-text-primary)]">
+            {t("payments.form.allowPartial")}
+          </span>
+          <span className="mt-0.5 block text-sm text-[var(--color-text-muted)]">
+            {t("payments.form.allowPartialHint")}
+          </span>
+        </span>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Input
+            label={t("payments.form.amount")}
+            type="number"
+            min="0.01"
+            max={DEFAULT_PAYMENT_AMOUNT}
+            step="0.01"
+            value={form.allow_partial ? form.amount || "" : DEFAULT_PAYMENT_AMOUNT}
+            onChange={(e) => {
+              setAmountError(null);
+              setForm((f) => ({ ...f, amount: Number(e.target.value) }));
+            }}
+            required
+            disabled={disabled || !form.allow_partial}
+            error={amountError ?? undefined}
+          />
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            {form.allow_partial
+              ? t("payments.form.amountPartialHint")
+              : t("payments.form.amountStandardHint")}
+          </p>
+        </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-[var(--color-text-secondary)]">
             {t("payments.form.provider")}

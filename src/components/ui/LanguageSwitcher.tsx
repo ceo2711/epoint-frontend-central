@@ -41,7 +41,7 @@ export function LanguageSwitcher({
                 : "rounded-lg px-2.5 py-1.5 text-xs"
             } ${
               active
-                ? "bg-white text-blue-700 shadow-sm ring-1 ring-blue-100"
+                ? "bg-[var(--surface-elevated)] text-blue-700 shadow-sm ring-1 ring-blue-100"
                 : "text-slate-500 hover:text-slate-800"
             }`}
             aria-pressed={active}

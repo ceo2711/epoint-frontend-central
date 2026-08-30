@@ -15,6 +15,7 @@ import {
 
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { CommissionDayPoint } from "@/features/dashboard/types";
+import { formatMonthYear, formatShortDate } from "@/lib/format-datetime";
 
 function formatUsd(amount: number): string {
   return amount.toLocaleString("en-US", {
@@ -25,14 +26,8 @@ function formatUsd(amount: number): string {
   });
 }
 
-function formatShortDate(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
-}
-
 function formatMonthLabel(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  return date.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  return formatMonthYear(value);
 }
 
 const TOOLTIP_STYLE = {

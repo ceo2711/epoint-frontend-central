@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useCalendly } from "@/features/calendly/hooks/useCalendly";
 import type { CalendlyEvent } from "@/features/calendly/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface ProspectCalendlyLinkModalProps {
   token: string | null;
@@ -24,11 +25,8 @@ interface ProspectCalendlyLinkModalProps {
   onLink: (calendlyEventId: number) => Promise<void>;
 }
 
-function formatEventTime(value: string, locale: string) {
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+function formatEventTime(value: string) {
+  return formatDateTime(value);
 }
 
 export function ProspectCalendlyLinkModal({
@@ -42,7 +40,7 @@ export function ProspectCalendlyLinkModal({
   onSkipToNote,
   onLink,
 }: ProspectCalendlyLinkModalProps) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const { events, loading, connection, error } = useCalendly(token, salesRepUserId, {
     loadSalesReps: false,
   });
@@ -120,7 +118,7 @@ export function ProspectCalendlyLinkModal({
               />
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-slate-900">{event.name}</p>
-                <p className="text-slate-600">{formatEventTime(event.start_time, locale)}</p>
+                <p className="text-slate-600">{formatEventTime(event.start_time)}</p>
                 {event.invitee_name || event.invitee_email ? (
                   <p className="text-slate-500">
                     {[event.invitee_name, event.invitee_email].filter(Boolean).join(" · ")}

@@ -116,7 +116,7 @@ export function Sidebar() {
             item.disabled
               ? "cursor-not-allowed text-cream-700/35"
               : active
-                ? "bg-gradient-to-r from-cream-400 to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
+                ? "bg-gradient-to-r from-cream-fixed to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
                 : "text-cream-700 hover:bg-white/5 hover:text-white"
           }`;
 

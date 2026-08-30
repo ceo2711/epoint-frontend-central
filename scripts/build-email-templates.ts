@@ -13,6 +13,8 @@ import { PasswordResetEmail } from "../emails/PasswordResetEmail";
 import { PaymentLinkEmail } from "../emails/PaymentLinkEmail";
 import { ClientConversionWelcomeEmail } from "../emails/ClientConversionWelcomeEmail";
 import { CustomMessageEmail } from "../emails/CustomMessageEmail";
+import { BoardReminderEmail } from "../emails/BoardReminderEmail";
+import { ContractReminderEmail } from "../emails/ContractReminderEmail";
 import { WelcomeEmail } from "../emails/WelcomeEmail";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,6 +103,30 @@ async function main() {
       ClientConversionWelcomeEmail({
         firstName: "{{FIRST_NAME}}",
         amountFormatted: "{{AMOUNT_FORMATTED}}",
+        logoUrl: PLACEHOLDER_LOGO,
+      }),
+    ),
+  });
+
+  const boardReminder = await render(
+    BoardReminderEmail({
+      firstName: "{{FIRST_NAME}}",
+      pendingItemsHtml: SAMPLE_LIST_HTML,
+      boardUrl: "{{BOARD_URL}}",
+      logoUrl: PLACEHOLDER_LOGO,
+    }),
+  );
+  templates.push({
+    name: "board_reminder",
+    html: boardReminder.replace(SAMPLE_LIST_HTML, "{{PENDING_ITEMS_HTML}}"),
+  });
+
+  templates.push({
+    name: "contract_reminder",
+    html: await render(
+      ContractReminderEmail({
+        firstName: "{{FIRST_NAME}}",
+        contractSubject: "{{CONTRACT_SUBJECT}}",
         logoUrl: PLACEHOLDER_LOGO,
       }),
     ),

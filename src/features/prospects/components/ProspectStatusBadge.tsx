@@ -8,6 +8,7 @@ const STATUS_STYLES: Record<ProspectStatus, string> = {
   LEAD_CONTACTADO: "bg-blue-100 text-blue-800",
   LEAD_CERRADO: "bg-rose-100 text-rose-800",
   CONTRATO_ENVIADO: "bg-indigo-100 text-indigo-800",
+  PAGO_PARCIAL: "bg-amber-100 text-amber-800",
   PAGO_COMPLETADO: "bg-teal-100 text-teal-800",
 };
 

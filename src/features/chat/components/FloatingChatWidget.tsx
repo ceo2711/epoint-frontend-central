@@ -12,6 +12,7 @@ import { useChatClientIdHint } from "@/features/chat/hooks/useChatClientIdHint";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { canManageOnboarding, isSalesStaff } from "@/lib/roles";
+import { formatDateTime } from "@/lib/format-datetime";
 import { useModalOverlayOpen } from "@/lib/modalOverlay";
 import type { User } from "@/types/api";
 
@@ -111,15 +112,9 @@ function AttachIcon({ className }: { className?: string }) {
   );
 }
 
-function formatConversationDate(value: string, locale: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString(locale.startsWith("en") ? "en-US" : "es-AR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatConversationDate(value: string): string {
+  const formatted = formatDateTime(value);
+  return formatted === "—" ? "" : formatted;
 }
 
 export function FloatingChatWidget() {
@@ -334,7 +329,7 @@ export function FloatingChatWidget() {
                     >
                       <p className="line-clamp-2 text-sm font-medium text-slate-800">{item.title}</p>
                       <p className="mt-1 text-[11px] text-slate-500">
-                        {formatConversationDate(item.updated_at, chatLocale)}
+                        {formatConversationDate(item.updated_at)}
                         {" · "}
                         {chatT("chat.conversationMessages", { count: item.message_count })}
                       </p>

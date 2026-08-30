@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { DocusignEnvelope } from "@/features/docusign/types";
 import type { PaymentLink } from "@/features/payments/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface ProspectExistingEnvelopeModalProps {
   envelopes: DocusignEnvelope[];
@@ -63,7 +64,7 @@ export function ProspectExistingEnvelopeModal({
               <div>
                 <p className="font-medium text-slate-900">{envelope.subject}</p>
                 <p className="text-slate-600">{envelope.signer_email}</p>
-                <p className="text-slate-500">{new Date(envelope.sent_at).toLocaleString()}</p>
+                <p className="text-slate-500">{formatDateTime(envelope.sent_at)}</p>
               </div>
             </label>
           ))}
@@ -101,7 +102,7 @@ export function ProspectExistingPaymentModal({
   const candidates = links.filter(
     (link) =>
       link.customer_email.toLowerCase() === prospectEmail.toLowerCase() &&
-      link.status === "pending" &&
+      (link.status === "pending" || link.status === "partial") &&
       !link.prospect_id,
   );
 

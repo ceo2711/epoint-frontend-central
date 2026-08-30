@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { CalendlyEvent } from "@/features/calendly/types";
+import { formatDateTimeRange } from "@/lib/format-datetime";
 
 interface CalendlyEventModalProps {
   event: CalendlyEvent;
@@ -17,21 +18,8 @@ interface CalendlyEventModalProps {
   onLinkProspect?: () => void;
 }
 
-function formatEventRange(start: string, end: string, locale: string) {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const dateFormatter = new Intl.DateTimeFormat(locale === "es" ? "es-AR" : "en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const timeFormatter = new Intl.DateTimeFormat(locale === "es" ? "es-AR" : "en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  return `${dateFormatter.format(startDate)} · ${timeFormatter.format(startDate)} – ${timeFormatter.format(endDate)}`;
+function formatEventRange(start: string, end: string) {
+  return formatDateTimeRange(start, end);
 }
 
 export function CalendlyEventModal({
@@ -43,7 +31,7 @@ export function CalendlyEventModal({
   onDelete,
   onLinkProspect,
 }: CalendlyEventModalProps) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
   const linkedClientId = event.linked_prospect?.converted_client_id ?? null;
   const linkedProspectId = event.linked_prospect?.id ?? event.prospect_id ?? null;
@@ -85,7 +73,7 @@ export function CalendlyEventModal({
         )}
         <p>
           <span className="font-medium text-slate-900">{t("calendly.scheduledAt")}:</span>{" "}
-          {formatEventRange(event.start_time, event.end_time, locale)}
+          {formatEventRange(event.start_time, event.end_time)}
         </p>
 
         {canLinkProspect ? (

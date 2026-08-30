@@ -13,6 +13,7 @@ import { IconActionButton, TableActions } from "@/components/ui/IconActionButton
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { DocusignEnvelope } from "@/features/docusign/types";
 import { canDownloadSentDocument, canDownloadSignedDocument } from "@/features/docusign/utils";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface EnvelopeListProps {
   envelopes: DocusignEnvelope[];
@@ -126,11 +127,11 @@ export function EnvelopeList({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
-                    {new Date(envelope.sent_at).toLocaleString()}
+                    {formatDateTime(envelope.sent_at)}
                   </td>
                   <td className="px-4 py-3 text-slate-600">
                     {envelope.completed_at
-                      ? new Date(envelope.completed_at).toLocaleString()
+                      ? formatDateTime(envelope.completed_at)
                       : t("common.dash")}
                   </td>
                   <td className="px-4 py-3">

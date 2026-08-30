@@ -15,6 +15,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { api } from "@/lib/api";
 import { emitClientsRefresh } from "@/lib/clientEvents";
 import type { Paginated } from "@/types/api";
+import { formatDateTime } from "@/lib/format-datetime";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 export interface SentEmailEntry {
@@ -74,16 +75,6 @@ export function SendEmailModal({
   const [pages, setPages] = useState(1);
 
   const canSend = subject.trim().length > 0 && hasVisibleContent(messageHtml);
-
-  function formatDate(value: string) {
-    return new Date(value).toLocaleString(locale === "es" ? "es-AR" : "en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
 
   async function loadHistory(nextPage = page) {
     if (!token) return;
@@ -284,7 +275,7 @@ export function SendEmailModal({
                           </span>
                         </span>
                         <span className="mt-0.5 block text-xs text-slate-500">
-                          {formatDate(entry.created_at)} ·{" "}
+                          {formatDateTime(entry.created_at)} ·{" "}
                           {t("emailCompose.historySentBy", {
                             name: inbound
                               ? recipientName
@@ -359,7 +350,7 @@ export function SendEmailModal({
                           {entry.subject}
                         </span>
                         <span className="mt-0.5 block text-xs text-slate-500">
-                          {formatDate(entry.created_at)} ·{" "}
+                          {formatDateTime(entry.created_at)} ·{" "}
                           {t("emailCompose.historySentBy", { name: entry.sent_by_name })}
                         </span>
                       </span>
@@ -388,7 +379,7 @@ export function SendEmailModal({
       {viewerEntry ? (
         <Modal
           title={viewerEntry.subject}
-          subtitle={`${formatDate(viewerEntry.created_at)} · ${t("emailCompose.historySentBy", {
+          subtitle={`${formatDateTime(viewerEntry.created_at)} · ${t("emailCompose.historySentBy", {
             name: viewerEntry.sent_by_name,
           })} · ${viewerEntry.recipient_email}`}
           onClose={() => setViewerEntry(null)}

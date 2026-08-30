@@ -22,7 +22,7 @@ import { SendContractModal } from "@/features/docusign/components/SendContractMo
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
-import type { PaymentLink } from "@/features/payments/types";
+import type { PaymentLink, PaymentLinkCreateResult } from "@/features/payments/types";
 import { PAYMENT_COMPLETED_EVENT, type PaymentCompletedDetail } from "@/features/payments/payment-events";
 import { usePayments, fetchLinkablePaymentLinks } from "@/features/payments/hooks/usePayments";
 import { ProspectCalendlyLinkModal } from "@/features/prospects/components/ProspectCalendlyLinkModal";
@@ -99,6 +99,10 @@ export default function ProspectoDetailPage() {
   const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentsListOpen, setPaymentsListOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [sendingBalance, setSendingBalance] = useState(false);
+  const [resendingPaymentId, setResendingPaymentId] = useState<number | null>(null);
+  const [sendingContractReminder, setSendingContractReminder] = useState(false);
+  const [resendingContractId, setResendingContractId] = useState<number | null>(null);
   const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
   const [linkablePayments, setLinkablePayments] = useState<PaymentLink[]>([]);
   const [editing, setEditing] = useState(false);
@@ -126,7 +130,7 @@ export default function ProspectoDetailPage() {
     downloadSentDocument,
   } = useDocusign(token, { loadEnvelopes: false, listenRefresh: false });
 
-  const { config, createLink, isCreating } = usePayments(token);
+  const { config, createLink, resendLink, isCreating } = usePayments(token);
 
   const hasPendingContracts = useMemo(() => {
     if (!prospect?.docusign_envelopes.length) return false;
@@ -475,13 +479,22 @@ export default function ProspectoDetailPage() {
 
   async function handleLinkPayment(paymentLinkId: number) {
     if (!token || !prospect) return;
-    await api.post(`/prospects/${prospect.id}/link-payment`, { payment_link_id: paymentLinkId }, token);
-    await reload({ silent: true });
-    await modal.alert({
-      title: t("prospects.linkPaymentSuccessTitle"),
-      message: t("prospects.linkPaymentSuccessMessage"),
-      variant: "success",
-    });
+    try {
+      await api.post(`/prospects/${prospect.id}/link-payment`, { payment_link_id: paymentLinkId }, token);
+      await reload({ silent: true });
+      await modal.alert({
+        title: t("prospects.linkPaymentSuccessTitle"),
+        message: t("prospects.linkPaymentSuccessMessage"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("prospects.linkPaymentError")),
+        variant: "error",
+      });
+      throw err;
+    }
   }
 
   async function openPaymentPicker() {
@@ -489,10 +502,15 @@ export default function ProspectoDetailPage() {
     try {
       const items = await fetchLinkablePaymentLinks(token, prospect.email);
       setLinkablePayments(items);
-    } catch {
+      setPaymentPickerOpen(true);
+    } catch (err) {
       setLinkablePayments([]);
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("prospects.linkPaymentLoadError")),
+        variant: "error",
+      });
     }
-    setPaymentPickerOpen(true);
   }
 
   async function handleViewSigned(envelopeId: number) {
@@ -524,6 +542,98 @@ export default function ProspectoDetailPage() {
         message: getUserFacingErrorMessage(err, t("docusign.downloadSentError")),
         variant: "error",
       });
+    }
+  }
+
+  async function handleResendContractReminder(envelopeId: number) {
+    if (!token) return;
+    setSendingContractReminder(true);
+    setResendingContractId(envelopeId);
+    try {
+      const result = await api.post<{ message: string; email_sent: boolean }>(
+        `/docusign/envelopes/${envelopeId}/resend-reminder`,
+        {},
+        token,
+      );
+      await reload({ silent: true });
+      await modal.alert({
+        title: result.email_sent
+          ? t("prospects.contractReminderSuccessTitle")
+          : t("prospects.contractReminderPartialTitle"),
+        message: result.message || t("prospects.contractReminderSuccessMessage"),
+        variant: result.email_sent ? "success" : "warning",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("prospects.contractReminderError")),
+        variant: "error",
+      });
+    } finally {
+      setSendingContractReminder(false);
+      setResendingContractId(null);
+    }
+  }
+
+  async function handleResendProspectPayment(linkId: number) {
+    setResendingPaymentId(linkId);
+    try {
+      const result = await resendLink(linkId);
+      await reload({ silent: true });
+      await modal.alert({
+        title: result.email_sent
+          ? t("payments.resendSuccessEmailTitle")
+          : t("payments.resendSuccessTitle"),
+        message: result.message || (
+          result.email_sent
+            ? t("payments.resendSuccessEmailMessage")
+            : t("payments.resendSuccessMessage")
+        ),
+        variant: result.email_sent ? "success" : "warning",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("payments.resendError")),
+        variant: "error",
+      });
+    } finally {
+      setResendingPaymentId(null);
+    }
+  }
+
+  async function handleSendBalancePayment() {
+    if (!token || !prospect) return;
+    setSendingBalance(true);
+    try {
+      const result = await api.post<PaymentLinkCreateResult>(
+        `/prospects/${prospect.id}/send-balance-payment`,
+        {},
+        token,
+      );
+      await reload({ silent: true });
+      if (result.link?.payment_url) {
+        await copyToClipboard(result.link.payment_url);
+      }
+      await modal.alert({
+        title: result.email_sent
+          ? t("payments.resendSuccessEmailTitle")
+          : t("payments.resendSuccessTitle"),
+        message: result.message || (
+          result.email_sent
+            ? t("payments.resendSuccessEmailMessage")
+            : t("payments.resendSuccessMessage")
+        ),
+        variant: result.email_sent ? "success" : "warning",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("payments.resendError")),
+        variant: "error",
+      });
+    } finally {
+      setSendingBalance(false);
     }
   }
 
@@ -604,7 +714,7 @@ export default function ProspectoDetailPage() {
     canUpdate &&
     !isConverted &&
     (prospect.status === "PENDIENTE_CONTACTAR" ||
-      (prospect.status === "PAGO_COMPLETADO" &&
+      ((prospect.status === "PAGO_COMPLETADO" || prospect.status === "PAGO_PARCIAL") &&
         !sellerMarkedContacted(prospect.status, prospect.history ?? []))) &&
     (prospect.status === "PENDIENTE_CONTACTAR"
       ? allowedStatuses.includes("LEAD_CONTACTADO")
@@ -834,6 +944,12 @@ export default function ProspectoDetailPage() {
             onMarkContacted={() => void handleMarkContacted()}
             onLinkCalendly={() => setCalendlyOpen(true)}
             onSendContract={showContractAction ? () => void handleSendContractClick() : undefined}
+            onResendContractReminder={
+              showContractAction && prospect.docusign_envelopes[0]
+                ? () => void handleResendContractReminder(prospect.docusign_envelopes[0].id)
+                : undefined
+            }
+            sendingContractReminder={sendingContractReminder}
             onViewContracts={
               prospect.docusign_envelopes.length > 0 ? () => setContractsListOpen(true) : undefined
             }
@@ -843,6 +959,8 @@ export default function ProspectoDetailPage() {
                 : undefined
             }
             onCreatePayment={showPaymentAction ? () => void handleCreatePaymentClick() : undefined}
+            onSendBalancePayment={showPaymentAction ? () => void handleSendBalancePayment() : undefined}
+            sendingBalance={sendingBalance}
             onLinkPayment={() => void openPaymentPicker()}
           />
         ) : null}
@@ -982,6 +1100,10 @@ export default function ProspectoDetailPage() {
           onClose={() => setContractsListOpen(false)}
           onViewSigned={(id) => void handleViewSigned(id)}
           onViewSent={(id) => void handleViewSent(id)}
+          onResendReminder={
+            showContractAction ? (id) => void handleResendContractReminder(id) : undefined
+          }
+          resendingId={resendingContractId}
         />
       ) : null}
 
@@ -996,6 +1118,8 @@ export default function ProspectoDetailPage() {
           }
           locale={locale}
           onClose={() => setPaymentsListOpen(false)}
+          onResendPayment={showPaymentAction ? (linkId) => void handleResendProspectPayment(linkId) : undefined}
+          resendingId={resendingPaymentId}
         />
       ) : null}
 

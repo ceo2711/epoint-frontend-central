@@ -12,6 +12,7 @@ import { IconActionButton } from "@/components/ui/IconActionButton";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Sede } from "@/features/sedes/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface SedeDetailModalProps {
   sede: Sede;
@@ -32,15 +33,6 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function formatDateTime(value: string | null, locale: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export function SedeDetailModal({
   sede,
@@ -115,7 +107,7 @@ export function SedeDetailModal({
           <DetailRow label={t("common.status")} value={<ActiveBadge active={sede.is_active} />} />
           <DetailRow
             label={t("common.createdAt")}
-            value={formatDateTime(sede.created_at, locale) ?? t("common.dash")}
+            value={formatDateTime(sede.created_at)}
           />
         </dl>
       </div>

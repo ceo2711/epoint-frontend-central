@@ -75,6 +75,7 @@ function salesRep() {
     last_name: "Uno",
     is_active: true,
     is_sub_seller: false,
+    can_manage_sub_sellers: true,
     role: { id: 2, code: "SALES_REP", name: "Vendedor", permissions: [] },
     merchants: [{ id: 3, name: "Epoint" }],
     active_merchant_id: 3,

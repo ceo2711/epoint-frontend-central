@@ -1,5 +1,7 @@
 export type PaymentProvider = "authorize" | "paypal" | "stripe";
-export type PaymentLinkStatus = "pending" | "paid" | "expired" | "cancelled";
+export type PaymentLinkStatus = "pending" | "partial" | "paid" | "expired" | "cancelled";
+
+export const DEFAULT_PAYMENT_AMOUNT = 3000;
 
 export interface PaymentProviderStatus {
   provider: PaymentProvider;
@@ -27,6 +29,9 @@ export interface PaymentLink {
   customer_email: string;
   customer_phone: string;
   amount: string;
+  amount_paid?: string;
+  remaining_amount?: string;
+  allow_partial?: boolean;
   currency: string;
   provider: PaymentProvider;
   status: PaymentLinkStatus;
@@ -50,6 +55,7 @@ export interface PaymentLinkCreatePayload {
   description?: string;
   prospect_id?: number;
   send_email?: boolean;
+  allow_partial?: boolean;
 }
 
 export interface PaymentLinkCreateResult {
@@ -63,6 +69,9 @@ export interface PublicPaymentLink {
   customer_last_name: string;
   customer_email: string;
   amount: string;
+  amount_paid?: string;
+  remaining_amount?: string;
+  allow_partial?: boolean;
   currency: string;
   provider: PaymentProvider;
   status: PaymentLinkStatus;
@@ -86,9 +95,10 @@ export const EMPTY_PAYMENT_FORM: PaymentLinkCreatePayload = {
   customer_last_name: "",
   customer_email: "",
   customer_phone: "",
-  amount: 0,
+  amount: DEFAULT_PAYMENT_AMOUNT,
   currency: "USD",
   provider: "authorize",
   description: "",
   send_email: true,
+  allow_partial: false,
 };

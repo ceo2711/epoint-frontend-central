@@ -23,6 +23,7 @@ import {
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { api } from "@/lib/api";
+import { formatDateTime } from "@/lib/format-datetime";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useAuth } from "@/features/auth/AuthContext";
 import type { MentionableUser } from "@/features/boards/utils/commentMentions";
@@ -53,14 +54,8 @@ interface CardDetailModalProps {
   canSetLabel?: boolean;
 }
 
-function formatActivityDate(value: string, locale: string) {
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+function formatActivityDate(value: string) {
+  return formatDateTime(value);
 }
 
 function cardDescription(card: BoardCard) {
@@ -530,7 +525,7 @@ export function CardDetailModal({
                         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                           <span className="text-sm font-semibold text-slate-800">{item.author_name}</span>
                           <span className="text-[11px] text-slate-400">
-                            {formatActivityDate(item.created_at, locale)}
+                            {formatActivityDate(item.created_at)}
                           </span>
                           {item.is_internal && (
                             <span className="badge badge-slate text-[10px]">{t("portalBoard.internalComment")}</span>

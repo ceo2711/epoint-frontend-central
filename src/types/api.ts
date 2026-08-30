@@ -193,6 +193,7 @@ export interface Client {
   /** True cuando el portal ya puede mostrar el tablero (datos + docs OK). */
   board_unlocked?: boolean;
   has_unread_inbound_email?: boolean;
+  source_prospect_status?: string | null;
 }
 
 export interface ClientPortalPassword {

@@ -47,6 +47,7 @@ export function PagosPage() {
   const { user, token, hasPermission } = useAuth();
   const { t } = useTranslation();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [resendingId, setResendingId] = useState<number | null>(null);
   const [registerLink, setRegisterLink] = useState<PaymentLink | null>(null);
   const [linkPayment, setLinkPayment] = useState<PaymentLink | null>(null);
   const [registering, setRegistering] = useState(false);
@@ -75,6 +76,7 @@ export function PagosPage() {
     loadingLinks,
     error,
     createLink,
+    resendLink,
     cancelLink,
     registerClient,
     isCreating,
@@ -195,6 +197,32 @@ export function PagosPage() {
         message: getUserFacingErrorMessage(err, t("payments.createError")),
         variant: "error",
       });
+    }
+  }
+
+  async function handleResend(linkId: number) {
+    setResendingId(linkId);
+    try {
+      const result = await resendLink(linkId);
+      await modal.alert({
+        title: result.email_sent
+          ? t("payments.resendSuccessEmailTitle")
+          : t("payments.resendSuccessTitle"),
+        message: result.message || (
+          result.email_sent
+            ? t("payments.resendSuccessEmailMessage")
+            : t("payments.resendSuccessMessage")
+        ),
+        variant: result.email_sent ? "success" : "warning",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("payments.resendError")),
+        variant: "error",
+      });
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -349,8 +377,10 @@ export function PagosPage() {
                 pageSize={pageSize}
                 onPageChange={setPage}
                 onCancel={handleCancel}
+                onResend={handleResend}
                 onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
                 cancellingId={cancellingId}
+                resendingId={resendingId}
               />
             </div>
           </section>
@@ -402,9 +432,11 @@ export function PagosPage() {
                     pageSize={pageSize}
                     onPageChange={setPage}
                     onCancel={handleCancel}
+                    onResend={handleResend}
                     onRegisterClient={setRegisterLink}
                     onLinkProspect={canLinkProspect ? setLinkPayment : undefined}
                     cancellingId={cancellingId}
+                    resendingId={resendingId}
                   />
                 </div>
               </section>

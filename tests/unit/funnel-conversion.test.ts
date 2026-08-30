@@ -8,28 +8,29 @@ describe("buildFunnelStageConversion", () => {
       { status: "PENDIENTE_CONTACTAR", count: 10 },
       { status: "LEAD_CONTACTADO", count: 6 },
       { status: "CONTRATO_ENVIADO", count: 4 },
+      { status: "PAGO_PARCIAL", count: 1 },
       { status: "PAGO_COMPLETADO", count: 2 },
       { status: "LEAD_CERRADO", count: 99 },
     ]);
 
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     expect(rows[0]).toMatchObject({
       status: "PENDIENTE_CONTACTAR",
       count: 10,
-      reached: 22,
+      reached: 23,
       conversionRate: null,
     });
     expect(rows[1]).toMatchObject({
       status: "LEAD_CONTACTADO",
       count: 6,
-      reached: 12,
-      conversionRate: 55,
+      reached: 13,
+      conversionRate: 57,
     });
-    expect(rows[3]).toMatchObject({
+    expect(rows[4]).toMatchObject({
       status: "PAGO_COMPLETADO",
       count: 2,
       reached: 2,
-      conversionRate: 33,
+      conversionRate: 67,
     });
   });
 
@@ -37,7 +38,7 @@ describe("buildFunnelStageConversion", () => {
     const rows = buildFunnelStageConversion([{ status: "PAGO_COMPLETADO", count: 3 }]);
     expect(rows[0].conversionRate).toBeNull();
     expect(rows[0].reached).toBe(3);
-    expect(rows[3]).toMatchObject({ count: 3, reached: 3, conversionRate: 100 });
+    expect(rows[4]).toMatchObject({ count: 3, reached: 3, conversionRate: 100 });
   });
 });
 

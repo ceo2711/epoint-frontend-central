@@ -3,12 +3,14 @@ export type ProspectStatus =
   | "LEAD_CONTACTADO"
   | "LEAD_CERRADO"
   | "CONTRATO_ENVIADO"
+  | "PAGO_PARCIAL"
   | "PAGO_COMPLETADO";
 
 export const PROSPECT_STATUS_ORDER: ProspectStatus[] = [
   "PENDIENTE_CONTACTAR",
   "LEAD_CONTACTADO",
   "CONTRATO_ENVIADO",
+  "PAGO_PARCIAL",
   "PAGO_COMPLETADO",
   "LEAD_CERRADO",
 ];
@@ -45,6 +47,9 @@ export interface ProspectEnvelopeBrief {
 export interface ProspectPaymentBrief {
   id: number;
   amount: string;
+  amount_paid?: string;
+  remaining_amount?: string;
+  allow_partial?: boolean;
   currency: string;
   status: string;
   payment_url: string;

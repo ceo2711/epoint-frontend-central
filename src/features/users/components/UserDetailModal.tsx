@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { User } from "@/features/users/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface UserDetailModalProps {
   user: User;
@@ -32,15 +33,6 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function formatDateTime(value: string | null, locale: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export function UserDetailModal({
   user,
@@ -132,11 +124,11 @@ export function UserDetailModal({
           <DetailRow label={t("common.status")} value={<ActiveBadge active={user.is_active} />} />
           <DetailRow
             label={t("users.lastLogin")}
-            value={formatDateTime(user.last_login_at, locale) ?? t("common.dash")}
+            value={formatDateTime(user.last_login_at)}
           />
           <DetailRow
             label={t("common.createdAt")}
-            value={formatDateTime(user.created_at, locale) ?? t("common.dash")}
+            value={formatDateTime(user.created_at)}
           />
           {showReassign ? (
             <div className="pt-1">

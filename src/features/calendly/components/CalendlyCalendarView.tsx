@@ -26,7 +26,7 @@ export function CalendlyCalendarView({
   onSelectEvent,
   onSelectSlot,
 }: CalendlyCalendarViewProps) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const calendarRef = useRef<HTMLDivElement>(null);
   const actionsHostRef = useRef<HTMLDivElement | null>(null);
   const [actionsMountEl, setActionsMountEl] = useState<HTMLDivElement | null>(null);
@@ -99,7 +99,8 @@ export function CalendlyCalendarView({
           center: "title",
           right: "dayGridMonth,timeGridWeek,timeGridDay",
         }}
-        locale={locale === "es" ? "es" : "en"}
+        locale="en"
+        eventTimeFormat={{ hour: "numeric", minute: "2-digit", meridiem: true }}
         height="auto"
         events={calendarEvents}
         eventClick={handleEventClick}

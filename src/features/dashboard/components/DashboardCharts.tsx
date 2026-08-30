@@ -21,6 +21,7 @@ import { STATUS_CHART_COLORS } from "@/features/dashboard/constants";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { CLIENT_STATUS_LABELS } from "@/types/api";
 import { PROSPECT_STATUS_ORDER } from "@/features/prospects/types";
+import { formatShortDate } from "@/lib/format-datetime";
 
 const STATUS_COLORS = STATUS_CHART_COLORS;
 
@@ -32,10 +33,6 @@ const CHART_TOOLTIP_STYLE = {
   boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
 };
 
-function formatShortDate(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-  return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
-}
 
 function statusLabel(status: string, translate?: (key: string) => string) {
   if (PROSPECT_STATUS_SET.has(status) && translate) {

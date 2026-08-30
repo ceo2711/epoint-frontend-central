@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 
 vi.mock("@/contexts/LanguageContext", () => ({
@@ -21,7 +22,11 @@ describe("LoginForm", () => {
   });
 
   it("renders email and password fields", () => {
-    render(<LoginForm onSubmit={vi.fn()} />);
+    render(
+      <ThemeProvider>
+        <LoginForm onSubmit={vi.fn()} />
+      </ThemeProvider>,
+    );
     expect(screen.getByLabelText("login.emailLabel")).toBeInTheDocument();
     expect(screen.getByLabelText("login.passwordLabel")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "login.submit" })).toBeInTheDocument();
@@ -31,7 +36,11 @@ describe("LoginForm", () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    const { container } = render(<LoginForm onSubmit={onSubmit} />);
+    const { container } = render(
+      <ThemeProvider>
+        <LoginForm onSubmit={onSubmit} />
+      </ThemeProvider>,
+    );
     const form = container.querySelector("form")!;
 
     await user.type(screen.getByLabelText("login.emailLabel"), "  Admin@Test.com  ");

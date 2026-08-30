@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { ProspectEnvelopeBrief } from "@/features/prospects/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface ProspectContractsModalProps {
   envelopes: ProspectEnvelopeBrief[];
@@ -11,13 +12,8 @@ interface ProspectContractsModalProps {
   onClose: () => void;
   onViewSigned: (envelopeId: number) => void;
   onViewSent: (envelopeId: number) => void;
-}
-
-function formatDateTime(value: string, locale: string) {
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  onResendReminder?: (envelopeId: number) => void;
+  resendingId?: number | null;
 }
 
 function envelopeStatusKey(status: string) {
@@ -49,10 +45,11 @@ function canViewSent(status: string) {
 
 export function ProspectContractsModal({
   envelopes,
-  locale,
   onClose,
   onViewSigned,
   onViewSent,
+  onResendReminder,
+  resendingId,
 }: ProspectContractsModalProps) {
   const { t } = useTranslation();
 
@@ -83,10 +80,10 @@ export function ProspectContractsModal({
               <p className="mt-1 text-slate-600">
                 {envelope.completed_at
                   ? t("prospects.linked.signedAt", {
-                      date: formatDateTime(envelope.completed_at, locale),
+                      date: formatDateTime(envelope.completed_at),
                     })
                   : t("prospects.linked.sentAt", {
-                      date: formatDateTime(envelope.sent_at, locale),
+                      date: formatDateTime(envelope.sent_at),
                     })}
               </p>
               <p className="text-slate-500">{envelope.signer_email}</p>
@@ -99,6 +96,18 @@ export function ProspectContractsModal({
                 {canViewSent(envelope.status) && !canViewSigned(envelope.status) ? (
                   <Button size="sm" variant="secondary" onClick={() => onViewSent(envelope.id)}>
                     {t("docusign.viewSent")}
+                  </Button>
+                ) : null}
+                {onResendReminder &&
+                ["sent", "delivered", "created"].includes(envelope.status.toLowerCase()) ? (
+                  <Button
+                    size="sm"
+                    disabled={resendingId === envelope.id}
+                    onClick={() => onResendReminder(envelope.id)}
+                  >
+                    {resendingId === envelope.id
+                      ? t("prospects.sendingContractReminder")
+                      : t("prospects.sendContractReminder")}
                   </Button>
                 ) : null}
               </div>

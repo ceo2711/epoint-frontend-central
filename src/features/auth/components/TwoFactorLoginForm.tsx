@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AppLogo } from "@/components/layout/AppLogo";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -50,12 +51,13 @@ export function TwoFactorLoginForm({
     <div
       className={`card-glass relative z-10 w-full min-w-0 max-w-md overflow-hidden p-6 sm:p-8 lg:p-10 ${className}`.trim()}
     >
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-1.5 sm:right-6 sm:top-6 lg:right-8 lg:top-8">
         <LanguageSwitcher compact />
+        <ThemeToggle size="sm" />
       </div>
 
       <div className={`transition-opacity duration-500 ease-out ${contentClassName}`.trim()}>
-        <div className="mb-8 pr-16 lg:hidden">
+        <div className="mb-8 pr-24 lg:hidden">
           <div className="flex min-w-0 items-center gap-3">
             <AppLogo size="xl" priority className="shrink-0 rounded-2xl" />
             <p className="min-w-0 text-xl font-bold leading-tight tracking-tight text-slate-900 sm:text-2xl">

@@ -5,25 +5,20 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import type { ProspectHistoryEntry, ProspectStatus } from "@/features/prospects/types";
+import { formatDateTime } from "@/lib/format-datetime";
 
 interface ProspectHistoryTimelineProps {
   history: ProspectHistoryEntry[];
   locale: string;
 }
 
-function formatDate(value: string, locale: string) {
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 function displayHistoryNote(note: string | null) {
   if (!note) return null;
   return note.replace(/\s*\(envelope_id=\d+\)$/, "");
 }
 
-export function ProspectHistoryTimeline({ history, locale }: ProspectHistoryTimelineProps) {
+export function ProspectHistoryTimeline({ history }: ProspectHistoryTimelineProps) {
   const { t } = useTranslation();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +65,7 @@ export function ProspectHistoryTimeline({ history, locale }: ProspectHistoryTime
                 {t(`prospects.history.event.${entry.event_type}` as never)}
               </span>
               <span className="mt-0.5 text-[11px] text-slate-400">
-                {formatDate(entry.created_at, locale)}
+                {formatDateTime(entry.created_at)}
               </span>
 
               {entry.from_status && entry.to_status && entry.from_status !== entry.to_status ? (

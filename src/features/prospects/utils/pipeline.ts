@@ -50,12 +50,17 @@ export function isContractStepComplete(envelopes: ProspectEnvelopeBrief[]): bool
   });
 }
 
+function isSatisfiedPaymentStatus(status: string | undefined): boolean {
+  const normalized = status?.toLowerCase();
+  return normalized === "paid" || normalized === "partial";
+}
+
 export function isPaymentStepComplete(
   payment: ProspectPaymentBrief | null,
   payments: ProspectPaymentBrief[] = [],
 ): boolean {
-  if (payments.some((item) => item.status?.toLowerCase() === "paid")) return true;
-  return payment?.status?.toLowerCase() === "paid";
+  if (payments.some((item) => isSatisfiedPaymentStatus(item.status))) return true;
+  return isSatisfiedPaymentStatus(payment?.status);
 }
 
 /** Preferí pagado, luego pendiente, luego el principal / más reciente. */
@@ -67,6 +72,7 @@ export function pickPreferredPayment(
   if (list.length === 0) return null;
   return (
     list.find((item) => item.status?.toLowerCase() === "paid") ??
+    list.find((item) => item.status?.toLowerCase() === "partial") ??
     list.find((item) => item.status?.toLowerCase() === "pending") ??
     payment ??
     list[0] ??

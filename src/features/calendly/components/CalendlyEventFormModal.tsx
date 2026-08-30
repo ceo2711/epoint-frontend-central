@@ -30,10 +30,11 @@ interface CalendlyEventFormModalProps {
   onClose: () => void;
 }
 
-function formatSlotLabel(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale === "es" ? "es-AR" : "en-US", {
+function formatSlotLabel(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 }
 
@@ -98,7 +99,7 @@ export function CalendlyEventFormModal({
   onSubmit,
   onClose,
 }: CalendlyEventFormModalProps) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const defaultDate = initialDate ?? (event ? new Date(event.start_time) : new Date());
   const minDateValue = toDateInputValue(new Date());
 
@@ -332,7 +333,7 @@ export function CalendlyEventFormModal({
               >
                 {availableSlots.map((slot) => (
                   <option key={slot.start_time} value={slot.start_time}>
-                    {formatSlotLabel(slot.start_time, locale)}
+                    {formatSlotLabel(slot.start_time)}
                   </option>
                 ))}
               </select>

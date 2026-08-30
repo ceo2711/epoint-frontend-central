@@ -16,7 +16,7 @@ export interface CalendlyEventsDayGroup {
 function parseDaySort(dayKey: string): number {
   const match = dayKey.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!match) return Number.MAX_SAFE_INTEGER;
-  const [, day, month, year] = match;
+  const [, month, day, year] = match;
   return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
 }
 

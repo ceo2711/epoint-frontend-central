@@ -7,6 +7,7 @@ import { HiOutlineCheckCircle } from "react-icons/hi2";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { DEFAULT_PAYMENT_AMOUNT } from "@/features/payments/types";
 import type {
   ProspectCalendlyBrief,
   ProspectEnvelopeBrief,
@@ -15,6 +16,7 @@ import type {
   ProspectStatus,
 } from "@/features/prospects/types";
 import { copyToClipboard } from "@/lib/clipboard";
+import { formatDateTime } from "@/lib/format-datetime";
 import {
   isContractStepComplete,
   isMeetingStepComplete,
@@ -42,16 +44,13 @@ interface ProspectLinkedResourcesProps {
   onLinkCalendly?: () => void;
   onLinkPayment?: () => void;
   onSendContract?: () => void;
+  onResendContractReminder?: () => void;
+  sendingContractReminder?: boolean;
   onCreatePayment?: () => void;
+  onSendBalancePayment?: () => void;
+  sendingBalance?: boolean;
   onViewContracts?: () => void;
   onViewPayments?: () => void;
-}
-
-function formatDateTime(value: string, locale: string) {
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
 }
 
 function envelopeStatusKey(status: string) {
@@ -99,7 +98,6 @@ function stepCardClass(completed: boolean) {
 }
 
 export function ProspectLinkedResources({
-  locale,
   prospectStatus,
   calendly,
   envelopes,
@@ -116,7 +114,11 @@ export function ProspectLinkedResources({
   onLinkCalendly,
   onLinkPayment,
   onSendContract,
+  onResendContractReminder,
+  sendingContractReminder = false,
   onCreatePayment,
+  onSendBalancePayment,
+  sendingBalance = false,
   onViewContracts,
   onViewPayments,
 }: ProspectLinkedResourcesProps) {
@@ -142,6 +144,17 @@ export function ProspectLinkedResources({
     paymentLinks.length > 0 && onViewPayments && (canManage || clientView);
   const createPaymentLabel =
     paymentLinks.length > 0 ? t("prospects.createAnotherPaymentLink") : t("prospects.createPaymentLink");
+  const canResendContract =
+    Boolean(onResendContractReminder) &&
+    Boolean(latestEnvelope) &&
+    ["sent", "delivered", "created"].includes((latestEnvelope?.status ?? "").toLowerCase());
+  const paidTowardStandard = paymentLinks.reduce(
+    (sum, item) => sum + Number(item.amount_paid ?? 0),
+    0,
+  );
+  const remainingToStandard = Math.max(0, DEFAULT_PAYMENT_AMOUNT - paidTowardStandard);
+  const canSendBalance =
+    Boolean(onSendBalancePayment) && paymentLinks.length > 0 && remainingToStandard > 0.009;
 
   async function handleCopyPaymentLink() {
     if (!displayPayment?.payment_url) return;
@@ -169,7 +182,7 @@ export function ProspectLinkedResources({
           {calendly ? (
             <div className="mt-3 space-y-2 text-sm">
               <p className="font-semibold text-slate-900">{calendly.name}</p>
-              <p className="text-slate-600">{formatDateTime(calendly.start_time, locale)}</p>
+              <p className="text-slate-600">{formatDateTime(calendly.start_time)}</p>
               {calendly.invitee_name || calendly.invitee_email ? (
                 <p className="text-slate-500">
                   {[calendly.invitee_name, calendly.invitee_email].filter(Boolean).join(" · ")}
@@ -200,7 +213,7 @@ export function ProspectLinkedResources({
                     contactNoteBy
                       ? t("prospects.markContactedBy", { name: contactNoteBy })
                       : null,
-                    contactNoteAt ? formatDateTime(contactNoteAt, locale) : null,
+                    contactNoteAt ? formatDateTime(contactNoteAt) : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -222,7 +235,7 @@ export function ProspectLinkedResources({
                     contactNoteBy
                       ? t("prospects.markContactedBy", { name: contactNoteBy })
                       : null,
-                    contactNoteAt ? formatDateTime(contactNoteAt, locale) : null,
+                    contactNoteAt ? formatDateTime(contactNoteAt) : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -265,10 +278,10 @@ export function ProspectLinkedResources({
               <p className="text-slate-600">
                 {latestEnvelope.completed_at
                   ? t("prospects.linked.signedAt", {
-                      date: formatDateTime(latestEnvelope.completed_at, locale),
+                      date: formatDateTime(latestEnvelope.completed_at),
                     })
                   : t("prospects.linked.sentAt", {
-                      date: formatDateTime(latestEnvelope.sent_at, locale),
+                      date: formatDateTime(latestEnvelope.sent_at),
                     })}
               </p>
               <p className="text-slate-500">{latestEnvelope.signer_email}</p>
@@ -288,8 +301,23 @@ export function ProspectLinkedResources({
                   {t("prospects.viewSentContracts")}
                 </Button>
               ) : null}
+              {canResendContract ? (
+                <Button
+                  size="xs"
+                  onClick={onResendContractReminder}
+                  disabled={sendingContractReminder}
+                >
+                  {sendingContractReminder
+                    ? t("prospects.sendingContractReminder")
+                    : t("prospects.sendContractReminder")}
+                </Button>
+              ) : null}
               {onSendContract ? (
-                <Button size="xs" onClick={onSendContract}>
+                <Button
+                  size="xs"
+                  variant={canResendContract ? "secondary" : "primary"}
+                  onClick={onSendContract}
+                >
                   {envelopes.length > 0 ? t("prospects.sendAnotherContract") : t("prospects.sendContract")}
                 </Button>
               ) : null}
@@ -313,10 +341,24 @@ export function ProspectLinkedResources({
             <div className="mt-3 space-y-2 text-sm">
               <p className="font-semibold text-slate-900">
                 {displayPayment.currency} {Number(displayPayment.amount).toFixed(2)}
+                {displayPayment.status.toLowerCase() === "partial" && displayPayment.remaining_amount
+                  ? ` · ${t("payments.public.remainingShort", {
+                      amount: Number(displayPayment.remaining_amount).toFixed(2),
+                      currency: displayPayment.currency,
+                    })}`
+                  : null}
               </p>
               <p className="text-slate-600">{t(`payments.status.${displayPayment.status}` as never)}</p>
               {displayPayment.paid_at ? (
-                <p className="text-slate-500">{formatDateTime(displayPayment.paid_at, locale)}</p>
+                <p className="text-slate-500">{formatDateTime(displayPayment.paid_at)}</p>
+              ) : null}
+              {remainingToStandard > 0.009 && paidTowardStandard > 0 ? (
+                <p className="text-xs font-medium text-amber-800">
+                  {t("prospects.linked.remainingToStandard", {
+                    amount: remainingToStandard.toFixed(2),
+                    currency: displayPayment.currency,
+                  })}
+                </p>
               ) : null}
               {paymentLinks.length > 1 ? (
                 <p className="text-xs text-slate-500">
@@ -327,7 +369,8 @@ export function ProspectLinkedResources({
                 <Button size="xs" variant="secondary" onClick={() => void handleCopyPaymentLink()}>
                   {paymentLinkCopied ? t("common.copied") : t("payments.list.copyLink")}
                 </Button>
-              ) : displayPayment.status.toLowerCase() === "pending" ? (
+              ) : displayPayment.status.toLowerCase() === "pending" ||
+                displayPayment.status.toLowerCase() === "partial" ? (
                 <Link
                   href={displayPayment.payment_url}
                   target="_blank"
@@ -347,8 +390,19 @@ export function ProspectLinkedResources({
                   {t("prospects.viewSentPayments")}
                 </Button>
               ) : null}
+              {canSendBalance ? (
+                <Button
+                  size="xs"
+                  onClick={onSendBalancePayment}
+                  disabled={sendingBalance}
+                >
+                  {sendingBalance
+                    ? t("prospects.sendingBalancePayment")
+                    : t("prospects.sendBalancePayment")}
+                </Button>
+              ) : null}
               {onCreatePayment ? (
-                <Button size="xs" onClick={onCreatePayment}>
+                <Button size="xs" variant={canSendBalance ? "secondary" : "primary"} onClick={onCreatePayment}>
                   {createPaymentLabel}
                 </Button>
               ) : null}

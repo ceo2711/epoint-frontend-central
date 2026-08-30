@@ -11,7 +11,7 @@ export { ApiError, isUnauthorizedError } from "@/lib/api-error";
 type RequestOptions = RequestInit & {
   token?: string | null;
   skipAuthRefresh?: boolean;
-  /** No registrar en consola errores HTTP esperados (p. ej. sync en background). */
+  /** No registrar en consola fallos esperados (p. ej. sync en background). */
   silentHttpErrors?: boolean;
 };
 
@@ -26,8 +26,15 @@ function merchantHeaders(): Record<string, string> {
   return merchantId ? { "X-Merchant-Id": String(merchantId) } : {};
 }
 
-function throwNetworkError(method: string, path: string, cause: unknown): never {
-  logClientError("api:network", cause, { method, path, baseUrl: API_URL });
+function throwNetworkError(
+  method: string,
+  path: string,
+  cause: unknown,
+  silent?: boolean,
+): never {
+  if (!silent) {
+    logClientError("api:network", cause, { method, path, baseUrl: API_URL });
+  }
   throw new ApiError(0, NETWORK_ERROR_MESSAGE);
 }
 
@@ -72,7 +79,7 @@ async function request<T>(
       },
     });
   } catch (cause) {
-    throwNetworkError(method, path, cause);
+    throwNetworkError(method, path, cause, silentHttpErrors);
   }
 
   if (!response.ok) {

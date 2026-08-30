@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
@@ -96,7 +97,7 @@ export function UserMenu() {
       {rendered ? (
         <div
           role="menu"
-          className={`absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl shadow-slate-900/10 ring-1 ring-black/5 transition-[opacity,transform] duration-150 ease-out ${
+          className={`absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl ring-1 ring-black/5 transition-[opacity,transform] duration-150 ease-out ${
             entered
               ? "translate-y-0 scale-100 opacity-100"
               : "pointer-events-none -translate-y-1 scale-95 opacity-0"
@@ -138,11 +139,14 @@ export function UserMenu() {
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                 {t("language.label")}
               </p>
-              <LanguageSwitcher
-                compact
-                size="sm"
-                className="w-fit border-slate-200 bg-slate-50"
-              />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher
+                  compact
+                  size="sm"
+                  className="w-fit border-slate-200 bg-slate-50"
+                />
+                <ThemeToggle size="sm" />
+              </div>
             </div>
 
             <div className="my-1 border-t border-slate-100" />

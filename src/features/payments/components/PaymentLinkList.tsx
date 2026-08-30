@@ -3,6 +3,7 @@
 import {
   HiOutlineArrowTopRightOnSquare,
   HiOutlineClipboard,
+  HiOutlineEnvelope,
   HiOutlineEye,
   HiOutlineLink,
   HiOutlineUserPlus,
@@ -15,6 +16,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentLink } from "@/features/payments/types";
 import { getProviderLabel } from "@/features/payments/utils/providers";
 import { copyToClipboard } from "@/lib/clipboard";
+import { formatDate } from "@/lib/format-datetime";
 
 interface PaymentLinkListProps {
   links: PaymentLink[];
@@ -24,15 +26,18 @@ interface PaymentLinkListProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onCancel?: (linkId: number) => void;
+  onResend?: (linkId: number) => void;
   onRegisterClient?: (link: PaymentLink) => void;
   onLinkProspect?: (link: PaymentLink) => void;
   cancellingId?: number | null;
+  resendingId?: number | null;
 }
 
 function statusBadgeClass(status: PaymentLink["status"]) {
   switch (status) {
     case "paid":
       return "badge-green";
+    case "partial":
     case "pending":
       return "badge-amber";
     default:
@@ -48,9 +53,11 @@ export function PaymentLinkList({
   pageSize,
   onPageChange,
   onCancel,
+  onResend,
   onRegisterClient,
   onLinkProspect,
   cancellingId,
+  resendingId,
 }: PaymentLinkListProps) {
   const { t, locale } = useTranslation();
 
@@ -65,19 +72,12 @@ export function PaymentLinkList({
   }
 
   function formatAmount(link: PaymentLink) {
-    return `${link.currency} ${Number(link.amount).toFixed(2)}`;
-  }
-
-  function formatDate(value: string) {
-    try {
-      return new Date(value).toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return value;
+    const paid = Number(link.amount_paid ?? 0);
+    const totalAmount = Number(link.amount);
+    if (link.status === "partial" || (paid > 0 && paid < totalAmount)) {
+      return `${link.currency} ${paid.toFixed(2)} / ${totalAmount.toFixed(2)}`;
     }
+    return `${link.currency} ${totalAmount.toFixed(2)}`;
   }
 
   return (
@@ -135,6 +135,15 @@ export function PaymentLinkList({
                       variant="ghost"
                       onClick={() => window.open(link.payment_url, "_blank", "noopener,noreferrer")}
                     />
+                    {(link.status === "pending" || link.status === "partial") && onResend ? (
+                      <IconActionButton
+                        label={t("payments.list.resendEmail")}
+                        icon={<HiOutlineEnvelope />}
+                        variant="ghost"
+                        disabled={resendingId === link.id}
+                        onClick={() => onResend(link.id)}
+                      />
+                    ) : null}
                     {link.status === "pending" && onCancel ? (
                       <IconActionButton
                         label={t("payments.list.cancel")}
@@ -144,7 +153,7 @@ export function PaymentLinkList({
                         onClick={() => onCancel(link.id)}
                       />
                     ) : null}
-                    {link.status === "paid" && !link.client_registered_at && onRegisterClient ? (
+                    {(link.status === "paid" || link.status === "partial") && !link.client_registered_at && onRegisterClient ? (
                       <IconActionButton
                         label={t("payments.list.registerClient")}
                         icon={<HiOutlineUserPlus />}

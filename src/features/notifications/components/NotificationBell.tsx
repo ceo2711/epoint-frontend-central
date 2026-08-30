@@ -11,7 +11,7 @@ import {
 import { useNotifications } from "@/features/notifications/NotificationsContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useNotificationNavigation } from "@/features/notifications/hooks/useNotificationNavigation";
-import { formatDateTime } from "@/lib/format-datetime";
+import { formatRelativeDateTime } from "@/lib/format-datetime";
 import type { Notification } from "@/types/api";
 
 function BellIcon() {
@@ -43,7 +43,7 @@ function NotificationItem({
           <p className="text-sm font-semibold leading-snug text-slate-900">{item.title}</p>
           <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-slate-500">{item.body}</p>
           <p className="mt-1.5 text-[10px] text-slate-400">
-            {formatDateTime(item.created_at, locale)}
+            {formatRelativeDateTime(item.created_at, locale)}
           </p>
         </div>
       </div>

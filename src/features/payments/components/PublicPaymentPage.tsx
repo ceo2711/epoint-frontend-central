@@ -13,6 +13,7 @@ import {
   completePublicPaymentStub,
   confirmPublicPaymentReturn,
   fetchPublicPayment,
+  preparePublicCheckout,
 } from "@/features/payments/hooks/usePayments";
 import type { PublicPaymentLink } from "@/features/payments/types";
 import { getProviderLabel } from "@/features/payments/utils/providers";
@@ -59,8 +60,7 @@ export function PublicPaymentPage() {
         }
         const publicData = await fetchPublicPayment(token);
         if (cancelled) return;
-
-        // Saltar la pantalla intermedia: ir directo al checkout del proveedor.
+        // El monto lo fijó el vendedor: ir directo al checkout si ya existe.
         if (
           publicData.can_pay &&
           !publicData.stub_mode &&
@@ -92,15 +92,33 @@ export function PublicPaymentPage() {
 
   async function handlePay() {
     if (!token || !data?.can_pay) return;
-    if (data.checkout_url && !data.stub_mode) {
-      if (data.provider === "authorize" && data.hosted_payment_token) {
-        setPaying(true);
-        postAuthorizeHostedCheckout(data.checkout_url, data.hosted_payment_token);
-        return;
+
+    if (!data.stub_mode) {
+      setPaying(true);
+      try {
+        const checkout =
+          data.checkout_url && data.hosted_payment_token
+            ? data
+            : data.checkout_url
+              ? data
+              : await preparePublicCheckout(token);
+        if (checkout.provider === "authorize" && checkout.hosted_payment_token && checkout.checkout_url) {
+          postAuthorizeHostedCheckout(checkout.checkout_url, checkout.hosted_payment_token);
+          return;
+        }
+        if (checkout.checkout_url) {
+          window.location.href = checkout.checkout_url;
+          return;
+        }
+        setError(t("payments.public.payError"));
+      } catch (err) {
+        setError(getUserFacingErrorMessage(err, t("payments.public.payError")));
+      } finally {
+        setPaying(false);
       }
-      window.location.href = data.checkout_url;
       return;
     }
+
     setPaying(true);
     try {
       const updated = await completePublicPaymentStub(token);
@@ -137,8 +155,24 @@ export function PublicPaymentPage() {
               {data.customer_first_name} {data.customer_last_name}
             </p>
             <p className="text-3xl font-bold text-[var(--color-text-primary)]">
-              {data.currency} {Number(data.amount).toFixed(2)}
+              {data.currency} {Number(data.remaining_amount ?? data.amount).toFixed(2)}
             </p>
+            {data.allow_partial && Number(data.amount_paid ?? 0) > 0 ? (
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {t("payments.public.paidOfTotal", {
+                  paid: Number(data.amount_paid).toFixed(2),
+                  total: Number(data.amount).toFixed(2),
+                  currency: data.currency,
+                })}
+              </p>
+            ) : data.allow_partial ? (
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {t("payments.public.totalAmount", {
+                  total: Number(data.amount).toFixed(2),
+                  currency: data.currency,
+                })}
+              </p>
+            ) : null}
             {data.description ? (
               <p className="text-sm text-[var(--color-text-muted)]">{data.description}</p>
             ) : null}
@@ -148,6 +182,10 @@ export function PublicPaymentPage() {
               <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                 {t("payments.public.paid")}
               </p>
+            ) : data.status === "partial" && !data.can_pay ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {t("payments.public.partialReceived")}
+              </p>
             ) : data.can_pay && data.stub_mode ? (
               <>
                 <p className="text-sm text-amber-800">
@@ -155,7 +193,7 @@ export function PublicPaymentPage() {
                     ? t("payments.public.testHint")
                     : t("payments.public.stubHint")}
                 </p>
-                <Button fullWidth onClick={handlePay} disabled={paying}>
+                <Button fullWidth onClick={() => void handlePay()} disabled={paying}>
                   {paying
                     ? t("payments.public.processing")
                     : data.payment_test
@@ -163,14 +201,12 @@ export function PublicPaymentPage() {
                       : t("payments.public.payStub")}
                 </Button>
               </>
-            ) : data.can_pay && data.checkout_url ? (
-              <Button fullWidth onClick={handlePay} disabled={paying}>
+            ) : data.can_pay ? (
+              <Button fullWidth onClick={() => void handlePay()} disabled={paying}>
                 {paying
                   ? t("payments.public.processing")
                   : t("payments.public.payWithProvider", { provider: providerLabel })}
               </Button>
-            ) : data.can_pay ? (
-              <p className="text-sm text-[var(--color-text-muted)]">{t("payments.public.awaitingIntegration")}</p>
             ) : (
               <p className="text-sm text-[var(--color-text-muted)]">{t("payments.public.unavailable")}</p>
             )}

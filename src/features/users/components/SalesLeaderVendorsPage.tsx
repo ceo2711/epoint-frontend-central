@@ -17,6 +17,7 @@ import type { CalendlySalesRep } from "@/features/calendly/types";
 import { ReassignSubSellerModal } from "@/features/users/components/ReassignSubSellerModal";
 import { api } from "@/lib/api";
 import { invalidateStaffDirectoryCaches } from "@/lib/invalidateStaffCaches";
+import { formatDateTime } from "@/lib/format-datetime";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import type { User } from "@/types/api";
 
@@ -138,7 +139,7 @@ export function SalesLeaderVendorsPage() {
 
   if (selectedRepId != null && (selectedRep || detail)) {
     const lastLogin = detail?.last_login_at
-      ? new Date(detail.last_login_at).toLocaleString(locale === "en" ? "en-US" : "es")
+      ? formatDateTime(detail.last_login_at)
       : t("users.vendorNeverLogin");
 
     return (

@@ -20,7 +20,7 @@ export const PAYMENTS_PAGE_SIZE = 10;
 export const LINKABLE_PAYMENTS_LIMIT = 100;
 
 export function isLinkableExistingPayment(link: Pick<PaymentLink, "status" | "prospect_id">): boolean {
-  return link.status === "pending" && !link.prospect_id;
+  return (link.status === "pending" || link.status === "partial") && !link.prospect_id;
 }
 
 export async function fetchLinkablePaymentLinks(
@@ -30,7 +30,6 @@ export async function fetchLinkablePaymentLinks(
   const params = new URLSearchParams({
     page: "1",
     page_size: String(LINKABLE_PAYMENTS_LIMIT),
-    status: "pending",
     unlinked: "true",
     customer_email: email.trim().toLowerCase(),
   });
@@ -107,6 +106,18 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     },
   });
 
+  const resendLinkMutation = useMutation({
+    mutationFn: (linkId: number) =>
+      api.post<import("@/features/payments/types").PaymentLinkCreateResult>(
+        `/payments/links/${linkId}/resend`,
+        {},
+        token!,
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+    },
+  });
+
   const cancelLinkMutation = useMutation({
     mutationFn: (linkId: number) =>
       api.post<PaymentLink>(`/payments/links/${linkId}/cancel`, {}, token!),
@@ -158,6 +169,7 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     loadingLinks: linksQuery.isLoading,
     error: (configQuery.error ?? linksQuery.error) as ApiError | null,
     createLink: createLinkMutation.mutateAsync,
+    resendLink: resendLinkMutation.mutateAsync,
     cancelLink: cancelLinkMutation.mutateAsync,
     registerClient: registerClientMutation.mutateAsync,
     isCreating: createLinkMutation.isPending,
@@ -169,10 +181,31 @@ export async function fetchPublicPayment(token: string): Promise<import("@/featu
   return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(`/payments/public/${token}`);
 }
 
-export async function completePublicPaymentStub(token: string): Promise<import("@/features/payments/types").PublicPaymentLink> {
+export async function completePublicPaymentStub(
+  token: string,
+  amount?: number,
+): Promise<import("@/features/payments/types").PublicPaymentLink> {
   return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(
     `/payments/public/${token}/complete`,
-    { method: "POST" },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(amount != null ? { amount } : {}),
+    },
+  );
+}
+
+export async function preparePublicCheckout(
+  token: string,
+  amount?: number,
+): Promise<import("@/features/payments/types").PublicPaymentLink> {
+  return publicPaymentFetch<import("@/features/payments/types").PublicPaymentLink>(
+    `/payments/public/${token}/checkout`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(amount != null ? { amount } : {}),
+    },
   );
 }
 

@@ -4,6 +4,7 @@ export const STATUS_CHART_COLORS: Record<string, string> = {
   LEAD_CONTACTADO: "#3b82f6",
   LEAD_CERRADO: "#ef4444",
   CONTRATO_ENVIADO: "#8b5cf6",
+  PAGO_PARCIAL: "#d97706",
   PAGO_COMPLETADO: "#059669",
   // Clientes (área Onboarding)
   PENDIENTE_DE_REVISION: "#f59e0b",

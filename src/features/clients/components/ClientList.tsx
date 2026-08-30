@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { Client } from "@/features/clients/types";
 import { SendEmailModal } from "@/features/emails/components/SendEmailModal";
-import { ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
+import { ProspectQualificationBadge, ProspectStatusBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { clientDetailPath } from "@/lib/clientsNavigation";
 
 interface ClientListProps {
@@ -153,6 +153,9 @@ export function ClientList({
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       <StatusBadge status={c.status} />
+                      {c.source_prospect_status ? (
+                        <ProspectStatusBadge status={c.source_prospect_status} />
+                      ) : null}
                       <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />
                     </div>
                   </div>
@@ -244,7 +247,12 @@ export function ClientList({
                     </td>
                   ) : null}
                   <td>
-                    <StatusBadge status={c.status} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <StatusBadge status={c.status} />
+                      {c.source_prospect_status ? (
+                        <ProspectStatusBadge status={c.source_prospect_status} />
+                      ) : null}
+                    </div>
                   </td>
                   <td>
                     <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />

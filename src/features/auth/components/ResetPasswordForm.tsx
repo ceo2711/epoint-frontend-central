@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ApiError, api } from "@/lib/api";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
@@ -68,8 +69,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   return (
     <div className="login-bg flex min-h-screen items-center justify-center px-4 py-12">
       <div className="card-glass relative w-full max-w-md p-6 sm:p-8 lg:p-10">
-        <div className="absolute right-6 top-6">
+        <div className="absolute right-6 top-6 flex items-center gap-1.5">
           <LanguageSwitcher />
+          <ThemeToggle size="sm" />
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("resetPassword.title")}</h1>

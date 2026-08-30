@@ -20,6 +20,7 @@ import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import type { DocusignEnvelope } from "@/features/docusign/types";
 import { canDownloadSentDocument, canDownloadSignedDocument, hasPendingEnvelopes } from "@/features/docusign/utils";
 import { ApiError, api } from "@/lib/api";
+import { formatDateTime } from "@/lib/format-datetime";
 
 const POLL_MS = 15_000;
 const MIN_SYNC_GAP_MS = 5_000;
@@ -313,11 +314,11 @@ export function ClientContractsPanel({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {new Date(envelope.sent_at).toLocaleString()}
+                      {formatDateTime(envelope.sent_at)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {envelope.completed_at
-                        ? new Date(envelope.completed_at).toLocaleString()
+                        ? formatDateTime(envelope.completed_at)
                         : t("common.dash")}
                     </td>
                     <td className="px-4 py-3">

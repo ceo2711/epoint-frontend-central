@@ -8,6 +8,7 @@ import { DocumentRequirementsPanel } from "@/features/documents/components/Docum
 import { useTranslation } from "@/contexts/LanguageContext";
 import { type Locale } from "@/i18n";
 import { ApiError, api } from "@/lib/api";
+import { formatDateTime } from "@/lib/format-datetime";
 import type { DocumentBrief } from "@/types/api";
 
 interface StaffClientDocumentsPanelProps {
@@ -21,10 +22,6 @@ interface StaffClientDocumentsPanelProps {
   onDownloadDocument?: (doc: DocumentBrief) => void;
 }
 
-function formatDate(value: string | null, locale: Locale) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString(locale === "en" ? "en-US" : "es-AR");
-}
 
 export function StaffClientDocumentsPanel({
   clientId,
@@ -97,7 +94,7 @@ export function StaffClientDocumentsPanel({
         canUpload={canUpload}
         onViewDocument={onViewDocument}
         onDownloadDocument={onDownloadDocument}
-        formatDate={(value) => formatDate(value, locale)}
+        formatDate={formatDateTime}
       />
     </div>
   );
