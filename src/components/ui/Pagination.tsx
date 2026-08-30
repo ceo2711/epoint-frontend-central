@@ -11,6 +11,7 @@ interface PaginationProps {
   total: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  inputId?: string;
 }
 
 function clampPage(value: number, pages: number): number {
@@ -18,7 +19,14 @@ function clampPage(value: number, pages: number): number {
   return Math.min(Math.max(1, value), pages);
 }
 
-export function Pagination({ page, pages, total, pageSize, onPageChange }: PaginationProps) {
+export function Pagination({
+  page,
+  pages,
+  total,
+  pageSize,
+  onPageChange,
+  inputId = "pagination-page-input",
+}: PaginationProps) {
   const { t } = useTranslation();
   const [pageInput, setPageInput] = useState(String(page));
 
@@ -78,11 +86,11 @@ export function Pagination({ page, pages, total, pageSize, onPageChange }: Pagin
           onSubmit={handlePageSubmit}
           className="flex items-center gap-1.5 text-sm text-slate-600"
         >
-          <label className="sr-only" htmlFor="pagination-page-input">
+          <label className="sr-only" htmlFor={inputId}>
             {t("common.paginationGoToPage")}
           </label>
           <input
-            id="pagination-page-input"
+            id={inputId}
             type="number"
             min={1}
             max={pages}

@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
+import { Pagination } from "@/components/ui/Pagination";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useModal } from "@/contexts/ModalContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { api } from "@/lib/api";
 import { emitClientsRefresh } from "@/lib/clientEvents";
+import type { Paginated } from "@/types/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 export interface SentEmailEntry {
@@ -37,6 +39,8 @@ interface SendEmailModalProps {
   threadMode?: boolean;
   onThreadOpened?: () => void;
 }
+
+const EMAIL_PAGE_SIZE = 15;
 
 function hasVisibleContent(html: string) {
   const text = html
@@ -65,6 +69,9 @@ export function SendEmailModal({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [viewerEntry, setViewerEntry] = useState<SentEmailEntry | null>(null);
   const [composing, setComposing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
 
   const canSend = subject.trim().length > 0 && hasVisibleContent(messageHtml);
 
@@ -78,14 +85,22 @@ export function SendEmailModal({
     });
   }
 
-  async function loadHistory() {
+  async function loadHistory(nextPage = page) {
     if (!token) return;
     setLoadingHistory(true);
     try {
-      const rows = await api.get<SentEmailEntry[]>(`${basePath}/emails`, token);
-      setHistory(rows);
+      const data = await api.get<Paginated<SentEmailEntry>>(
+        `${basePath}/emails?page=${nextPage}&page_size=${EMAIL_PAGE_SIZE}`,
+        token,
+      );
+      setHistory(data.items);
+      setTotal(data.total);
+      setPages(data.pages);
+      setPage(data.page);
     } catch {
       setHistory([]);
+      setTotal(0);
+      setPages(1);
     } finally {
       setLoadingHistory(false);
     }
@@ -94,20 +109,25 @@ export function SendEmailModal({
   useEffect(() => {
     if (!token) return;
     if (threadMode) {
-      void loadHistory();
-      void api
-        .post<{ message: string }>(`${basePath}/emails/mark-read`, {}, token)
-        .then(() => {
-          emitClientsRefresh();
-          onThreadOpened?.();
-        })
-        .catch(() => undefined);
+      void loadHistory(page);
       return;
     }
-    if (view !== "history" || history !== null) return;
-    void loadHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga inicial del hilo
-  }, [view, token, basePath, threadMode]);
+    if (view !== "history") return;
+    void loadHistory(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga del hilo por página
+  }, [view, token, basePath, threadMode, page]);
+
+  useEffect(() => {
+    if (!token || !threadMode) return;
+    void api
+      .post<{ message: string }>(`${basePath}/emails/mark-read`, {}, token)
+      .then(() => {
+        emitClientsRefresh();
+        onThreadOpened?.();
+      })
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mark-read solo al abrir
+  }, [token, basePath, threadMode]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -123,7 +143,7 @@ export function SendEmailModal({
       setMessageHtml("");
       if (threadMode) {
         setComposing(false);
-        await loadHistory();
+        await loadHistory(1);
         emitClientsRefresh();
         onThreadOpened?.();
       } else {
@@ -216,48 +236,60 @@ export function SendEmailModal({
         ) : !history || history.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-500">{t("emailCompose.threadEmpty")}</p>
         ) : (
-          <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
-            {history.map((entry) => {
-              const inbound = entry.direction === "INBOUND";
-              return (
-                <li key={entry.id} className="rounded-lg border border-slate-200 bg-white">
-                  <button
-                    type="button"
-                    className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
-                    onClick={() => setViewerEntry(entry)}
-                  >
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            inbound
-                              ? "bg-amber-50 text-amber-800"
-                              : "bg-brand-muted text-brand"
-                          }`}
-                        >
-                          {inbound ? t("emailCompose.inboundBadge") : t("emailCompose.outboundBadge")}
+          <div>
+            <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+              {history.map((entry) => {
+                const inbound = entry.direction === "INBOUND";
+                return (
+                  <li key={entry.id} className="rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
+                      onClick={() => setViewerEntry(entry)}
+                    >
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              inbound
+                                ? "bg-amber-50 text-amber-800"
+                                : "bg-brand-muted text-brand"
+                            }`}
+                          >
+                            {inbound ? t("emailCompose.inboundBadge") : t("emailCompose.outboundBadge")}
+                          </span>
+                          <span className="truncate text-sm font-semibold text-slate-900">
+                            {entry.subject}
+                          </span>
                         </span>
-                        <span className="truncate text-sm font-semibold text-slate-900">
-                          {entry.subject}
+                        <span className="mt-0.5 block text-xs text-slate-500">
+                          {formatDate(entry.created_at)} ·{" "}
+                          {t("emailCompose.historySentBy", {
+                            name: inbound
+                              ? recipientName
+                              : entry.sent_by_name || t("emailCompose.staffLabel"),
+                          })}
                         </span>
                       </span>
-                      <span className="mt-0.5 block text-xs text-slate-500">
-                        {formatDate(entry.created_at)} ·{" "}
-                        {t("emailCompose.historySentBy", {
-                          name: inbound
-                            ? recipientName
-                            : entry.sent_by_name || t("emailCompose.staffLabel"),
-                        })}
+                      <span className="shrink-0 text-xs font-medium text-brand">
+                        {t("emailCompose.historyView")}
                       </span>
-                    </span>
-                    <span className="shrink-0 text-xs font-medium text-brand">
-                      {t("emailCompose.historyView")}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            {total > EMAIL_PAGE_SIZE ? (
+              <Pagination
+                page={page}
+                pages={pages}
+                total={total}
+                pageSize={EMAIL_PAGE_SIZE}
+                onPageChange={setPage}
+                inputId="email-thread-page-input"
+              />
+            ) : null}
+          </div>
         )
       ) : (
         <>
@@ -292,30 +324,42 @@ export function SendEmailModal({
           ) : !history || history.length === 0 ? (
             <p className="py-10 text-center text-sm text-slate-500">{t("emailCompose.historyEmpty")}</p>
           ) : (
-            <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
-              {history.map((entry) => (
-                <li key={entry.id} className="rounded-lg border border-slate-200 bg-white">
-                  <button
-                    type="button"
-                    className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
-                    onClick={() => setViewerEntry(entry)}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-slate-900">
-                        {entry.subject}
+            <div>
+              <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+                {history.map((entry) => (
+                  <li key={entry.id} className="rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
+                      onClick={() => setViewerEntry(entry)}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-900">
+                          {entry.subject}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-slate-500">
+                          {formatDate(entry.created_at)} ·{" "}
+                          {t("emailCompose.historySentBy", { name: entry.sent_by_name })}
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-xs text-slate-500">
-                        {formatDate(entry.created_at)} ·{" "}
-                        {t("emailCompose.historySentBy", { name: entry.sent_by_name })}
+                      <span className="shrink-0 text-xs font-medium text-brand">
+                        {t("emailCompose.historyView")}
                       </span>
-                    </span>
-                    <span className="shrink-0 text-xs font-medium text-brand">
-                      {t("emailCompose.historyView")}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {total > EMAIL_PAGE_SIZE ? (
+                <Pagination
+                  page={page}
+                  pages={pages}
+                  total={total}
+                  pageSize={EMAIL_PAGE_SIZE}
+                  onPageChange={setPage}
+                  inputId="email-history-page-input"
+                />
+              ) : null}
+            </div>
           )}
         </>
       )}
