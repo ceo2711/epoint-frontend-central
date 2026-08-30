@@ -117,17 +117,32 @@ export function SendEmailModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- carga del hilo por página
   }, [view, token, basePath, threadMode, page]);
 
-  useEffect(() => {
-    if (!token || !threadMode) return;
-    void api
-      .post<{ message: string }>(`${basePath}/emails/mark-read`, {}, token)
-      .then(() => {
-        emitClientsRefresh();
-        onThreadOpened?.();
-      })
-      .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mark-read solo al abrir
-  }, [token, basePath, threadMode]);
+  function isUnreadInbound(entry: SentEmailEntry) {
+    return entry.direction === "INBOUND" && !entry.read_at;
+  }
+
+  async function openEntry(entry: SentEmailEntry) {
+    setViewerEntry(entry);
+    if (!threadMode || !token || !isUnreadInbound(entry)) return;
+    const readAt = new Date().toISOString();
+    setHistory((rows) =>
+      rows ? rows.map((row) => (row.id === entry.id ? { ...row, read_at: readAt } : row)) : rows,
+    );
+    setViewerEntry((current) =>
+      current?.id === entry.id ? { ...current, read_at: readAt } : current,
+    );
+    try {
+      await api.post<{ message: string }>(
+        `${basePath}/emails/mark-read?email_id=${entry.id}`,
+        {},
+        token,
+      );
+      emitClientsRefresh();
+      onThreadOpened?.();
+    } catch {
+      // El borde se actualiza en local; el listado se corrige al recargar.
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -240,12 +255,18 @@ export function SendEmailModal({
             <ul className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
               {history.map((entry) => {
                 const inbound = entry.direction === "INBOUND";
+                const unread = isUnreadInbound(entry);
                 return (
-                  <li key={entry.id} className="rounded-lg border border-slate-200 bg-white">
+                  <li
+                    key={entry.id}
+                    className={`rounded-lg border-2 bg-white ${
+                      unread ? "border-slate-700" : "border-slate-200"
+                    }`}
+                  >
                     <button
                       type="button"
                       className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
-                      onClick={() => setViewerEntry(entry)}
+                      onClick={() => void openEntry(entry)}
                     >
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
