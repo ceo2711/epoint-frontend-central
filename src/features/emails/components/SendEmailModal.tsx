@@ -259,9 +259,9 @@ export function SendEmailModal({
                 return (
                   <li
                     key={entry.id}
-                    className={`rounded-lg border-2 bg-white ${
+                    className={`rounded-lg border-2 border-l-4 bg-white ${
                       unread ? "border-slate-700" : "border-slate-200"
-                    }`}
+                    } ${inbound ? "border-l-amber-600" : "border-l-brand"}`}
                   >
                     <button
                       type="button"
@@ -273,7 +273,7 @@ export function SendEmailModal({
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                               inbound
-                                ? "bg-amber-50 text-amber-800"
+                                ? "bg-amber-100 text-amber-900"
                                 : "bg-brand-muted text-brand"
                             }`}
                           >

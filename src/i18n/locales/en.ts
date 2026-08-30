@@ -1580,7 +1580,7 @@ export const en: Messages = {
     staffLabel: "Epoint team",
     unreadInbox: "Unread client reply",
     composeAction: "Compose email",
-    inboundBadge: "Received",
-    outboundBadge: "Sent",
+    inboundBadge: "Client message",
+    outboundBadge: "Team message",
   },
 };

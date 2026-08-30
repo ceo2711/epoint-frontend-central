@@ -1582,8 +1582,8 @@ export const es = {
     staffLabel: "Equipo Epoint",
     unreadInbox: "Hay una respuesta sin leer",
     composeAction: "Redactar email",
-    inboundBadge: "Recibido",
-    outboundBadge: "Enviado",
+    inboundBadge: "Mensaje del cliente",
+    outboundBadge: "Mensaje del equipo",
   },
 };
 
