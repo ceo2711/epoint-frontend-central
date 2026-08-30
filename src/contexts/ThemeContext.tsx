@@ -4,7 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from "react";
@@ -27,37 +27,50 @@ export function resolveTheme(value: string | null | undefined): Theme {
 
 function readStoredTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  const fromDom = document.documentElement.getAttribute("data-theme");
-  if (fromDom === "dark" || fromDom === "light") return fromDom;
-  return resolveTheme(localStorage.getItem(THEME_STORAGE_KEY));
+  try {
+    return resolveTheme(localStorage.getItem(THEME_STORAGE_KEY));
+  } catch {
+    return "light";
+  }
 }
 
 function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.style.colorScheme = theme;
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    /* private mode / blocked storage */
+  }
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    setThemeState(readStoredTheme());
+  useLayoutEffect(() => {
+    const stored = readStoredTheme();
+    setThemeState(stored);
+    applyTheme(stored);
     setReady(true);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ready) return;
     applyTheme(theme);
   }, [theme, ready]);
 
   const setTheme = useCallback((next: Theme) => {
+    applyTheme(next);
     setThemeState(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => (current === "dark" ? "light" : "dark"));
+    setThemeState((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      applyTheme(next);
+      return next;
+    });
   }, []);
 
   const value = useMemo(

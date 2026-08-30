@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   color-scheme: light;
 
@@ -193,9 +195,13 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1680,6 +1686,46 @@ main .text-slate-700,
 }
 
 /* ── Tema oscuro: superficies y componentes ───────── */
+[data-theme="dark"] .bg-cream-50,
+[data-theme="dark"] .hover\:bg-cream-50:hover {
+  background-color: var(--cream-50);
+}
+
+[data-theme="dark"] .bg-cream-100,
+[data-theme="dark"] .hover\:bg-cream-100:hover {
+  background-color: var(--cream-100);
+}
+
+[data-theme="dark"] .bg-cream-200 {
+  background-color: var(--cream-200);
+}
+
+[data-theme="dark"] .bg-cream-300 {
+  background-color: var(--cream-300);
+}
+
+[data-theme="dark"] .bg-cream-400 {
+  background-color: var(--cream-400);
+}
+
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-950 {
+  color: var(--foreground);
+}
+
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-600 {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .theme-toggle {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
 [data-theme="dark"] .bg-white {
   background-color: var(--surface);
 }

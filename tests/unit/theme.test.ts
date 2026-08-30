@@ -17,4 +17,9 @@ describe("theme", () => {
   it("persists the theme under a stable storage key", () => {
     expect(THEME_STORAGE_KEY).toBe("epoint-crm-theme");
   });
+
+  it("treats any value other than dark as light so hydration cannot lock the UI", () => {
+    expect(resolveTheme("DARK")).toBe("light");
+    expect(resolveTheme("")).toBe("light");
+  });
 });
