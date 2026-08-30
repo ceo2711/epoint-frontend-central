@@ -21,6 +21,7 @@ import {
   setupNotificationSoundUnlock,
 } from "@/features/notifications/notificationSound";
 import { api } from "@/lib/api";
+import { emitClientsRefresh } from "@/lib/clientEvents";
 import { invalidateClientsQueries } from "@/lib/invalidateClients";
 import { invalidateProspectsQueries } from "@/lib/invalidateProspects";
 import type { Notification, Paginated } from "@/types/api";
@@ -39,6 +40,8 @@ const NotificationsContext = createContext<NotificationsContextValue | null>(nul
 
 /** Respaldo si el SSE se cae; no debe competir con el stream en tiempo real. */
 const POLL_MS = 10 * 60_000;
+const INBOX_SYNC_MS = 30_000;
+const INBOX_SYNC_START_MS = 4_000;
 const STREAM_RECONNECT_MS = 3_000;
 const RECENT_LIMIT = 20;
 /** No competir con la navegación post-login. */
@@ -70,7 +73,7 @@ export function NotificationsProvider({
   children: ReactNode;
   enabled?: boolean;
 }) {
-  const { token, user } = useAuth();
+  const { token, user, hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [unreadCount, setUnreadCount] = useState(0);
   const [recent, setRecent] = useState<Notification[]>([]);
@@ -141,6 +144,16 @@ export function NotificationsProvider({
         const envelopeId = notification.payload?.envelope_id;
         dispatchDocusignRefresh(
           typeof envelopeId === "number" ? { envelopeId } : undefined,
+        );
+      }
+      if (notification.event_type === "CLIENT_EMAIL_RECEIVED") {
+        const emailClientId = notification.payload?.client_id;
+        void invalidateClientsQueries(
+          queryClient,
+          typeof emailClientId === "number" ? { clientId: emailClientId } : undefined,
+        );
+        emitClientsRefresh(
+          typeof emailClientId === "number" ? { clientId: emailClientId } : undefined,
         );
       }
       if (
@@ -246,6 +259,34 @@ export function NotificationsProvider({
       clearInterval(interval);
     };
   }, [enabled, token]);
+
+  useEffect(() => {
+    if (!enabled || !token || !hasPermission("clients:read")) return;
+
+    const syncInbox = () => {
+      void api
+        .post<{ ingested: number }>(
+          "/clients/inbox/sync",
+          {},
+          token,
+          { silentHttpErrors: true },
+        )
+        .then((result) => {
+          if (result.ingested > 0) {
+            void invalidateClientsQueries(queryClient);
+            emitClientsRefresh();
+          }
+        })
+        .catch(() => undefined);
+    };
+
+    const startTimer = window.setTimeout(syncInbox, INBOX_SYNC_START_MS);
+    const interval = window.setInterval(syncInbox, INBOX_SYNC_MS);
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearInterval(interval);
+    };
+  }, [enabled, token, hasPermission, queryClient]);
 
   useEffect(() => {
     if (!enabled || !token) return;
