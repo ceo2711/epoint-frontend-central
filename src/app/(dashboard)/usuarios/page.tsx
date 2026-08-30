@@ -42,6 +42,7 @@ export default function UsuariosPage() {
   const { t } = useTranslation();
   const modal = useModal();
   const showSedeFilter = isGlobalAdmin(currentUser?.role.code);
+  const canPurgeUsers = isGlobalAdmin(currentUser?.role.code);
   const onboardingDashboard = seesOnboardingDashboard(currentUser);
 
   useEffect(() => {
@@ -154,6 +155,29 @@ export default function UsuariosPage() {
     }
   }
 
+  async function handleDelete(user: User) {
+    if (!token || !canPurgeUsers) return;
+    const confirmed = await modal.confirm({
+      title: t("users.deleteTitle"),
+      message: t("users.deleteConfirm", { name: `${user.first_name} ${user.last_name}` }),
+      confirmLabel: t("users.delete"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/users/${user.id}/account`, token);
+      setViewing(null);
+      await invalidateStaffDirectoryCaches(queryClient);
+      await reload();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("common.error")),
+        variant: "error",
+      });
+    }
+  }
+
   return (
     <>
       <Header title={t("users.headerContext")} subtitle={t("users.subtitle")} />
@@ -188,10 +212,12 @@ export default function UsuariosPage() {
             currentUserId={currentUser?.id}
             canUpdate={hasPermission("users:update")}
             canDelete={hasPermission("users:delete")}
+            canPurge={canPurgeUsers}
             showSedeColumn={showSedeFilter}
             onSelect={openDetail}
             onEdit={openEdit}
             onDeactivate={handleDeactivate}
+            onDelete={handleDelete}
           />
         )}
       </PageContent>
@@ -202,10 +228,12 @@ export default function UsuariosPage() {
           currentUserId={currentUser?.id}
           canUpdate={hasPermission("users:update")}
           canDelete={hasPermission("users:delete")}
+          canPurge={canPurgeUsers}
           canReassignSubSeller={canReassign}
           onClose={closeDetailModal}
           onEdit={openEdit}
           onDeactivate={handleDeactivate}
+          onDelete={handleDelete}
           onReassignSubSeller={(user) => {
             setViewing(null);
             setReassigning(user);

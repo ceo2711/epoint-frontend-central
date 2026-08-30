@@ -1081,6 +1081,10 @@ export const en: Messages = {
     deactivate: "Deactivate",
     deactivateTitle: "Deactivate user",
     deactivateConfirm: "Confirm deactivation of {name}?",
+    delete: "Delete",
+    deleteTitle: "Delete employee",
+    deleteConfirm:
+      "Delete {name} from the platform? They will lose access immediately. Clients, prospects, and payments stay in the CRM. This cannot be undone.",
     lastLogin: "Last login",
     teamOwner: "Team lead",
     detailTitle: "User details",

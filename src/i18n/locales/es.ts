@@ -1081,6 +1081,10 @@ export const es = {
     deactivate: "Desactivar",
     deactivateTitle: "Desactivar usuario",
     deactivateConfirm: "¿Confirmás la desactivación de {name}?",
+    delete: "Eliminar",
+    deleteTitle: "Eliminar empleado",
+    deleteConfirm:
+      "¿Eliminar a {name} de la plataforma? Perderá el acceso de inmediato. Clientes, prospectos y pagos quedan en el CRM. Esta acción no se puede deshacer.",
     lastLogin: "Último acceso",
     teamOwner: "Vendedor titular",
     detailTitle: "Detalle del usuario",

@@ -1,6 +1,6 @@
 "use client";
 
-import { HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
+import { HiOutlineNoSymbol, HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2";
 
 import { ActiveBadge } from "@/components/ui/Badge";
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
@@ -8,16 +8,21 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { User } from "@/features/users/types";
 
+const SYSTEM_STAFF_EMAIL = "system@epoint.com";
+
 interface UsersTableProps {
   users: User[];
   currentUserId?: number;
   canUpdate: boolean;
   canDelete: boolean;
+  /** Solo administrador global: borrado permanente de empleados. */
+  canPurge?: boolean;
   /** Solo admin global: el gerente ya ve solo su sede. */
   showSedeColumn?: boolean;
   onSelect: (user: User) => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
+  onDelete?: (user: User) => void;
 }
 
 export function UsersTable({
@@ -25,21 +30,32 @@ export function UsersTable({
   currentUserId,
   canUpdate,
   canDelete,
+  canPurge = false,
   showSedeColumn = true,
   onSelect,
   onEdit,
   onDeactivate,
+  onDelete,
 }: UsersTableProps) {
   const { t } = useTranslation();
+  const showActionsColumn = canUpdate || canDelete || canPurge;
 
   function renderActions(user: User) {
-    if (!user.is_active || user.id === currentUserId) {
+    if (user.id === currentUserId) {
+      return t("common.dash");
+    }
+
+    const showEdit = canUpdate && user.is_active;
+    const showDeactivate = canDelete && user.is_active;
+    const showDelete =
+      canPurge && Boolean(onDelete) && user.email.toLowerCase() !== SYSTEM_STAFF_EMAIL;
+    if (!showEdit && !showDeactivate && !showDelete) {
       return t("common.dash");
     }
 
     return (
       <TableActions>
-        {canUpdate ? (
+        {showEdit ? (
           <IconActionButton
             label={t("common.edit")}
             icon={<HiOutlinePencilSquare />}
@@ -49,7 +65,7 @@ export function UsersTable({
             }}
           />
         ) : null}
-        {canDelete ? (
+        {showDeactivate ? (
           <IconActionButton
             label={t("users.deactivate")}
             icon={<HiOutlineNoSymbol />}
@@ -57,6 +73,17 @@ export function UsersTable({
             onClick={(e) => {
               e.stopPropagation();
               onDeactivate(user);
+            }}
+          />
+        ) : null}
+        {showDelete ? (
+          <IconActionButton
+            label={t("users.delete")}
+            icon={<HiOutlineTrash />}
+            variant="danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(user);
             }}
           />
         ) : null}
@@ -107,7 +134,7 @@ export function UsersTable({
               <span className="text-sm text-slate-600">{user.area?.name ?? t("common.dash")}</span>
               <ActiveBadge active={user.is_active} />
             </div>
-            {(canUpdate || canDelete) && user.is_active && user.id !== currentUserId ? (
+            {showActionsColumn && user.id !== currentUserId ? (
               <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                 {renderActions(user)}
               </div>
@@ -126,7 +153,7 @@ export function UsersTable({
               {showSedeColumn ? <th>{t("users.sede")}</th> : null}
               <th>{t("common.area")}</th>
               <th>{t("common.status")}</th>
-              {(canUpdate || canDelete) && <th>{t("common.actions")}</th>}
+              {showActionsColumn && <th>{t("common.actions")}</th>}
             </tr>
           </thead>
           <tbody>
@@ -146,7 +173,7 @@ export function UsersTable({
                 <td>
                   <ActiveBadge active={user.is_active} />
                 </td>
-                {(canUpdate || canDelete) && (
+                {showActionsColumn && (
                   <td onClick={(e) => e.stopPropagation()}>{renderActions(user)}</td>
                 )}
               </tr>

@@ -1,7 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { HiOutlineArrowPath, HiOutlineNoSymbol, HiOutlinePencilSquare } from "react-icons/hi2";
+import {
+  HiOutlineArrowPath,
+  HiOutlineNoSymbol,
+  HiOutlinePencilSquare,
+  HiOutlineTrash,
+} from "react-icons/hi2";
 
 import { ActiveBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,15 +17,19 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import type { User } from "@/features/users/types";
 import { formatDateTime } from "@/lib/format-datetime";
 
+const SYSTEM_STAFF_EMAIL = "system@epoint.com";
+
 interface UserDetailModalProps {
   user: User;
   currentUserId?: number;
   canUpdate: boolean;
   canDelete: boolean;
+  canPurge?: boolean;
   canReassignSubSeller?: boolean;
   onClose: () => void;
   onEdit: (user: User) => void;
   onDeactivate: (user: User) => void;
+  onDelete?: (user: User) => void;
   onReassignSubSeller?: (user: User) => void;
 }
 
@@ -39,10 +48,12 @@ export function UserDetailModal({
   currentUserId,
   canUpdate,
   canDelete,
+  canPurge = false,
   canReassignSubSeller = false,
   onClose,
   onEdit,
   onDeactivate,
+  onDelete,
   onReassignSubSeller,
 }: UserDetailModalProps) {
   const { t, locale } = useTranslation();
@@ -50,6 +61,11 @@ export function UserDetailModal({
   const canManage = user.is_active && user.id !== currentUserId;
   const showEdit = canUpdate && canManage;
   const showDeactivate = canDelete && canManage;
+  const showDelete =
+    canPurge &&
+    Boolean(onDelete) &&
+    user.id !== currentUserId &&
+    user.email.toLowerCase() !== SYSTEM_STAFF_EMAIL;
   const isSubSeller =
     user.role.code === "SUB_SELLER" || user.parent_user_id != null || Boolean(user.is_sub_seller);
   const showReassign = Boolean(canReassignSubSeller && isSubSeller && onReassignSubSeller);
@@ -59,7 +75,7 @@ export function UserDetailModal({
     : null;
 
   const headerActions =
-    showEdit || showDeactivate || showReassign ? (
+    showEdit || showDeactivate || showDelete || showReassign ? (
       <>
         {showReassign ? (
           <IconActionButton
@@ -81,6 +97,14 @@ export function UserDetailModal({
             icon={<HiOutlineNoSymbol className="h-4 w-4" />}
             variant="danger"
             onClick={() => onDeactivate(user)}
+          />
+        ) : null}
+        {showDelete ? (
+          <IconActionButton
+            label={t("users.delete")}
+            icon={<HiOutlineTrash className="h-4 w-4" />}
+            variant="danger"
+            onClick={() => onDelete?.(user)}
           />
         ) : null}
       </>
