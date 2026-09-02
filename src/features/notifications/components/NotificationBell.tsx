@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { NotificationDetailModal } from "@/features/notifications/components/NotificationDetailModal";
 import {
   isSaleCongratsNotification,
@@ -57,14 +58,39 @@ export function NotificationBell() {
   const { openNotification, getHref } = useNotificationNavigation();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Notification | null>(null);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = useCallback(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + 8,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     }
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -116,40 +142,46 @@ export function NotificationBell() {
           )}
         </button>
 
-        {open && (
-          <div className="notification-dropdown">
-            <div className="notification-dropdown-header">
-              <div>
-                <p className="text-sm font-bold text-slate-900">{t("notifications.title")}</p>
+        {open ? (
+          <ModalPortal>
+            <div
+              ref={menuRef}
+              className="notification-dropdown notification-dropdown--portal"
+              style={{ top: coords.top, right: coords.right }}
+            >
+              <div className="notification-dropdown-header">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{t("notifications.title")}</p>
+                  {unreadCount > 0 && (
+                    <p className="text-xs text-slate-500">{t("notifications.unreadCount", { count: unreadCount })}</p>
+                  )}
+                </div>
                 {unreadCount > 0 && (
-                  <p className="text-xs text-slate-500">{t("notifications.unreadCount", { count: unreadCount })}</p>
+                  <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-800" onClick={markAllRead}>
+                    {t("notifications.markAllRead")}
+                  </button>
                 )}
               </div>
-              {unreadCount > 0 && (
-                <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-800" onClick={markAllRead}>
-                  {t("notifications.markAllRead")}
-                </button>
-              )}
-            </div>
 
-            <div className="notification-dropdown-body">
-              {loading && recent.length === 0 && (
-                <p className="px-4 py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>
-              )}
-              {!loading && recent.length === 0 && (
-                <p className="px-4 py-8 text-center text-sm text-slate-400">{t("notifications.empty")}</p>
-              )}
-              {recent.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  item={notification}
-                  locale={locale}
-                  onSelect={handleSelect}
-                />
-              ))}
+              <div className="notification-dropdown-body">
+                {loading && recent.length === 0 && (
+                  <p className="px-4 py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>
+                )}
+                {!loading && recent.length === 0 && (
+                  <p className="px-4 py-8 text-center text-sm text-slate-400">{t("notifications.empty")}</p>
+                )}
+                {recent.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    item={notification}
+                    locale={locale}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          </ModalPortal>
+        ) : null}
       </div>
 
       {selected &&

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/AppProviders";
-import { EPOINT_LOGO_PATH } from "@/components/layout/AppLogo";
 
 import "./globals.css";
 
@@ -15,8 +14,11 @@ export const metadata: Metadata = {
   title: "Epoint Corporation",
   description: "Plataforma de gestión y onboarding de clientes",
   icons: {
-    icon: EPOINT_LOGO_PATH,
-    apple: EPOINT_LOGO_PATH,
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
   },
 };
 

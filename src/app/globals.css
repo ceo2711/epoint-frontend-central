@@ -894,6 +894,37 @@ body {
   color: var(--foreground);
 }
 
+.kanban-card-line {
+  height: 3px;
+  width: 100%;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+}
+
+.kanban-card-line--pendiente {
+  background: #94a3b8;
+}
+
+.kanban-card-line--urgente {
+  background: #ef4444;
+}
+
+.kanban-card-line--rechazada {
+  background: #f59e0b;
+}
+
+.kanban-card-line--denegada {
+  background: #e11d48;
+}
+
+.kanban-card-line--aprobada {
+  background: #10b981;
+}
+
+.kanban-card-line--neutral {
+  background: transparent;
+}
+
 /* Modal de card teñido según label */
 .card-modal-theme--urgente {
   background: linear-gradient(180deg, #fef2f2 0%, #fff 42%);
@@ -1225,6 +1256,22 @@ body {
   opacity: 1;
 }
 
+.step-card-incomplete {
+  border-color: #e85c5c;
+  border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.08);
+}
+
+.step-card-incomplete::before {
+  background: #e85c5c;
+  opacity: 1;
+}
+
+.step-card-incomplete:hover {
+  border-color: #de4f4f;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.12);
+}
+
 /* ── Action menu dropdown ───────────────────────── */
 .action-menu-dropdown {
   position: absolute;
@@ -1360,6 +1407,12 @@ body {
   border: 1px solid var(--border-soft);
   background: var(--surface);
   box-shadow: var(--shadow-xl);
+}
+
+.notification-dropdown--portal {
+  position: fixed;
+  top: auto;
+  z-index: 70;
 }
 
 .notification-dropdown-header {

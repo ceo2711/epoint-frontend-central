@@ -18,25 +18,27 @@ export function resolveCardLabel(label: string | null | undefined): BoardCardLab
   return isBoardCardLabel(label) ? label : DEFAULT_BOARD_CARD_LABEL;
 }
 
-/** Clase de superficie para la card del kanban (borde + fondo). */
-export function kanbanCardLabelClass(label: string | null | undefined): string {
-  switch (resolveCardLabel(label)) {
+/** Línea de color en el frente de la card (sin badge de texto). */
+export function kanbanCardAccentClass(label: string | null | undefined): string {
+  if (!isBoardCardLabel(label)) return "kanban-card-line--neutral";
+  switch (label) {
     case "URGENTE":
-      return "kanban-card--urgente";
+      return "kanban-card-line--urgente";
     case "RECHAZADA":
-      return "kanban-card--rechazada";
+      return "kanban-card-line--rechazada";
     case "DENEGADA":
-      return "kanban-card--denegada";
+      return "kanban-card-line--denegada";
     case "APROBADA":
-      return "kanban-card--aprobada";
+      return "kanban-card-line--aprobada";
     case "PENDIENTE":
-      return "kanban-card--pendiente";
+      return "kanban-card-line--pendiente";
   }
 }
 
 /** Clases de tema para el modal completo según el label. */
 export function cardModalThemeClass(label: string | null | undefined): string {
-  switch (resolveCardLabel(label)) {
+  if (!isBoardCardLabel(label)) return "";
+  switch (label) {
     case "URGENTE":
       return "card-modal-theme--urgente";
     case "RECHAZADA":

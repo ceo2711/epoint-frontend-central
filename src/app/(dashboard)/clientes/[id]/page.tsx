@@ -41,6 +41,8 @@ import { ApiError, api, isUnauthorizedError } from "@/lib/api";
 import { clientsListPath, parseSedeIdParam } from "@/lib/clientsNavigation";
 import { formatDate } from "@/lib/format-datetime";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
+import { useSensitiveDocumentAccess } from "@/features/documents/hooks/useSensitiveDocumentAccess";
+import { sensitiveStepUpHeaders } from "@/features/documents/sensitiveAccess";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
 import { prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
@@ -112,6 +114,7 @@ function ClienteDetailPageContent() {
   const { token, hasPermission, user, isLoading: authLoading } = useAuth();
   const { t, locale } = useTranslation();
   const modal = useModal();
+  const { ensureAccess, modal: sensitiveUnlockModal } = useSensitiveDocumentAccess();
   const { approveClient, rejectClient, resubmitClient, deleteClient, advisors, loadAdvisors } =
     useClientWorkflow(token);
 
@@ -309,10 +312,19 @@ function ClienteDetailPageContent() {
       ? t(CLIENT_SOURCE_LABEL_KEYS[client.source as ClientSourceValue])
       : client?.source ?? "—";
 
+  async function handleViewDocument(doc: DocumentBrief) {
+    const allowed = await ensureAccess(doc.type);
+    if (allowed) setViewingDoc(doc);
+  }
+
   async function handleDownloadDocument(doc: DocumentBrief) {
     if (!token) return;
+    const allowed = await ensureAccess(doc.type);
+    if (!allowed) return;
     try {
-      const blob = await api.getBlob(`/documents/${doc.id}/content?download=true`, token);
+      const blob = await api.getBlob(`/documents/${doc.id}/content?download=true`, token, {
+        headers: sensitiveStepUpHeaders(),
+      });
       const file = new Blob([blob.data], {
         type: blob.mimeType || doc.mime_type || "application/octet-stream",
       });
@@ -715,7 +727,7 @@ function ClienteDetailPageContent() {
               locale={locale}
               canUpload={canUploadClientDocuments(user)}
               onUploaded={() => void refreshDocuments()}
-              onViewDocument={setViewingDoc}
+              onViewDocument={handleViewDocument}
               onDownloadDocument={canDownloadDocs ? handleDownloadDocument : undefined}
             />
           </Card>
@@ -728,6 +740,8 @@ function ClienteDetailPageContent() {
           </Card>
         )}
       </PageContent>
+
+      {sensitiveUnlockModal}
 
       {viewingDoc && (
         <LazyDocumentViewerModal

@@ -192,6 +192,18 @@ export const es = {
     verifyError: "No se pudo verificar el código",
     backToLogin: "Volver al inicio de sesión",
   },
+  sensitiveDocs: {
+    title: "Documento protegido",
+    subtitle: "Ingresa el código de doble factor para ver este documento.",
+    setupHint: "Activá el doble factor de autenticación para ver este documento.",
+    ssnTitle: "SSN protegido",
+    ssnSubtitle: "Ingresa el código de doble factor para ver tu número de Seguro Social.",
+    ssnSetupHint: "Activá el doble factor de autenticación para ver el SSN.",
+    goToSettings: "Ir a configuración",
+    verifySubmit: "Verificar y ver",
+    verifyError: "No se pudo verificar el código",
+    locked: "Doc",
+  },
   twoFactorRequired: {
     title: "Configurá el doble factor de autenticación",
     subtitle: "Es un requisito obligatorio para todos los usuarios de Epoint",
@@ -1321,6 +1333,23 @@ export const es = {
     step3Desc: "Tareas de onboarding",
     step3LockedDesc: "Se habilita al completar y verificar tus datos y documentos",
     step3LockedCta: "Pendiente",
+    missingTitle: "Te falta completar:",
+    gaps: {
+      profile: {
+        ssn: "SSN / Seguro Social",
+        date_of_birth: "Fecha de nacimiento",
+        address: "Dirección actual",
+        previous_address: "Dirección anterior",
+        vehicle: "Datos del vehículo",
+      },
+      docs: {
+        IDENTITY_DOCUMENT:
+          "Documento de identidad (licencia frente y dorso, pasaporte, green card o permiso de trabajo)",
+        ADDRESS_PROOF: "Comprobante de domicilio (Utility Bill o Bank Statement)",
+      },
+      rejected: "{item} (rechazado — volver a subir)",
+      expiring: "{item} (vence pronto — subir uno vigente)",
+    },
   },
   portalBoardUnlock: {
     title: "¡Felicitaciones!",
@@ -1354,7 +1383,8 @@ export const es = {
     ssnPlaceholder: "XXX-XX-XXXX",
     ssnMasked: "•••••••••",
     ssnOnFile: "SSN registrado en el sistema",
-    ssnViewHint: "Usa el ícono del ojo para ver tu número completo.",
+    ssnViewHint: "Usa el ícono del ojo. Te pediremos el código de doble factor para mostrar tu número completo.",
+    ssnViewError: "No se pudo mostrar el SSN. Verificá el código e intentá de nuevo.",
     ssnPlaceholderUpdate: "Ingresa solo si quieres cambiarlo",
     ssnHint: "Déjalo en blanco si ya lo cargaste y solo quieres actualizar otro dato.",
     ssnInvalid: "El número de Seguro Social debe tener 9 dígitos (formato XXX-XX-XXXX).",

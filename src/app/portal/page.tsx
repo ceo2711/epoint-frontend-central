@@ -8,13 +8,22 @@ import { Card, PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePortalBoardUnlocked } from "@/features/portal/components/PortalBoardUnlockGate";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
+import {
+  documentGapLabels,
+  isDocumentsIncomplete,
+  isProfileIncomplete,
+  profileGapLabels,
+} from "@/features/portal/onboardingGaps";
 import { useTranslation } from "@/contexts/LanguageContext";
 
 export default function PortalHomePage() {
   const { token } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: client } = usePortalMe(token);
   const boardUnlocked = usePortalBoardUnlocked();
+  const gaps = client?.onboarding_gaps;
+  const profileMissing = profileGapLabels(gaps, t, locale);
+  const documentMissing = documentGapLabels(gaps, t, locale);
 
   return (
     <>
@@ -40,6 +49,9 @@ export default function PortalHomePage() {
             href="/portal/datos"
             desc={t("portal.step1Desc")}
             goLabel={t("common.go")}
+            incomplete={isProfileIncomplete(gaps)}
+            missingTitle={t("portal.missingTitle")}
+            missingItems={profileMissing}
           />
           <StepCard
             step="2"
@@ -47,6 +59,9 @@ export default function PortalHomePage() {
             href="/portal/documentos"
             desc={t("portal.step2Desc")}
             goLabel={t("common.go")}
+            incomplete={isDocumentsIncomplete(gaps)}
+            missingTitle={t("portal.missingTitle")}
+            missingItems={documentMissing}
           />
           <StepCard
             step="3"
@@ -69,6 +84,9 @@ function StepCard({
   desc,
   goLabel,
   locked = false,
+  incomplete = false,
+  missingTitle,
+  missingItems = [],
 }: {
   step: string;
   title: string;
@@ -76,7 +94,22 @@ function StepCard({
   desc: string;
   goLabel: string;
   locked?: boolean;
+  incomplete?: boolean;
+  missingTitle?: string;
+  missingItems?: string[];
 }) {
+  const missingBlock =
+    incomplete && missingItems.length > 0 ? (
+      <div className="mt-3 rounded-lg bg-red-50 px-3 py-2">
+        <p className="text-xs font-semibold text-red-500">{missingTitle}</p>
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs leading-snug text-red-500">
+          {missingItems.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
+
   if (locked) {
     return (
       <div
@@ -97,13 +130,25 @@ function StepCard({
   }
 
   return (
-    <Link href={href} className="step-card group">
-      <span className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white shadow-md shadow-blue-600/25 transition group-hover:scale-105">
+    <Link
+      href={href}
+      className={`step-card group ${incomplete ? "step-card-incomplete" : ""}`}
+    >
+      <span
+        className={`mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition group-hover:scale-105 ${
+          incomplete ? "bg-[#e85c5c] shadow-red-500/20" : "bg-blue-600 shadow-blue-600/25"
+        }`}
+      >
         {step}
       </span>
       <h3 className="font-bold text-slate-900">{title}</h3>
       <p className="mt-1.5 text-sm text-slate-500">{desc}</p>
-      <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-600 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
+      {missingBlock}
+      <span
+        className={`mt-4 inline-flex items-center gap-1 text-sm font-semibold opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 ${
+          incomplete ? "text-red-500" : "text-blue-600"
+        }`}
+      >
         {goLabel}
       </span>
     </Link>

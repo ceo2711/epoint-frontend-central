@@ -160,6 +160,13 @@ export interface ClientSignedContractBrief {
   has_document: boolean;
 }
 
+export interface OnboardingGaps {
+  profile_fields: string[];
+  missing_documents: string[];
+  rejected_documents: string[];
+  expiring_documents: string[];
+}
+
 export interface Client {
   id: number;
   status: string;
@@ -192,6 +199,7 @@ export interface Client {
   source_prospect?: import("@/features/prospects/types").ProspectPipelineSummary | null;
   /** True cuando el portal ya puede mostrar el tablero (datos + docs OK). */
   board_unlocked?: boolean;
+  onboarding_gaps?: OnboardingGaps | null;
   has_unread_inbound_email?: boolean;
   source_prospect_status?: string | null;
 }

@@ -23,10 +23,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useTranslation } from "@/contexts/LanguageContext";
-import { CardLabelBadge, CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
+import { CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
 import {
   DEFAULT_BOARD_CARD_LABEL,
-  kanbanCardLabelClass,
+  kanbanCardAccentClass,
   type BoardCardLabel,
 } from "@/features/boards/constants/cardLabels";
 import type { Board, BoardCard, BoardList } from "@/features/boards/types";
@@ -83,9 +83,8 @@ function SortableKanbanCard({
 
   return (
     <div ref={setNodeRef} style={style} className="touch-manipulation">
-      <div
-        className={`kanban-card w-full text-left ${kanbanCardLabelClass(card.label)}`}
-      >
+      <div className="kanban-card w-full text-left">
+        <div className={`kanban-card-line ${kanbanCardAccentClass(card.label)}`} aria-hidden />
         <div className="flex items-start gap-1">
           {canDrag ? (
             <button
@@ -107,9 +106,6 @@ function SortableKanbanCard({
           ) : null}
           <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
             <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
-            <div className="mt-1.5">
-              <CardLabelBadge label={card.label} />
-            </div>
           </button>
           {canSetLabel && onUpdateLabel ? (
             <CardLabelPicker
@@ -251,11 +247,9 @@ function AddCardForm({
 
 function KanbanCardPreview({ card }: { card: BoardCard }) {
   return (
-    <div className={`kanban-card w-48 rotate-1 shadow-lg ${kanbanCardLabelClass(card.label)}`}>
+    <div className="kanban-card w-48 rotate-1 shadow-lg">
+      <div className={`kanban-card-line ${kanbanCardAccentClass(card.label)}`} aria-hidden />
       <p className="text-xs font-semibold leading-snug text-slate-800">{card.title}</p>
-      <div className="mt-1.5">
-        <CardLabelBadge label={card.label} />
-      </div>
     </div>
   );
 }

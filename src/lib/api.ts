@@ -42,6 +42,7 @@ function throwNetworkError(
 const SILENT_AUTH_CLIENT_PATHS = new Set([
   "/auth/login",
   "/auth/2fa/verify",
+  "/auth/2fa/step-up",
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/change-password",
@@ -89,6 +90,8 @@ async function request<T>(
       const detail = data.detail ?? data.message;
       if (Array.isArray(detail)) {
         message = detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", ");
+      } else if (detail && typeof detail === "object" && "message" in detail) {
+        message = String((detail as { message: unknown }).message);
       } else if (detail) {
         message = String(detail);
       }
@@ -151,6 +154,8 @@ async function requestBlob(
       const detail = data.detail ?? data.message;
       if (Array.isArray(detail)) {
         message = detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", ");
+      } else if (detail && typeof detail === "object" && "message" in detail) {
+        message = String((detail as { message: unknown }).message);
       } else if (detail) {
         message = String(detail);
       }
@@ -203,6 +208,8 @@ async function uploadRequest<T>(
       const detail = data.detail ?? data.message;
       if (Array.isArray(detail)) {
         message = detail.map((e: { msg?: string }) => e.msg ?? String(e)).join(", ");
+      } else if (detail && typeof detail === "object" && "message" in detail) {
+        message = String((detail as { message: unknown }).message);
       } else if (detail) {
         message = String(detail);
       }
@@ -229,11 +236,11 @@ export const api = {
   get: <T>(
     path: string,
     token?: string | null,
-    options?: Pick<RequestOptions, "silentHttpErrors" | "skipAuthRefresh">,
+    options?: Pick<RequestOptions, "silentHttpErrors" | "skipAuthRefresh" | "headers">,
   ) => request<T>(path, { method: "GET", token, ...options }),
 
-  getBlob: (path: string, token?: string | null) =>
-    requestBlob(path, { token }),
+  getBlob: (path: string, token?: string | null, options?: Pick<RequestOptions, "headers">) =>
+    requestBlob(path, { token, ...options }),
 
   post: <T>(
     path: string,

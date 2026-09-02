@@ -26,7 +26,7 @@ export function Header({
     "";
 
   return (
-    <header className="sticky top-0 z-30 w-full max-w-full shrink-0 border-b border-cream-600 bg-cream-100/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
+    <header className="sticky top-0 z-50 w-full max-w-full shrink-0 border-b border-cream-600 bg-cream-100/95 shadow-sm backdrop-blur-md lg:px-8 lg:py-4">
       {/* Mobile / tablet: menú · marca · notificaciones + usuario */}
       <div className="flex items-center gap-2 px-3 py-2.5 lg:hidden">
         <button

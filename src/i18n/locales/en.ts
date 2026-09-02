@@ -194,6 +194,18 @@ export const en: Messages = {
     verifyError: "Could not verify the code",
     backToLogin: "Back to sign in",
   },
+  sensitiveDocs: {
+    title: "Protected document",
+    subtitle: "Enter your two-factor code to view this document.",
+    setupHint: "Enable two-factor authentication to view this document.",
+    ssnTitle: "Protected SSN",
+    ssnSubtitle: "Enter your two-factor code to view your Social Security Number.",
+    ssnSetupHint: "Enable two-factor authentication to view the SSN.",
+    goToSettings: "Go to settings",
+    verifySubmit: "Verify and view",
+    verifyError: "Could not verify the code",
+    locked: "Doc",
+  },
   twoFactorRequired: {
     title: "Set up two-factor authentication",
     subtitle: "This is mandatory for every Epoint user",
@@ -1320,6 +1332,23 @@ export const en: Messages = {
     step3Desc: "Onboarding tasks",
     step3LockedDesc: "Unlocks after your data and documents are completed and verified",
     step3LockedCta: "Pending",
+    missingTitle: "You still need to complete:",
+    gaps: {
+      profile: {
+        ssn: "SSN / Social Security Number",
+        date_of_birth: "Date of birth",
+        address: "Current address",
+        previous_address: "Previous address",
+        vehicle: "Vehicle information",
+      },
+      docs: {
+        IDENTITY_DOCUMENT:
+          "Identity document (driver's license front and back, passport, green card, or work permit)",
+        ADDRESS_PROOF: "Proof of address (utility bill or bank statement)",
+      },
+      rejected: "{item} (rejected — please re-upload)",
+      expiring: "{item} (expiring soon — please upload a valid one)",
+    },
   },
   portalBoardUnlock: {
     title: "Congratulations!",
@@ -1352,7 +1381,8 @@ export const en: Messages = {
     ssnPlaceholder: "XXX-XX-XXXX",
     ssnMasked: "•••••••••",
     ssnOnFile: "SSN on file",
-    ssnViewHint: "Use the eye icon to view your full number.",
+    ssnViewHint: "Use the eye icon. We'll ask for your two-factor code to show the full number.",
+    ssnViewError: "Could not show the SSN. Verify the code and try again.",
     ssnPlaceholderUpdate: "Enter only if you want to change it",
     ssnHint: "Leave blank if you already entered it and only want to update another field.",
     ssnInvalid: "The Social Security Number must have 9 digits (format XXX-XX-XXXX).",

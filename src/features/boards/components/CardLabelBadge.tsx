@@ -20,7 +20,8 @@ const VIEWPORT_PAD = 8;
 
 export function CardLabelBadge({ label }: { label: string | null | undefined }) {
   const { t } = useTranslation();
-  const resolved = resolveCardLabel(label);
+  if (!isBoardCardLabel(label)) return null;
+  const resolved = label;
 
   return (
     <span

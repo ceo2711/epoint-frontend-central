@@ -1,4 +1,5 @@
 import { createObjectUrlFromBuffer, inferMimeFromFilename, isPdfMime, resolveMimeType } from "@/features/documents/utils/documentMime";
+import { sensitiveStepUpHeaders } from "@/features/documents/sensitiveAccess";
 import { api } from "@/lib/api";
 
 interface CachedBlob {
@@ -26,7 +27,7 @@ async function loadDocument(
   let pending = documentInflight.get(documentId);
   if (!pending) {
     pending = api
-      .getBlob(`/documents/${documentId}/content`, token)
+      .getBlob(`/documents/${documentId}/content`, token, { headers: sensitiveStepUpHeaders() })
       .then(({ data, mimeType: responseMime }) => {
         const type = resolveMimeType(filename ?? "", mimeType, responseMime);
         const entry: CachedBlob = { data: data.slice(0), mimeType: type };
@@ -123,16 +124,16 @@ export function prefetchAttachmentContent(
 }
 
 export function prefetchDocuments(
-  documents: Array<{ id: number; mime_type?: string | null; original_filename: string }>,
-  token: string,
-  limit = 3,
+  _documents: Array<{
+    id: number;
+    type?: string;
+    mime_type?: string | null;
+    original_filename: string;
+  }>,
+  _token: string,
+  _limit = 3,
 ): void {
-  for (const doc of documents.slice(0, limit)) {
-    if (isPdfMime(doc.mime_type ?? inferMimeFromFilename(doc.original_filename))) {
-      continue;
-    }
-    prefetchDocumentContent(doc.id, token, doc.mime_type, doc.original_filename);
-  }
+  // Las miniaturas no precargan el original: todo documento se muestra borroso.
 }
 
 export function prefetchAttachments(

@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { DocumentViewerModal } from "@/features/documents/components/DocumentViewerModal";
-import { ImageContentThumbnail } from "@/features/documents/components/ImageContentThumbnail";
-import { PdfPageThumbnail } from "@/features/documents/components/PdfPageThumbnail";
-import { isImageMime, isPdfMime, inferMimeFromFilename } from "@/features/documents/utils/documentMime";
+import { useSensitiveDocumentAccess } from "@/features/documents/hooks/useSensitiveDocumentAccess";
+import { isPdfMime, inferMimeFromFilename } from "@/features/documents/utils/documentMime";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useDocumentContentUrl } from "@/features/documents/hooks/useDocumentContentUrl";
-import { prefetchDocumentContent } from "@/lib/contentBlobCache";
+import { useTranslation } from "@/contexts/LanguageContext";
 import type { DocumentBrief } from "@/types/api";
 
 interface DocumentThumbnailProps {
@@ -16,22 +15,38 @@ interface DocumentThumbnailProps {
   viewLabel: string;
 }
 
-function PdfFallbackIcon() {
+function BlurredSensitiveThumb({ viewLabel }: { viewLabel: string }) {
+  const { t } = useTranslation();
   return (
-    <>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-7 w-7">
-        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-      <span className="mt-1 text-[10px] font-bold uppercase tracking-wide">PDF</span>
-    </>
+    <span className="relative flex h-full w-full items-center justify-center overflow-hidden bg-slate-200">
+      <span className="absolute inset-0 bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500 blur-md" />
+      <span className="relative z-10 flex flex-col items-center gap-0.5 text-white">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          className="h-5 w-5"
+          aria-hidden
+        >
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V8a4 4 0 018 0v3" />
+        </svg>
+        <span className="px-1 text-center text-[9px] font-semibold uppercase leading-tight">
+          {t("sensitiveDocs.locked")}
+        </span>
+      </span>
+      <span className="sr-only">{viewLabel}</span>
+    </span>
   );
 }
 
 export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
   const [open, setOpen] = useState(false);
   const { token } = useAuth();
-  const effectiveMime = doc.mime_type ?? inferMimeFromFilename(doc.original_filename);
-  const isPdf = isPdfMime(effectiveMime);
+  const { ensureAccess, modal } = useSensitiveDocumentAccess();
+  const isPdf = isPdfMime(doc.mime_type ?? inferMimeFromFilename(doc.original_filename));
 
   const { url: contentUrl, loading: contentLoading } = useDocumentContentUrl(
     doc.id,
@@ -41,73 +56,22 @@ export function DocumentThumbnail({ doc, viewLabel }: DocumentThumbnailProps) {
     doc.original_filename,
   );
 
-  useEffect(() => {
-    if (!token) return;
-    prefetchDocumentContent(doc.id, token, doc.mime_type, doc.original_filename);
-  }, [doc.id, doc.mime_type, doc.original_filename, token]);
-
-  const openViewer = () => setOpen(true);
-
-  const thumbClass =
-    "group shrink-0 cursor-pointer rounded-xl border border-slate-200 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400";
-
-  let thumb: ReactNode;
-
-  if (isImageMime(effectiveMime)) {
-    thumb = (
-      <button
-        type="button"
-        className={`${thumbClass} flex h-20 w-20 items-center justify-center overflow-hidden shadow-sm`}
-        title={viewLabel}
-        onClick={openViewer}
-      >
-        <ImageContentThumbnail
-          documentId={doc.id}
-          token={token}
-          alt={doc.original_filename}
-          mimeType={doc.mime_type}
-          className="h-full w-full"
-        />
-      </button>
-    );
-  } else if (isPdf) {
-    thumb = (
-      <button
-        type="button"
-        className={`${thumbClass} flex h-20 w-20 items-center justify-center overflow-hidden shadow-sm`}
-        title={viewLabel}
-        onClick={openViewer}
-      >
-        <PdfPageThumbnail
-          documentId={doc.id}
-          token={token}
-          alt={doc.original_filename}
-          mimeType={doc.mime_type}
-          className="h-full w-full"
-          fallback={
-            <span className="flex h-full w-full flex-col items-center justify-center border-red-100 bg-red-50 text-red-600">
-              <PdfFallbackIcon />
-            </span>
-          }
-        />
-      </button>
-    );
-  } else {
-    thumb = (
-      <button
-        type="button"
-        className={`${thumbClass} flex h-20 w-20 items-center justify-center bg-slate-50 text-xs font-medium text-slate-600 hover:bg-slate-100`}
-        title={viewLabel}
-        onClick={openViewer}
-      >
-        {viewLabel}
-      </button>
-    );
+  async function openViewer() {
+    const allowed = await ensureAccess(doc.type);
+    if (allowed) setOpen(true);
   }
 
   return (
     <>
-      {thumb}
+      <button
+        type="button"
+        className="group flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-slate-200 shadow-sm transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        title={viewLabel}
+        onClick={() => void openViewer()}
+      >
+        <BlurredSensitiveThumb viewLabel={viewLabel} />
+      </button>
+      {modal}
       {open && (
         <DocumentViewerModal
           url={contentUrl ?? ""}

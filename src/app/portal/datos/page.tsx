@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -12,10 +13,13 @@ import { DataSavedCongratsModal } from "@/features/portal/components/DataSavedCo
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { AddressAutocomplete } from "@/features/portal/components/AddressAutocomplete";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
+import { useSensitiveDocumentAccess } from "@/features/documents/hooks/useSensitiveDocumentAccess";
+import { sensitiveStepUpHeaders } from "@/features/documents/sensitiveAccess";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Client } from "@/types/api";
 
 function parseOptionalInt(value: string): number | null {
@@ -88,7 +92,9 @@ export default function PortalDatosPage() {
   const { token, refreshUser } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const profileQuery = usePortalMe(token);
+  const { ensureAccess, modal: ssnUnlockModal } = useSensitiveDocumentAccess("ssn");
   const [client, setClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -116,20 +122,35 @@ export default function PortalDatosPage() {
   const [profileErrors, setProfileErrors] = useState<{ ssn?: string; dob?: string }>({});
   const [storedSsn, setStoredSsn] = useState<string | null>(null);
   const [ssnVisible, setSsnVisible] = useState(false);
+  const [ssnUnlocking, setSsnUnlocking] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
 
-  async function loadStoredSsn(hasSsn: boolean) {
-    if (!token || !hasSsn) {
-      setStoredSsn(null);
+  async function handleToggleSsnVisibility() {
+    if (ssnVisible) {
+      setSsnVisible(false);
       return;
     }
+    if (!token || !client?.has_ssn) return;
+    const allowed = await ensureAccess("SSN_CARD");
+    if (!allowed) return;
+    if (storedSsn) {
+      setSsnVisible(true);
+      return;
+    }
+    setSsnUnlocking(true);
     try {
-      const data = await api.get<{ ssn: string }>("/portal/ssn", token);
+      const data = await api.get<{ ssn: string }>("/portal/ssn", token, {
+        headers: sensitiveStepUpHeaders(),
+        silentHttpErrors: true,
+      });
       setStoredSsn(data.ssn);
-    } catch {
-      setStoredSsn(null);
+      setSsnVisible(true);
+    } catch (err) {
+      setError(getUserFacingErrorMessage(err, t("portalData.ssnViewError")));
+    } finally {
+      setSsnUnlocking(false);
     }
   }
 
@@ -169,8 +190,7 @@ export default function PortalDatosPage() {
         license_plate: v.license_plate ?? "",
       });
     }
-    void loadStoredSsn(c.has_ssn).finally(() => setHydrated(true));
-    // loadStoredSsn cierra sobre token; no hace falta re-hidratar en cada render.
+    setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileQuery.data, hydrated]);
 
@@ -371,9 +391,10 @@ export default function PortalDatosPage() {
 
       const updated = await api.get<Client>("/portal/me", token);
       setClient(updated);
+      queryClient.setQueryData(queryKeys.portal.me, updated);
       setSsn("");
       setSsnVisible(false);
-      await loadStoredSsn(updated.has_ssn);
+      setStoredSsn(null);
       await refreshUser();
       setMessage(wasFirstSave ? "" : t("portalData.dataSaved"));
       if (wasFirstSave) {
@@ -428,16 +449,16 @@ export default function PortalDatosPage() {
                         <p className="text-xs font-medium text-slate-600">{t("portalData.ssnOnFile")}</p>
                         <div className="relative mt-2">
                           <div className="input-field flex min-h-[2.75rem] items-center bg-white pr-11 font-mono text-sm text-slate-800">
-                            {storedSsn
-                              ? ssnVisible
+                            {ssnUnlocking
+                              ? t("common.loading")
+                              : ssnVisible && storedSsn
                                 ? storedSsn
-                                : t("portalData.ssnMasked")
-                              : t("common.loading")}
+                                : t("portalData.ssnMasked")}
                           </div>
                           <button
                             type="button"
-                            onClick={() => setSsnVisible((visible) => !visible)}
-                            disabled={!storedSsn}
+                            onClick={() => void handleToggleSsnVisibility()}
+                            disabled={ssnUnlocking}
                             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
                             aria-label={ssnVisible ? t("login.hidePassword") : t("login.showPassword")}
                           >
@@ -693,6 +714,7 @@ export default function PortalDatosPage() {
           }}
         />
       ) : null}
+      {ssnUnlockModal}
     </div>
   );
 }

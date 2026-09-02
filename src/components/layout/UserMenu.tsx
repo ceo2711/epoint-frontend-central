@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { ModalPortal } from "@/components/ui/ModalPortal";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -32,12 +33,25 @@ export function UserMenu() {
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [entered, setEntered] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const accountHref = user?.role.code === "CLIENT" ? "/portal/cuenta" : "/configuracion";
 
+  const updatePosition = useCallback(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setCoords({
+      top: rect.bottom + 8,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, []);
+
   useEffect(() => {
     if (open) {
+      updatePosition();
       setRendered(true);
       const id = requestAnimationFrame(() => {
         requestAnimationFrame(() => setEntered(true));
@@ -48,15 +62,28 @@ export function UserMenu() {
     setEntered(false);
     const timeout = window.setTimeout(() => setRendered(false), 150);
     return () => window.clearTimeout(timeout);
-  }, [open]);
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!rendered) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [rendered, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
 
     function handleClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     }
 
     function handleKey(e: KeyboardEvent) {
@@ -95,14 +122,17 @@ export function UserMenu() {
       </button>
 
       {rendered ? (
-        <div
-          role="menu"
-          className={`absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl ring-1 ring-black/5 transition-[opacity,transform] duration-150 ease-out ${
-            entered
-              ? "translate-y-0 scale-100 opacity-100"
-              : "pointer-events-none -translate-y-1 scale-95 opacity-0"
-          }`}
-        >
+        <ModalPortal>
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ top: coords.top, right: coords.right }}
+            className={`fixed z-[70] w-64 origin-top-right rounded-2xl border border-slate-200/80 bg-white p-2 shadow-xl ring-1 ring-black/5 transition-[opacity,transform] duration-150 ease-out ${
+              entered
+                ? "translate-y-0 scale-100 opacity-100"
+                : "pointer-events-none -translate-y-1 scale-95 opacity-0"
+            }`}
+          >
           <div className="rounded-xl bg-cream-100/80 px-3 py-3">
             <p className="truncate text-sm font-semibold text-slate-900">{fullName}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">
@@ -178,7 +208,8 @@ export function UserMenu() {
               {t("common.logout")}
             </button>
           </div>
-        </div>
+          </div>
+        </ModalPortal>
       ) : null}
     </div>
   );
