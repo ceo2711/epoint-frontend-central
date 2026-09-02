@@ -99,7 +99,7 @@ export function ProspectContractsModal({
                   </Button>
                 ) : null}
                 {onResendReminder &&
-                ["sent", "delivered", "created"].includes(envelope.status.toLowerCase()) ? (
+                ["sent", "delivered"].includes(envelope.status.toLowerCase()) ? (
                   <Button
                     size="sm"
                     disabled={resendingId === envelope.id}

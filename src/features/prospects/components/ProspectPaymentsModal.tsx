@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { ProspectPaymentBrief } from "@/features/prospects/types";
-import { formatDateTime } from "@/lib/format-datetime";
+import { formatDate, formatDateTime } from "@/lib/format-datetime";
 
 interface ProspectPaymentsModalProps {
   payments: ProspectPaymentBrief[];
@@ -71,6 +71,13 @@ export function ProspectPaymentsModal({
                       date: formatDateTime(payment.created_at),
                     })}
               </p>
+              {payment.remainder_due_on ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {t("prospects.linked.remainderDueOn", {
+                    date: formatDate(payment.remainder_due_on),
+                  })}
+                </p>
+              ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 {payment.status.toLowerCase() === "pending" || payment.status.toLowerCase() === "partial" ? (
                   <>

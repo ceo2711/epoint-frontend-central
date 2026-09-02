@@ -39,6 +39,7 @@ export interface PaymentLink {
   payment_url: string;
   external_checkout_url: string | null;
   paid_at: string | null;
+  remainder_due_on?: string | null;
   client_registered_at: string | null;
   created_at: string;
   created_by_name?: string | null;
@@ -56,6 +57,7 @@ export interface PaymentLinkCreatePayload {
   prospect_id?: number;
   send_email?: boolean;
   allow_partial?: boolean;
+  remainder_due_on?: string;
 }
 
 export interface PaymentLinkCreateResult {
@@ -101,4 +103,5 @@ export const EMPTY_PAYMENT_FORM: PaymentLinkCreatePayload = {
   description: "",
   send_email: true,
   allow_partial: false,
+  remainder_due_on: undefined,
 };

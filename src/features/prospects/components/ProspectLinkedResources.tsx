@@ -16,7 +16,7 @@ import type {
   ProspectStatus,
 } from "@/features/prospects/types";
 import { copyToClipboard } from "@/lib/clipboard";
-import { formatDateTime } from "@/lib/format-datetime";
+import { formatDate, formatDateTime } from "@/lib/format-datetime";
 import {
   isContractStepComplete,
   isMeetingStepComplete,
@@ -147,7 +147,7 @@ export function ProspectLinkedResources({
   const canResendContract =
     Boolean(onResendContractReminder) &&
     Boolean(latestEnvelope) &&
-    ["sent", "delivered", "created"].includes((latestEnvelope?.status ?? "").toLowerCase());
+    ["sent", "delivered"].includes((latestEnvelope?.status ?? "").toLowerCase());
   const paidTowardStandard = paymentLinks.reduce(
     (sum, item) => sum + Number(item.amount_paid ?? 0),
     0,
@@ -357,6 +357,15 @@ export function ProspectLinkedResources({
                   {t("prospects.linked.remainingToStandard", {
                     amount: remainingToStandard.toFixed(2),
                     currency: displayPayment.currency,
+                  })}
+                </p>
+              ) : null}
+              {paymentLinks.some((item) => item.remainder_due_on) ? (
+                <p className="text-xs text-slate-500">
+                  {t("prospects.linked.remainderDueOn", {
+                    date: formatDate(
+                      paymentLinks.find((item) => item.remainder_due_on)?.remainder_due_on,
+                    ),
                   })}
                 </p>
               ) : null}

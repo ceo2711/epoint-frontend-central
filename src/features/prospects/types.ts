@@ -54,6 +54,7 @@ export interface ProspectPaymentBrief {
   status: string;
   payment_url: string;
   paid_at: string | null;
+  remainder_due_on?: string | null;
   created_at: string;
 }
 

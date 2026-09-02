@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { DateInput } from "@/components/ui/DateInput";
 import { Input } from "@/components/ui/Input";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { PaymentConfig, PaymentLinkCreatePayload } from "@/features/payments/types";
@@ -58,6 +59,7 @@ export function PaymentLinkForm({
   });
   const [linkedProspect, setLinkedProspect] = useState<Prospect | null>(null);
   const [amountError, setAmountError] = useState<string | null>(null);
+  const [remainderDueError, setRemainderDueError] = useState<string | null>(null);
 
   const showProspectSearch = !hideProspectSearch && Boolean(onSearchProspects);
   const externalProspectSearch = useMemo(
@@ -113,11 +115,22 @@ export function PaymentLinkForm({
       setAmountError(t("payments.form.amountPartialError"));
       return;
     }
+    if (isPartial && !form.remainder_due_on) {
+      setRemainderDueError(t("payments.form.remainderDueRequired"));
+      return;
+    }
+    const todayIso = new Date().toISOString().slice(0, 10);
+    if (isPartial && form.remainder_due_on && form.remainder_due_on < todayIso) {
+      setRemainderDueError(t("payments.form.remainderDuePastError"));
+      return;
+    }
     setAmountError(null);
+    setRemainderDueError(null);
     await onSubmit({
       ...form,
       amount,
       allow_partial: isPartial,
+      remainder_due_on: isPartial ? form.remainder_due_on : undefined,
       description: form.description?.trim() || undefined,
       prospect_id: linkedProspect?.id ?? initialData?.prospect_id,
     });
@@ -127,6 +140,7 @@ export function PaymentLinkForm({
       ...initialData,
       amount: DEFAULT_PAYMENT_AMOUNT,
       allow_partial: false,
+      remainder_due_on: undefined,
     });
     setLinkedProspect(null);
   }
@@ -186,10 +200,12 @@ export function PaymentLinkForm({
           onChange={(e) => {
             const checked = e.target.checked;
             setAmountError(null);
+            setRemainderDueError(null);
             setForm((f) => ({
               ...f,
               allow_partial: checked,
               amount: checked ? f.amount : DEFAULT_PAYMENT_AMOUNT,
+              remainder_due_on: checked ? f.remainder_due_on : undefined,
             }));
           }}
           disabled={disabled}
@@ -245,6 +261,20 @@ export function PaymentLinkForm({
           </select>
         </div>
       </div>
+      {form.allow_partial ? (
+        <DateInput
+          label={t("payments.form.remainderDueOn")}
+          value={form.remainder_due_on ?? ""}
+          onChange={(isoDate) => {
+            setRemainderDueError(null);
+            setForm((f) => ({ ...f, remainder_due_on: isoDate || undefined }));
+          }}
+          required
+          disabled={disabled}
+          error={remainderDueError ?? undefined}
+          hint={t("payments.form.remainderDueHint")}
+        />
+      ) : null}
       <Input
         label={t("payments.form.description")}
         value={form.description ?? ""}
