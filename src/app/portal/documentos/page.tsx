@@ -5,11 +5,13 @@ import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 import { useEffect, useState } from "react";
 
 import { DocumentRequirementsPanel } from "@/features/documents/components/DocumentRequirementsPanel";
+import { CompletionCornerCheck } from "@/features/portal/components/CompletionCornerCheck";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePortalDocuments, usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
+import { isDocumentsComplete } from "@/features/portal/onboardingGaps";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { ApiError, api } from "@/lib/api";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
@@ -59,6 +61,7 @@ export default function PortalDocumentosPage() {
   const isVerifying = client?.documents?.some(
     (d) => d.verification_status === "PENDIENTE" || d.verification_status === "EN_PROCESO",
   );
+  const documentsComplete = isDocumentsComplete(profileQuery.data?.onboarding_gaps);
 
   useEffect(() => {
     if (!token || !isVerifying) return;
@@ -105,8 +108,17 @@ export default function PortalDocumentosPage() {
         {loading ? (
           <PortalPageLoader label={t("portalDocs.loading")} />
         ) : (
-          <>
-            <p className="text-sm leading-relaxed text-slate-600">{t("portalDocs.instructions")}</p>
+          <div
+            className={
+              documentsComplete ? "portal-done-frame relative space-y-4 p-4 sm:p-5" : "space-y-4"
+            }
+          >
+            {documentsComplete ? (
+              <CompletionCornerCheck label={t("portal.stepComplete")} />
+            ) : null}
+            <p className={`text-sm leading-relaxed text-slate-600 ${documentsComplete ? "pr-10" : ""}`}>
+              {t("portalDocs.instructions")}
+            </p>
             <DocumentRequirementsPanel
               documents={client?.documents}
               locale={locale}
@@ -115,7 +127,7 @@ export default function PortalDocumentosPage() {
               onUpload={handleUpload}
               variant="portal"
             />
-          </>
+          </div>
         )}
       </PageContent>
     </>

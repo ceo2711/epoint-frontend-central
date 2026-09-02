@@ -10,9 +10,11 @@ import { Card, PageContent } from "@/components/ui/Card";
 import { DateInput } from "@/components/ui/DateInput";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { DataSavedCongratsModal } from "@/features/portal/components/DataSavedCongratsModal";
+import { CompletionCornerCheck } from "@/features/portal/components/CompletionCornerCheck";
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { AddressAutocomplete } from "@/features/portal/components/AddressAutocomplete";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
+import { isProfileComplete } from "@/features/portal/onboardingGaps";
 import { useSensitiveDocumentAccess } from "@/features/documents/hooks/useSensitiveDocumentAccess";
 import { sensitiveStepUpHeaders } from "@/features/documents/sensitiveAccess";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -195,6 +197,7 @@ export default function PortalDatosPage() {
   }, [profileQuery.data, hydrated]);
 
   const loading = profileQuery.isLoading || (!!profileQuery.data && !hydrated);
+  const profileComplete = isProfileComplete(client?.onboarding_gaps);
 
   function clearFeedback() {
     setMessage("");
@@ -418,10 +421,13 @@ export default function PortalDatosPage() {
           {loading ? (
             <PortalPageLoader label={t("portalData.loading")} />
           ) : (
-          <Card className="p-4 sm:p-6">
+          <Card className={`relative p-4 sm:p-6 ${profileComplete ? "portal-done-frame" : ""}`}>
+            {profileComplete ? (
+              <CompletionCornerCheck label={t("portal.stepComplete")} />
+            ) : null}
             <form id="portal-data-form" onSubmit={saveAll} className="space-y-8" autoComplete="off">
               <section className="space-y-4">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                <h2 className={`text-sm font-bold uppercase tracking-wider text-slate-400 ${profileComplete ? "pr-10" : ""}`}>
                   {t("portalData.basicData")}
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">

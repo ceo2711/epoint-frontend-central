@@ -1337,6 +1337,7 @@ export const en: Messages = {
     step3Desc: "Onboarding tasks",
     step3LockedDesc: "Unlocks after your data and documents are completed and verified",
     step3LockedCta: "Pending",
+    stepComplete: "Completed",
     missingTitle: "You still need to complete:",
     gaps: {
       profile: {

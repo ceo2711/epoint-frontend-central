@@ -1338,6 +1338,7 @@ export const es = {
     step3Desc: "Tareas de onboarding",
     step3LockedDesc: "Se habilita al completar y verificar tus datos y documentos",
     step3LockedCta: "Pendiente",
+    stepComplete: "Completado",
     missingTitle: "Te falta completar:",
     gaps: {
       profile: {

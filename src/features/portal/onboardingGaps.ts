@@ -14,6 +14,14 @@ export function isDocumentsIncomplete(gaps: OnboardingGaps | null | undefined): 
   );
 }
 
+export function isProfileComplete(gaps: OnboardingGaps | null | undefined): boolean {
+  return gaps != null && !isProfileIncomplete(gaps);
+}
+
+export function isDocumentsComplete(gaps: OnboardingGaps | null | undefined): boolean {
+  return gaps != null && !isDocumentsIncomplete(gaps);
+}
+
 function baseGapLabel(
   key: string,
   t: (key: string) => string,

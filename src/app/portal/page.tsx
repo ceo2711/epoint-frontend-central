@@ -6,11 +6,14 @@ import { Header } from "@/components/layout/Header";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Card, PageContent } from "@/components/ui/Card";
 import { useAuth } from "@/features/auth/AuthContext";
+import { CompletionCornerCheck } from "@/features/portal/components/CompletionCornerCheck";
 import { usePortalBoardUnlocked } from "@/features/portal/components/PortalBoardUnlockGate";
 import { usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import {
   documentGapLabels,
+  isDocumentsComplete,
   isDocumentsIncomplete,
+  isProfileComplete,
   isProfileIncomplete,
   profileGapLabels,
 } from "@/features/portal/onboardingGaps";
@@ -50,6 +53,8 @@ export default function PortalHomePage() {
             desc={t("portal.step1Desc")}
             goLabel={t("common.go")}
             incomplete={isProfileIncomplete(gaps)}
+            complete={isProfileComplete(gaps)}
+            completeLabel={t("portal.stepComplete")}
             missingTitle={t("portal.missingTitle")}
             missingItems={profileMissing}
           />
@@ -60,6 +65,8 @@ export default function PortalHomePage() {
             desc={t("portal.step2Desc")}
             goLabel={t("common.go")}
             incomplete={isDocumentsIncomplete(gaps)}
+            complete={isDocumentsComplete(gaps)}
+            completeLabel={t("portal.stepComplete")}
             missingTitle={t("portal.missingTitle")}
             missingItems={documentMissing}
           />
@@ -85,6 +92,8 @@ function StepCard({
   goLabel,
   locked = false,
   incomplete = false,
+  complete = false,
+  completeLabel,
   missingTitle,
   missingItems = [],
 }: {
@@ -95,6 +104,8 @@ function StepCard({
   goLabel: string;
   locked?: boolean;
   incomplete?: boolean;
+  complete?: boolean;
+  completeLabel?: string;
   missingTitle?: string;
   missingItems?: string[];
 }) {
@@ -129,15 +140,23 @@ function StepCard({
     );
   }
 
+  const stepClass = incomplete
+    ? "step-card-incomplete"
+    : complete
+      ? "step-card-done"
+      : "";
+  const badgeClass = incomplete
+    ? "bg-[#e85c5c] shadow-red-500/20"
+    : complete
+      ? "step-index"
+      : "bg-blue-600 shadow-blue-600/25";
+  const ctaClass = incomplete ? "text-red-500" : complete ? "step-cta" : "text-blue-600";
+
   return (
-    <Link
-      href={href}
-      className={`step-card group ${incomplete ? "step-card-incomplete" : ""}`}
-    >
+    <Link href={href} className={`step-card group ${stepClass}`}>
+      {complete && completeLabel ? <CompletionCornerCheck label={completeLabel} /> : null}
       <span
-        className={`mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition group-hover:scale-105 ${
-          incomplete ? "bg-[#e85c5c] shadow-red-500/20" : "bg-blue-600 shadow-blue-600/25"
-        }`}
+        className={`mb-3 inline-flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white shadow-md transition group-hover:scale-105 ${badgeClass}`}
       >
         {step}
       </span>
@@ -145,11 +164,9 @@ function StepCard({
       <p className="mt-1.5 text-sm text-slate-500">{desc}</p>
       {missingBlock}
       <span
-        className={`mt-4 inline-flex items-center gap-1 text-sm font-semibold opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 ${
-          incomplete ? "text-red-500" : "text-blue-600"
-        }`}
+        className={`mt-4 inline-flex items-center gap-1 text-sm font-semibold opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100 ${ctaClass}`}
       >
-        {goLabel}
+        {complete && completeLabel ? completeLabel : goLabel}
       </span>
     </Link>
   );
