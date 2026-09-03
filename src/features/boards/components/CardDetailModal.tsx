@@ -426,11 +426,17 @@ export function CardDetailModal({
                       : t("portalBoard.credentialsHintBureau")}
                   </p>
                   <Input
+                    id={`card-cred-user-${card.id}`}
+                    label={t("portalBoard.username")}
+                    help={t("portalBoard.help.username")}
                     placeholder={t("portalBoard.username")}
                     value={creds.username}
                     onChange={(e) => setCreds({ ...creds, username: e.target.value })}
                   />
                   <PasswordInput
+                    id={`card-cred-pass-${card.id}`}
+                    label={t("portalBoard.password")}
+                    help={t("portalBoard.help.password")}
                     placeholder={t("portalBoard.password")}
                     value={creds.password}
                     onChange={(e) => setCreds({ ...creds, password: e.target.value })}

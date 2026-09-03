@@ -13,6 +13,7 @@ import {
 interface DateInputProps {
   id?: string;
   label?: string;
+  help?: string;
   value: string;
   onChange: (isoDate: string) => void;
   error?: string;
@@ -24,6 +25,7 @@ interface DateInputProps {
 export function DateInput({
   id,
   label,
+  help,
   value,
   onChange,
   error,
@@ -42,6 +44,7 @@ export function DateInput({
       <Input
         id={id}
         label={label}
+        help={help}
         type="text"
         inputMode="numeric"
         autoComplete="bday"

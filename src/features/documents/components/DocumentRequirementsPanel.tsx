@@ -15,6 +15,7 @@ import {
 import { VerificationBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { FieldHelp } from "@/components/ui/FieldHelp";
 import { Select } from "@/components/ui/Select";
 import { translateStatus, type Locale } from "@/i18n";
 import type { DocumentBrief } from "@/types/api";
@@ -210,13 +211,17 @@ function SelectableDocumentSection({
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold text-slate-900">{t(section.titleKey)}</h2>
+        <h2 className="inline-flex items-center gap-1.5 text-base font-semibold text-slate-900">
+          {t(section.titleKey)}
+          <FieldHelp text={t(section.helpKey)} />
+        </h2>
         <p className="mt-1 text-sm leading-relaxed text-slate-600">{t(section.descriptionKey)}</p>
       </div>
 
       <Select
         id={selectId}
         label={t("portalDocs.documentTypeSelect")}
+        help={t("portalDocs.help.documentType")}
         value={selectedGroupId}
         onChange={(e) => onSelectGroup(e.target.value)}
       >
@@ -284,7 +289,10 @@ export function DocumentRequirementsPanel({
     <div className="space-y-8">
       <section className="space-y-4">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">{t(SSN_SECTION.titleKey)}</h2>
+          <h2 className="inline-flex items-center gap-1.5 text-base font-semibold text-slate-900">
+            {t(SSN_SECTION.titleKey)}
+            <FieldHelp text={t(SSN_SECTION.helpKey)} />
+          </h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">{t(SSN_SECTION.descriptionKey)}</p>
         </div>
         <div className="grid gap-3">

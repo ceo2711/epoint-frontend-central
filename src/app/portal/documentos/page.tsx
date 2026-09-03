@@ -9,6 +9,7 @@ import { CompletionCornerCheck } from "@/features/portal/components/CompletionCo
 import { PortalPageLoader } from "@/features/portal/components/PortalPageLoader";
 import { Header } from "@/components/layout/Header";
 import { PageContent } from "@/components/ui/Card";
+import { FieldHelp } from "@/components/ui/FieldHelp";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePortalDocuments, usePortalMe } from "@/features/portal/hooks/usePortalWorkspace";
 import { isDocumentsComplete } from "@/features/portal/onboardingGaps";
@@ -116,8 +117,9 @@ export default function PortalDocumentosPage() {
             {documentsComplete ? (
               <CompletionCornerCheck label={t("portal.stepComplete")} />
             ) : null}
-            <p className={`text-sm leading-relaxed text-slate-600 ${documentsComplete ? "pr-10" : ""}`}>
-              {t("portalDocs.instructions")}
+            <p className={`flex items-start gap-1.5 text-sm leading-relaxed text-slate-600 ${documentsComplete ? "pr-10" : ""}`}>
+              <span className="min-w-0 flex-1">{t("portalDocs.instructions")}</span>
+              <FieldHelp text={t("portalDocs.help.photo")} />
             </p>
             <DocumentRequirementsPanel
               documents={client?.documents}

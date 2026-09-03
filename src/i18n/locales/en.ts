@@ -59,6 +59,7 @@ export const en: Messages = {
     next: "Next",
     notes: "Notes",
     saving: "Saving...",
+    fieldHelp: "Why we ask for this",
   },
   roleNames: {
     ADMIN: "Administrator",
@@ -1431,6 +1432,25 @@ export const en: Messages = {
     licensePlatePlaceholder: "ABC-1234",
     licensePlateHint: "Optional. Not required to continue.",
     saveVehicle: "Save vehicle",
+    help: {
+      firstName: "This is how your first name appears on credit applications and your contract.",
+      lastName: "This is how your last name appears on credit applications and your contract.",
+      ssn: "We use it to identify you on credit applications. It stays protected and is only shown with your two-factor code.",
+      dateOfBirth: "We use it to verify your identity on credit applications.",
+      currentAddress: "Credit bureaus and funding need your current address.",
+      street: "Start typing and pick a suggestion so we can fill city, state, and ZIP.",
+      city: "City of your address. Used on credit applications.",
+      state: "State of your address (for example NY or FL).",
+      zip: "5-digit ZIP code. Used to verify your address.",
+      monthSince: "The month you moved in. If it has been less than 2 years, we will also ask for your previous address.",
+      yearSince: "The year you moved in. Credit bureaus ask for at least 2 years of address history.",
+      previousAddress: "Credit bureaus ask for at least 2 years of address history.",
+      vehicle: "We use it to identify your car on credit and funding applications.",
+      model: "Make and model (for example Honda Civic). Helps identify your car on credit and funding applications.",
+      year: "Model year. Together with make and color, it identifies your car.",
+      color: "Body color. Together with model and year, it identifies your car.",
+      licensePlate: "Optional. If you have it, it helps us identify your vehicle more accurately.",
+    },
   },
   portalDocs: {
     title: "My documents",
@@ -1451,6 +1471,14 @@ export const en: Messages = {
     pdfLoadError: "Could not load the PDF. Try downloading it or try again.",
     pendingUpload: "Pending upload",
     documentTypeSelect: "Which document will you upload?",
+    help: {
+      photo:
+        "Upload a color PDF or photo that is sharp, with no cropped corners or fingers. The document must be valid and centered.",
+      ssn: "Upload a clear photo of your Social Security card. We use it to verify the number you entered.",
+      identity: "Confirms who you are. We prefer a driver's license; if you don't have one, pick another option.",
+      address: "Confirms you live at the address you entered. A utility bill or bank statement works.",
+      documentType: "If you don't have the default document, pick another option from this list.",
+    },
     sections: {
       ssn: {
         title: "SSN card",
@@ -1480,6 +1508,10 @@ export const en: Messages = {
       "Enter the username and password for this site here. They are stored encrypted — do not write them in the description or comments.",
     username: "Username",
     password: "Password",
+    help: {
+      username: "The username you use to sign in to this site. It is stored encrypted.",
+      password: "The password for this site. It is stored encrypted — do not write it in comments.",
+    },
     saveCredentials: "Save credentials",
     credentialsSaved: "Credentials saved securely",
     commentPlaceholder: "Write a comment... Use @ to mention someone.",

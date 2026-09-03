@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, PageContent } from "@/components/ui/Card";
 import { DateInput } from "@/components/ui/DateInput";
+import { FieldHelp, FieldLabel } from "@/components/ui/FieldHelp";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { DataSavedCongratsModal } from "@/features/portal/components/DataSavedCongratsModal";
 import { CompletionCornerCheck } from "@/features/portal/components/CompletionCornerCheck";
@@ -432,24 +433,25 @@ export default function PortalDatosPage() {
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
+                    id="portal-first-name"
                     label={t("common.firstName")}
+                    help={t("portalData.help.firstName")}
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                   />
                   <Input
+                    id="portal-last-name"
                     label={t("common.lastName")}
+                    help={t("portalData.help.lastName")}
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
                   />
                   <div>
-                    <div className="mb-2 sm:min-h-[4.5rem]">
-                      <label htmlFor="portal-ssn" className="input-label">
-                        {t("portalData.ssn")}
-                      </label>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{t("portalData.ssnDescription")}</p>
-                    </div>
+                    <FieldLabel htmlFor="portal-ssn" help={t("portalData.help.ssn")}>
+                      {t("portalData.ssn")}
+                    </FieldLabel>
                     {client?.has_ssn && (
                       <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
                         <p className="text-xs font-medium text-slate-600">{t("portalData.ssnOnFile")}</p>
@@ -499,32 +501,30 @@ export default function PortalDatosPage() {
                       <p className="mt-1 text-xs text-slate-500">{t("portalData.ssnHint")}</p>
                     )}
                   </div>
-                  <div>
-                    <div className="mb-2 sm:min-h-[4.5rem]">
-                      <label htmlFor="portal-dob" className="input-label">
-                        {t("portalData.dateOfBirth")}
-                      </label>
-                    </div>
-                    <DateInput
-                      id="portal-dob"
-                      value={dob}
-                      onChange={(value) => {
-                        setDob(value);
-                        if (profileErrors.dob) setProfileErrors((prev) => ({ ...prev, dob: undefined }));
-                      }}
-                      error={profileErrors.dob}
-                      hint={t("portalData.dateOfBirthHint")}
-                    />
-                  </div>
+                  <DateInput
+                    id="portal-dob"
+                    label={t("portalData.dateOfBirth")}
+                    help={t("portalData.help.dateOfBirth")}
+                    value={dob}
+                    onChange={(value) => {
+                      setDob(value);
+                      if (profileErrors.dob) setProfileErrors((prev) => ({ ...prev, dob: undefined }));
+                    }}
+                    error={profileErrors.dob}
+                    hint={t("portalData.dateOfBirthHint")}
+                  />
                 </div>
               </section>
 
               <section className="space-y-4 border-t border-slate-100 pt-8">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                <h2 className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-wider text-slate-400">
                   {t("portalData.currentAddress")}
+                  <FieldHelp text={t("portalData.help.currentAddress")} />
                 </h2>
                 <AddressAutocomplete
+                  id="portal-addr-current"
                   label={t("portalData.street")}
+                  help={t("portalData.help.street")}
                   value={addr.street}
                   onChange={(street) => setAddr((prev) => ({ ...prev, street }))}
                   onSelect={(resolved) =>
@@ -541,7 +541,9 @@ export default function PortalDatosPage() {
                 />
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input
+                    id="portal-addr-city"
                     label={t("portalData.city")}
+                    help={t("portalData.help.city")}
                     name="portal-addr-city"
                     autoComplete="one-time-code"
                     value={addr.city}
@@ -549,7 +551,9 @@ export default function PortalDatosPage() {
                     required
                   />
                   <Input
+                    id="portal-addr-state"
                     label={t("portalData.state")}
+                    help={t("portalData.help.state")}
                     name="portal-addr-state"
                     autoComplete="one-time-code"
                     value={addr.state}
@@ -557,7 +561,9 @@ export default function PortalDatosPage() {
                     required
                   />
                   <Input
+                    id="portal-addr-zip"
                     label={t("portalData.zip")}
+                    help={t("portalData.help.zip")}
                     name="portal-addr-zip"
                     autoComplete="one-time-code"
                     inputMode="numeric"
@@ -573,7 +579,9 @@ export default function PortalDatosPage() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Input
+                    id="portal-addr-month"
                     label={t("portalData.monthSince")}
+                    help={t("portalData.help.monthSince")}
                     inputMode="numeric"
                     maxLength={2}
                     value={addr.residence_since_month}
@@ -585,7 +593,9 @@ export default function PortalDatosPage() {
                     error={addrErrors.month}
                   />
                   <Input
+                    id="portal-addr-year"
                     label={t("portalData.yearSince")}
+                    help={t("portalData.help.yearSince")}
                     inputMode="numeric"
                     maxLength={4}
                     value={addr.residence_since_year}
@@ -600,13 +610,18 @@ export default function PortalDatosPage() {
                 {residenceLessThanTwoYears(addr.residence_since_month, addr.residence_since_year) && (
                   <div className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-800">{t("portalData.previousAddress")}</h3>
+                      <h3 className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+                        {t("portalData.previousAddress")}
+                        <FieldHelp text={t("portalData.help.previousAddress")} />
+                      </h3>
                       <p className="mt-1 text-xs leading-relaxed text-slate-600">
                         {t("portalData.previousAddressHint")}
                       </p>
                     </div>
                     <AddressAutocomplete
+                      id="portal-addr-previous"
                       label={t("portalData.street")}
+                      help={t("portalData.help.street")}
                       value={prevAddr.street}
                       onChange={(street) => setPrevAddr((prev) => ({ ...prev, street }))}
                       onSelect={(resolved) =>
@@ -623,19 +638,25 @@ export default function PortalDatosPage() {
                     />
                     <div className="grid gap-4 sm:grid-cols-3">
                       <Input
+                        id="portal-prev-city"
                         label={t("portalData.city")}
+                        help={t("portalData.help.city")}
                         value={prevAddr.city}
                         onChange={(e) => setPrevAddr({ ...prevAddr, city: e.target.value })}
                         required
                       />
                       <Input
+                        id="portal-prev-state"
                         label={t("portalData.state")}
+                        help={t("portalData.help.state")}
                         value={prevAddr.state}
                         onChange={(e) => setPrevAddr({ ...prevAddr, state: e.target.value })}
                         required
                       />
                       <Input
+                        id="portal-prev-zip"
                         label={t("portalData.zip")}
+                        help={t("portalData.help.zip")}
                         value={prevAddr.zip_code}
                         onChange={(e) => setPrevAddr({ ...prevAddr, zip_code: e.target.value })}
                         required
@@ -647,12 +668,15 @@ export default function PortalDatosPage() {
               </section>
 
               <section className="space-y-4 border-t border-slate-100 pt-8">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+                <h2 className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-wider text-slate-400">
                   {t("portalData.mainVehicle")}
+                  <FieldHelp text={t("portalData.help.vehicle")} />
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input
+                    id="portal-vehicle-model"
                     label={t("portalData.model")}
+                    help={t("portalData.help.model")}
                     value={vehicle.model}
                     onChange={(e) => {
                       setVehicle({ ...vehicle, model: e.target.value });
@@ -662,7 +686,9 @@ export default function PortalDatosPage() {
                     required
                   />
                   <Input
+                    id="portal-vehicle-year"
                     label={t("portalData.year")}
+                    help={t("portalData.help.year")}
                     inputMode="numeric"
                     maxLength={4}
                     value={vehicle.year}
@@ -675,7 +701,9 @@ export default function PortalDatosPage() {
                     required
                   />
                   <Input
+                    id="portal-vehicle-color"
                     label={t("portalData.color")}
+                    help={t("portalData.help.color")}
                     value={vehicle.color}
                     onChange={(e) => {
                       setVehicle({ ...vehicle, color: e.target.value });
@@ -687,7 +715,9 @@ export default function PortalDatosPage() {
                 </div>
                 <div>
                   <Input
+                    id="portal-vehicle-plate"
                     label={t("portalData.licensePlate")}
+                    help={t("portalData.help.licensePlate")}
                     value={vehicle.license_plate}
                     onChange={(e) => setVehicle({ ...vehicle, license_plate: e.target.value })}
                     placeholder={t("portalData.licensePlatePlaceholder")}

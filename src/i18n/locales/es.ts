@@ -57,6 +57,7 @@ export const es = {
     next: "Siguiente",
     notes: "Notas",
     saving: "Guardando...",
+    fieldHelp: "Por qué pedimos este dato",
   },
   roleNames: {
     ADMIN: "Administrador",
@@ -1433,6 +1434,25 @@ export const es = {
     licensePlatePlaceholder: "ABC-1234",
     licensePlateHint: "Opcional. No es obligatorio para continuar.",
     saveVehicle: "Guardar vehículo",
+    help: {
+      firstName: "Así aparece tu nombre en las solicitudes de crédito y en el contrato.",
+      lastName: "Así aparece tu apellido en las solicitudes de crédito y en el contrato.",
+      ssn: "Lo pedimos para identificarte en las aplicaciones de crédito. Queda protegido y solo se muestra con tu código de doble factor.",
+      dateOfBirth: "Lo usamos para verificar tu identidad en las aplicaciones de crédito.",
+      currentAddress: "Las agencias de crédito y funding necesitan tu domicilio actual.",
+      street: "Empieza a escribir y elige una sugerencia; así completamos ciudad, estado y ZIP.",
+      city: "Ciudad de tu domicilio. Se usa en las solicitudes de crédito.",
+      state: "Estado de tu domicilio (por ejemplo NY o FL).",
+      zip: "Código postal de 5 dígitos. Se usa para verificar tu domicilio.",
+      monthSince: "El mes en que te mudaste aquí. Si llevas menos de 2 años, también te pediremos la dirección anterior.",
+      yearSince: "El año en que te mudaste aquí. Las agencias de crédito piden historial de al menos 2 años.",
+      previousAddress: "Las agencias de crédito piden historial de domicilio de al menos 2 años.",
+      vehicle: "Lo usamos para identificar tu auto en las aplicaciones de crédito y funding.",
+      model: "Marca y modelo (por ejemplo Honda Civic). Sirve para identificar tu auto en crédito y funding.",
+      year: "Año del modelo. Junto con marca y color identifica tu auto.",
+      color: "Color de la carrocería. Junto con modelo y año identifica tu auto.",
+      licensePlate: "Es opcional. Si la tienes, nos ayuda a identificar mejor tu vehículo.",
+    },
   },
   portalDocs: {
     title: "Mis documentos",
@@ -1454,6 +1474,14 @@ export const es = {
     pdfLoadError: "No se pudo cargar el PDF. Intenta descargarlo o vuelve a intentar.",
     pendingUpload: "Pendiente de subir",
     documentTypeSelect: "¿Qué documento vas a subir?",
+    help: {
+      photo:
+        "Sube un PDF o una foto a color, nítida, sin recortes ni dedos. El documento debe estar vigente y centrado.",
+      ssn: "Sube una foto clara de tu tarjeta de Seguro Social. Sirve para verificar el número que cargaste.",
+      identity: "Confirma quién eres. Preferimos licencia de conducir; si no tienes, elige otra opción.",
+      address: "Confirma que vives donde indicaste. Puede ser factura de servicios o estado de cuenta bancario.",
+      documentType: "Si no tienes el documento de por defecto, elige otra opción en esta lista.",
+    },
     sections: {
       ssn: {
         title: "Tarjeta SSN",
@@ -1483,6 +1511,10 @@ export const es = {
       "Carga aquí el usuario y la contraseña de este sitio. Quedan cifrados; no los escribas en la descripción ni en comentarios.",
     username: "Usuario",
     password: "Contraseña",
+    help: {
+      username: "El usuario con el que entras a este sitio. Queda cifrado.",
+      password: "La contraseña de este sitio. Queda cifrada; no la escribas en comentarios.",
+    },
     saveCredentials: "Guardar credenciales",
     credentialsSaved: "Credenciales guardadas de forma segura",
     commentPlaceholder: "Escribir comentario... Usa @ para mencionar.",

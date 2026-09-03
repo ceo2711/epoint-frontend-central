@@ -25,6 +25,7 @@ export interface DocumentSectionDef {
   id: string;
   titleKey: string;
   descriptionKey: string;
+  helpKey: string;
   primary: DocumentGroupDef;
   alternatives?: DocumentGroupDef[];
 }
@@ -34,6 +35,7 @@ export const DOCUMENT_SECTIONS: DocumentSectionDef[] = [
     id: "ssn",
     titleKey: "portalDocs.sections.ssn.title",
     descriptionKey: "portalDocs.sections.ssn.description",
+    helpKey: "portalDocs.help.ssn",
     primary: {
       id: "ssn",
       titleKey: "portalDocs.sections.ssn.title",
@@ -44,6 +46,7 @@ export const DOCUMENT_SECTIONS: DocumentSectionDef[] = [
     id: "identity",
     titleKey: "portalDocs.sections.identity.title",
     descriptionKey: "portalDocs.sections.identity.description",
+    helpKey: "portalDocs.help.identity",
     primary: {
       id: "drivers_license",
       titleKey: "portalDocs.sections.identity.license",
@@ -59,6 +62,7 @@ export const DOCUMENT_SECTIONS: DocumentSectionDef[] = [
     id: "address",
     titleKey: "portalDocs.sections.address.title",
     descriptionKey: "portalDocs.sections.address.description",
+    helpKey: "portalDocs.help.address",
     primary: {
       id: "utility_bill",
       titleKey: "documentTypes.UTILITY_BILL",

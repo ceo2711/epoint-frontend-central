@@ -1,17 +1,22 @@
+"use client";
+
 import { SelectHTMLAttributes, forwardRef } from "react";
+
+import { FieldLabel } from "@/components/ui/FieldHelp";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
+  help?: string;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, className = "", id, children, ...props }, ref) => (
+  ({ label, error, help, className = "", id, children, ...props }, ref) => (
     <div>
       {label && (
-        <label htmlFor={id} className="input-label">
+        <FieldLabel htmlFor={id} help={help}>
           {label}
-        </label>
+        </FieldLabel>
       )}
       <select
         ref={ref}

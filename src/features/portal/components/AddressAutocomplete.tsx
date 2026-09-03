@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { FieldLabel } from "@/components/ui/FieldHelp";
 import { useAuth } from "@/features/auth/AuthContext";
 import { api } from "@/lib/api";
 
@@ -29,7 +30,9 @@ interface AutocompleteResponse {
 }
 
 interface AddressAutocompleteProps {
+  id?: string;
   label: string;
+  help?: string;
   value: string;
   onChange: (value: string) => void;
   /** Se dispara al elegir una sugerencia real; completa city/state/zip. */
@@ -47,7 +50,9 @@ function newSessionToken(): string {
 }
 
 export function AddressAutocomplete({
+  id,
   label,
+  help,
   value,
   onChange,
   onSelect,
@@ -56,6 +61,8 @@ export function AddressAutocomplete({
   error,
 }: AddressAutocompleteProps) {
   const { token } = useAuth();
+  const generatedId = useId();
+  const inputId = id ?? `portal-addr-${generatedId}`;
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -175,17 +182,17 @@ export function AddressAutocomplete({
 
   return (
     <div ref={containerRef} className="relative z-40">
-      <label htmlFor="portal-addr-line1" className="input-label">
+      <FieldLabel htmlFor={inputId} help={help}>
         {label}
-      </label>
+      </FieldLabel>
       {/*
         Chrome ignora autocomplete="off" en campos de dirección y muestra su
         propio dropdown encima del nuestro. Usamos un valor no estándar + un
         name/id sin "street"/"address" para que no lo trate como autofill.
       */}
       <input
-        id="portal-addr-line1"
-        name="portal-addr-line1"
+        id={inputId}
+        name={inputId}
         className={`input-field ${error ? "border-red-300 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]" : ""}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}

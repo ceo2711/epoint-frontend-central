@@ -1,18 +1,23 @@
+"use client";
+
 import { InputHTMLAttributes, ReactNode, forwardRef, useState } from "react";
+
+import { FieldLabel } from "@/components/ui/FieldHelp";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   icon?: ReactNode;
   error?: string;
+  help?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, icon, error, className = "", id, ...props }, ref) => (
+  ({ label, icon, error, help, className = "", id, ...props }, ref) => (
     <div>
       {label && (
-        <label htmlFor={id} className="input-label">
+        <FieldLabel htmlFor={id} help={help}>
           {label}
-        </label>
+        </FieldLabel>
       )}
       <div className="relative">
         {icon && (
@@ -46,6 +51,7 @@ export function PasswordInput({
   show: showProp,
   onToggle,
   label,
+  help,
   id = "password",
   showLabel = "Show password",
   hideLabel = "Hide password",
@@ -60,9 +66,9 @@ export function PasswordInput({
   return (
     <div>
       {label && (
-        <label htmlFor={id} className="input-label">
+        <FieldLabel htmlFor={id} help={help}>
           {label}
-        </label>
+        </FieldLabel>
       )}
       <div className="relative">
         <input

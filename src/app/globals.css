@@ -719,8 +719,55 @@ body {
 }
 
 .tooltip-wrap:hover .tooltip-bubble,
-.tooltip-wrap:focus-within .tooltip-bubble {
+.tooltip-wrap:focus-within .tooltip-bubble,
+.tooltip-wrap.is-open .tooltip-bubble {
   opacity: 1;
+}
+
+.tooltip-wrap--help {
+  margin-left: 0.15rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.tooltip-bubble--help {
+  top: calc(100% + 0.375rem);
+  bottom: auto;
+  left: 0;
+  z-index: 60;
+  transform: none;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2.5rem));
+  padding: 0.5rem 0.65rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+}
+
+.field-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.field-help-btn:hover,
+.field-help-btn:focus-visible {
+  border-color: var(--brown-900);
+  background: var(--cream-700);
+  color: var(--brown-900);
+  outline: none;
 }
 
 /* ── Stat cards ───────────────────────────────────── */
