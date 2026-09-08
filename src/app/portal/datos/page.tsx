@@ -59,6 +59,10 @@ function emptyStreetAddr() {
   return { street: "", city: "", state: "", zip_code: "" };
 }
 
+function vehicleHasAnyValue(v: { model: string; year: string; color: string; license_plate: string }) {
+  return Boolean(v.model.trim() || v.year.trim() || v.color.trim() || v.license_plate.trim());
+}
+
 function isValidUsZip(value: string): boolean {
   return /^\d{5}(-\d{4})?$/.test(value.trim());
 }
@@ -237,6 +241,10 @@ export default function PortalDatosPage() {
 
   function validateVehicleFields() {
     const next: { model?: string; year?: string; color?: string } = {};
+    if (!vehicleHasAnyValue(vehicle)) {
+      setVehicleErrors({});
+      return true;
+    }
     const maxYear = currentYear();
     const year = parseRequiredInt(vehicle.year);
 
@@ -331,8 +339,9 @@ export default function PortalDatosPage() {
     clearFeedback();
     if (!validateAllFields()) return;
 
+    const fillingVehicle = vehicleHasAnyValue(vehicle);
     const year = parseRequiredInt(vehicle.year);
-    if (year === null || Number.isNaN(year)) return;
+    if (fillingVehicle && (year === null || Number.isNaN(year))) return;
 
     const month = parseOptionalInt(addr.residence_since_month);
     const wasFirstSave = !hadPersonalDataSaved(client);
@@ -381,17 +390,19 @@ export default function PortalDatosPage() {
         );
       }
 
-      await api.post(
-        "/portal/vehicles",
-        {
-          order: 1,
-          model: vehicle.model,
-          year,
-          color: vehicle.color,
-          license_plate: vehicle.license_plate.trim() || null,
-        },
-        token,
-      );
+      if (fillingVehicle && year !== null) {
+        await api.post(
+          "/portal/vehicles",
+          {
+            order: 1,
+            model: vehicle.model,
+            year,
+            color: vehicle.color,
+            license_plate: vehicle.license_plate.trim() || null,
+          },
+          token,
+        );
+      }
 
       const updated = await api.get<Client>("/portal/me", token);
       setClient(updated);
@@ -672,6 +683,7 @@ export default function PortalDatosPage() {
                   {t("portalData.mainVehicle")}
                   <FieldHelp text={t("portalData.help.vehicle")} />
                 </h2>
+                <p className="text-sm text-slate-500">{t("portalData.vehicleOptionalHint")}</p>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input
                     id="portal-vehicle-model"
@@ -683,7 +695,6 @@ export default function PortalDatosPage() {
                       if (vehicleErrors.model) setVehicleErrors((prev) => ({ ...prev, model: undefined }));
                     }}
                     error={vehicleErrors.model}
-                    required
                   />
                   <Input
                     id="portal-vehicle-year"
@@ -698,7 +709,6 @@ export default function PortalDatosPage() {
                     }}
                     placeholder={t("portalData.vehicleYearPlaceholder")}
                     error={vehicleErrors.year}
-                    required
                   />
                   <Input
                     id="portal-vehicle-color"
@@ -710,7 +720,6 @@ export default function PortalDatosPage() {
                       if (vehicleErrors.color) setVehicleErrors((prev) => ({ ...prev, color: undefined }));
                     }}
                     error={vehicleErrors.color}
-                    required
                   />
                 </div>
                 <div>

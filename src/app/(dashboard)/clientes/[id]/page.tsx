@@ -8,6 +8,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
+import { StaffClientVehicleCard } from "@/features/clients/components/StaffClientVehicleCard";
 import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
 import { ClientOnboardingTabs, type ClientWorkspaceTab } from "@/features/clients/components/ClientOnboardingTabs";
@@ -48,7 +49,7 @@ import { prefetchDocuments } from "@/lib/contentBlobCache";
 import { CLIENTS_REFRESH_EVENT, shouldRefreshClient, type ClientsRefreshDetail } from "@/lib/clientEvents";
 import { clearPortalCredentials, savePortalCredentials } from "@/features/clients/portal-credentials-storage";
 import { canDownloadClientDocuments, canManageOnboarding, canUploadClientDocuments, isSedeAdmin, seesOnboardingDashboard } from "@/lib/roles";
-import type { Address, Client, DocumentBrief, Vehicle } from "@/types/api";
+import type { Address, Client, DocumentBrief } from "@/types/api";
 
 function buildClientForm(client: Client) {
   return {
@@ -692,24 +693,12 @@ function ClienteDetailPageContent() {
               )}
             </Card>
 
-            <Card className="p-4 sm:p-6">
-              <h2 className="mb-5 text-sm font-bold uppercase tracking-wider text-slate-400">{t("clientDetail.vehicles")}</h2>
-              {client.vehicles && client.vehicles.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {client.vehicles.map((v: Vehicle) => (
-                    <div key={v.id} className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                      <p className="text-xs font-bold uppercase text-slate-400">{t("clientDetail.vehicleN", { n: v.order })}</p>
-                      <p className="mt-1 text-sm font-medium text-slate-800">
-                        {v.model} · {v.year} · {v.color}
-                        {v.license_plate ? ` · ${v.license_plate}` : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">{t("clientDetail.noVehicles")}</p>
-              )}
-            </Card>
+            <StaffClientVehicleCard
+              client={client}
+              token={token}
+              canEdit={canUploadClientDocuments(user) && hasPermission("clients:update")}
+              onUpdated={() => void load({ silent: true })}
+            />
               </>
             ) : null}
           </>
