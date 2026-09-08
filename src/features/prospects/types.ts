@@ -38,6 +38,7 @@ export interface ProspectEnvelopeBrief {
   id: number;
   subject: string;
   status: string;
+  origin?: string;
   signer_name: string;
   signer_email: string;
   sent_at: string;
@@ -74,7 +75,7 @@ export interface Prospect {
   merchant_id: number;
   assigned_to_user_id: number;
   status: ProspectStatus;
-  is_qualified: boolean;
+  is_qualified: boolean | null;
   first_name: string;
   last_name: string;
   full_name: string;
@@ -106,7 +107,7 @@ export interface ProspectDetail extends Prospect {
 export interface ProspectPipelineSummary {
   prospect_id: number;
   status: ProspectStatus;
-  is_qualified: boolean;
+  is_qualified: boolean | null;
   history: ProspectHistoryEntry[];
   calendly_event: ProspectCalendlyBrief | null;
   docusign_envelopes: ProspectEnvelopeBrief[];
@@ -124,7 +125,7 @@ export interface ProspectFormData {
   merchant_id: string;
   sede_id: string;
   assigned_to_user_id: string;
-  is_qualified: boolean;
+  is_qualified: boolean | null;
   notes: string;
 }
 
@@ -138,6 +139,6 @@ export const EMPTY_PROSPECT_FORM: ProspectFormData = {
   merchant_id: "",
   sede_id: "",
   assigned_to_user_id: "",
-  is_qualified: true,
+  is_qualified: null,
   notes: "",
 };

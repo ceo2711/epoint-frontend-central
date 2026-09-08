@@ -7,7 +7,7 @@ import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { EmailIcon, Input } from "@/components/ui/Input";
@@ -25,10 +25,10 @@ export function ForgotPasswordForm() {
     setSuccess("");
     setSubmitting(true);
     try {
-      const result = await api.post<{ message: string }>("/auth/forgot-password", {
+      await api.post<{ message: string }>("/auth/forgot-password", {
         email: email.trim().toLowerCase(),
       });
-      setSuccess(result.message);
+      setSuccess(t("forgotPassword.success"));
     } catch (err) {
       setError(getUserFacingErrorMessage(err, t("forgotPassword.error")));
     } finally {
@@ -54,7 +54,8 @@ export function ForgotPasswordForm() {
           <Input
             id="email"
             name="email"
-            label={t("login.emailLabel")}
+            label={t("forgotPassword.emailLabel")}
+            help={t("forgotPassword.emailHelp")}
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -62,7 +63,7 @@ export function ForgotPasswordForm() {
             icon={<EmailIcon />}
             value={email}
             onChange={(e) => setEmail(e.target.value.toLowerCase())}
-            placeholder={t("login.emailPlaceholder")}
+            placeholder={t("forgotPassword.emailPlaceholder")}
           />
 
           <Button type="submit" fullWidth disabled={submitting || Boolean(success)}>

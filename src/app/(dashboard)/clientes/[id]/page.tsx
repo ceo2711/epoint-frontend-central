@@ -494,7 +494,7 @@ function ClienteDetailPageContent() {
                 {client.source_prospect_status ? (
                   <ProspectStatusBadge status={client.source_prospect_status} />
                 ) : null}
-                <ProspectQualificationBadge isQualified={client.is_qualified ?? true} />
+                <ProspectQualificationBadge isQualified={client.is_qualified} />
               </div>
             </div>
             <div className="text-sm text-slate-500 sm:text-right">

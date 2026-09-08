@@ -15,10 +15,11 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { SendContractModal } from "@/features/docusign/components/SendContractModal";
+import { UploadManualContractModal } from "@/features/docusign/components/UploadManualContractModal";
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import type { DocusignEnvelope } from "@/features/docusign/types";
-import { canDownloadSentDocument, canDownloadSignedDocument, hasPendingEnvelopes } from "@/features/docusign/utils";
+import { canDownloadSentDocument, canDownloadSignedDocument, hasPendingEnvelopes, isManualEnvelope } from "@/features/docusign/utils";
 import { ApiError, api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format-datetime";
 
@@ -68,6 +69,7 @@ export function ClientContractsPanel({
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const syncInFlightRef = useRef(false);
   const lastSyncAtRef = useRef(0);
   const aliveRef = useRef(true);
@@ -259,11 +261,42 @@ export function ClientContractsPanel({
     });
   }
 
+  async function handleUploadManual(file: File, subject: string) {
+    if (!token) return;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("client_id", String(clientId));
+    if (subject) form.append("subject", subject);
+    try {
+      await api.upload("/docusign/envelopes/manual", form, token);
+      await load();
+      window.dispatchEvent(new Event(DOCUSIGN_REFRESH_EVENT));
+      setManualOpen(false);
+      queueMicrotask(() => {
+        void modal.alert({
+          title: t("docusign.uploadManualSuccessTitle"),
+          message: t("docusign.uploadManualSuccessMessage"),
+          variant: "success",
+        });
+      });
+    } catch (err) {
+      onError?.(getUserFacingErrorMessage(err, t("docusign.uploadManualError")));
+      throw err;
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-500">{t("docusign.clientContractsSubtitle")}</p>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setManualOpen(true)}
+          >
+            {t("docusign.uploadManualAction")}
+          </Button>
           <Button
             size="sm"
             disabled={!canSendContract}
@@ -307,7 +340,12 @@ export function ClientContractsPanel({
                 const showSent = canDownloadSentDocument(envelope) && !showSigned;
                 return (
                   <tr key={envelope.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-medium text-slate-900">{envelope.subject}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      <span>{envelope.subject}</span>
+                      {isManualEnvelope(envelope) ? (
+                        <span className="ml-2 badge badge-amber">{t("docusign.originManual")}</span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`badge ${statusClass(envelope.status)}`}>
                         {t(statusKey(envelope.status))}
@@ -347,15 +385,17 @@ export function ClientContractsPanel({
                             onClick={() => void handleDownloadSigned(envelope.id)}
                           />
                         ) : null}
-                        <IconActionButton
-                          label={
-                            syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
-                          }
-                          icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
-                          variant="ghost"
-                          disabled={syncingId === envelope.id}
-                          onClick={() => void handleSync(envelope.id)}
-                        />
+                        {!isManualEnvelope(envelope) ? (
+                          <IconActionButton
+                            label={
+                              syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
+                            }
+                            icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
+                            variant="ghost"
+                            disabled={syncingId === envelope.id}
+                            onClick={() => void handleSync(envelope.id)}
+                          />
+                        ) : null}
                       </TableActions>
                     </td>
                   </tr>
@@ -378,6 +418,12 @@ export function ClientContractsPanel({
           onLoadTemplateDetail={loadTemplateDetail}
           onSubmit={handleSendContract}
           onClose={() => setSendOpen(false)}
+        />
+      ) : null}
+      {manualOpen ? (
+        <UploadManualContractModal
+          onSubmit={handleUploadManual}
+          onClose={() => setManualOpen(false)}
         />
       ) : null}
     </div>

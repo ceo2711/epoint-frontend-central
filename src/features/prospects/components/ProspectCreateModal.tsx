@@ -17,6 +17,7 @@ import {
   formatProspectConflict,
   useProspectAvailabilityCheck,
 } from "@/features/prospects/hooks/useProspectAvailabilityCheck";
+import { ProspectQualificationField } from "@/features/prospects/components/ProspectQualificationField";
 import { EMPTY_PROSPECT_FORM, type ProspectFormData } from "@/features/prospects/types";
 import { useSedes } from "@/features/sedes/hooks/useSedes";
 import type { MerchantBrief } from "@/types/api";
@@ -369,30 +370,11 @@ export function ProspectCreateModal({
             disabled={isGlobal && !form.sede_id}
           />
         </div>
-        <div className="sm:col-span-2">
-          <p className="mb-2 text-sm font-medium text-slate-700">{t("prospects.qualification")}</p>
-          <div className="flex flex-wrap gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <input
-                type="radio"
-                name="is_qualified"
-                checked={form.is_qualified}
-                onChange={() => setForm({ ...form, is_qualified: true })}
-              />
-              {t("prospects.qualified")}
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              <input
-                type="radio"
-                name="is_qualified"
-                checked={!form.is_qualified}
-                onChange={() => setForm({ ...form, is_qualified: false })}
-              />
-              {t("prospects.unqualified")}
-            </label>
-          </div>
-          <p className="mt-1.5 text-xs text-slate-500">{t("prospects.qualificationHint")}</p>
-        </div>
+        <ProspectQualificationField
+          variant="radio"
+          value={form.is_qualified}
+          onChange={(is_qualified) => setForm({ ...form, is_qualified })}
+        />
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-700">
             {t("common.notes")}

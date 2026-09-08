@@ -12,7 +12,7 @@ import {
 import { IconActionButton, TableActions } from "@/components/ui/IconActionButton";
 import { useTranslation } from "@/contexts/LanguageContext";
 import type { DocusignEnvelope } from "@/features/docusign/types";
-import { canDownloadSentDocument, canDownloadSignedDocument } from "@/features/docusign/utils";
+import { canDownloadSentDocument, canDownloadSignedDocument, isManualEnvelope } from "@/features/docusign/utils";
 import { formatDateTime } from "@/lib/format-datetime";
 
 interface EnvelopeListProps {
@@ -123,7 +123,9 @@ export function EnvelopeList({
                   ) : null}
                   <td className="px-4 py-3">
                     <span className={`badge ${statusClass(envelope.status)}`}>
-                      {t(statusKey(envelope.status))}
+                      {isManualEnvelope(envelope)
+                        ? t("docusign.originManual")
+                        : t(statusKey(envelope.status))}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
@@ -176,15 +178,17 @@ export function EnvelopeList({
                           onClick={() => onLinkProspect(envelope)}
                         />
                       ) : null}
-                      <IconActionButton
-                        label={
-                          syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
-                        }
-                        icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
-                        variant="ghost"
-                        disabled={syncingId === envelope.id}
-                        onClick={() => void onSync(envelope.id)}
-                      />
+                      {!isManualEnvelope(envelope) ? (
+                        <IconActionButton
+                          label={
+                            syncingId === envelope.id ? t("docusign.syncing") : t("docusign.syncAction")
+                          }
+                          icon={<HiOutlineArrowPath className={syncingId === envelope.id ? "animate-spin" : ""} />}
+                          variant="ghost"
+                          disabled={syncingId === envelope.id}
+                          onClick={() => void onSync(envelope.id)}
+                        />
+                      ) : null}
                     </TableActions>
                   </td>
                 </tr>

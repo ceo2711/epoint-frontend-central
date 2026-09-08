@@ -28,6 +28,7 @@ export interface DocusignEnvelope {
   signer_email: string;
   template_id: string;
   template_role_name: string;
+  origin?: string;
   subject: string;
   status: string;
   client_id?: number | null;

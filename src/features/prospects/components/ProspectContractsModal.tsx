@@ -38,7 +38,8 @@ function canViewSigned(status: string) {
   return status.toLowerCase() === "completed";
 }
 
-function canViewSent(status: string) {
+function canViewSent(status: string, origin?: string) {
+  if (origin === "manual") return false;
   const normalized = status.toLowerCase();
   return normalized === "sent" || normalized === "delivered" || normalized === "completed";
 }
@@ -74,7 +75,9 @@ export function ProspectContractsModal({
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${envelopeStatusClass(envelope.status)}`}
                 >
-                  {t(envelopeStatusKey(envelope.status) as never)}
+                  {envelope.origin === "manual"
+                    ? t("docusign.originManual")
+                    : t(envelopeStatusKey(envelope.status) as never)}
                 </span>
               </div>
               <p className="mt-1 text-slate-600">
@@ -93,12 +96,13 @@ export function ProspectContractsModal({
                     {t("docusign.viewSigned")}
                   </Button>
                 ) : null}
-                {canViewSent(envelope.status) && !canViewSigned(envelope.status) ? (
+                {canViewSent(envelope.status, envelope.origin) && !canViewSigned(envelope.status) ? (
                   <Button size="sm" variant="secondary" onClick={() => onViewSent(envelope.id)}>
                     {t("docusign.viewSent")}
                   </Button>
                 ) : null}
                 {onResendReminder &&
+                envelope.origin !== "manual" &&
                 ["sent", "delivered"].includes(envelope.status.toLowerCase()) ? (
                   <Button
                     size="sm"

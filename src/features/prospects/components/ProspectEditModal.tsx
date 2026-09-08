@@ -11,6 +11,7 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { useInfluencerOptions } from "@/features/influencers/hooks/useInfluencerOptions";
+import { ProspectQualificationField } from "@/features/prospects/components/ProspectQualificationField";
 import type { Prospect } from "@/features/prospects/types";
 import { api } from "@/lib/api";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
@@ -23,7 +24,7 @@ type ProspectEditForm = {
   source: string;
   influencer_id: string;
   notes: string;
-  is_qualified: boolean;
+  is_qualified: boolean | null;
 };
 
 function buildForm(prospect: Prospect): ProspectEditForm {
@@ -194,17 +195,10 @@ export function ProspectEditModal({ prospect, token, onClose, onSuccess }: Prosp
           </div>
         ) : null}
 
-        <div className="sm:col-span-2">
-          <p className="mb-1.5 text-sm font-medium text-slate-700">{t("prospects.qualification")}</p>
-          <select
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            value={form.is_qualified ? "1" : "0"}
-            onChange={(e) => setForm({ ...form, is_qualified: e.target.value === "1" })}
-          >
-            <option value="1">{t("prospects.qualified")}</option>
-            <option value="0">{t("prospects.unqualified")}</option>
-          </select>
-        </div>
+        <ProspectQualificationField
+          value={form.is_qualified}
+          onChange={(is_qualified) => setForm({ ...form, is_qualified })}
+        />
 
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-700">

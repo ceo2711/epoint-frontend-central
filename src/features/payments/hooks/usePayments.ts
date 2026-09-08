@@ -139,6 +139,18 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     },
   });
 
+  const updateRemainderDueMutation = useMutation({
+    mutationFn: ({ linkId, remainderDueOn }: { linkId: number; remainderDueOn: string }) =>
+      api.patch<PaymentLink>(
+        `/payments/links/${linkId}/remainder-due`,
+        { remainder_due_on: remainderDueOn },
+        token!,
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
+    },
+  });
+
   const registerClientMutation = useMutation({
     mutationFn: ({ linkId, payload }: { linkId: number; payload: PaymentRegisterClientPayload }) =>
       api.post<{ client_id: number; message: string }>(
@@ -171,6 +183,7 @@ export function usePayments(token: string | null, options?: UsePaymentsOptions) 
     createLink: createLinkMutation.mutateAsync,
     resendLink: resendLinkMutation.mutateAsync,
     cancelLink: cancelLinkMutation.mutateAsync,
+    updateRemainderDue: updateRemainderDueMutation.mutateAsync,
     registerClient: registerClientMutation.mutateAsync,
     isCreating: createLinkMutation.isPending,
     refetchLinks: linksQuery.refetch,

@@ -23,8 +23,19 @@ export function ProspectStatusBadge({ status }: { status: string }) {
   );
 }
 
-export function ProspectQualificationBadge({ isQualified }: { isQualified: boolean }) {
+export function ProspectQualificationBadge({
+  isQualified,
+}: {
+  isQualified: boolean | null | undefined;
+}) {
   const { t } = useTranslation();
+  if (isQualified == null) {
+    return (
+      <span className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-500">
+        {t("prospects.qualificationPending")}
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${

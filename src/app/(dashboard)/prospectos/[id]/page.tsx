@@ -19,9 +19,11 @@ import { useTranslation } from "@/contexts/LanguageContext";
 import { ClientSourceSelect } from "@/features/clients/components/ClientSourceSelect";
 import { CLIENT_SOURCE_LABEL_KEYS, type ClientSourceValue } from "@/features/clients/constants";
 import { SendContractModal } from "@/features/docusign/components/SendContractModal";
+import { UploadManualContractModal } from "@/features/docusign/components/UploadManualContractModal";
 import { DOCUSIGN_REFRESH_EVENT } from "@/features/docusign/docusign-events";
 import { useDocusign } from "@/features/docusign/hooks/useDocusign";
 import { PaymentLinkForm } from "@/features/payments/components/PaymentLinkForm";
+import { EditRemainderDueModal } from "@/features/payments/components/EditRemainderDueModal";
 import type { PaymentLink, PaymentLinkCreateResult } from "@/features/payments/types";
 import { PAYMENT_COMPLETED_EVENT, type PaymentCompletedDetail } from "@/features/payments/payment-events";
 import { usePayments, fetchLinkablePaymentLinks } from "@/features/payments/hooks/usePayments";
@@ -31,6 +33,7 @@ import { ProspectExistingPaymentModal } from "@/features/prospects/components/Pr
 import { ProspectHistoryTimeline } from "@/features/prospects/components/ProspectHistoryTimeline";
 import { ProspectLinkedResources } from "@/features/prospects/components/ProspectLinkedResources";
 import { ProspectPaymentsModal } from "@/features/prospects/components/ProspectPaymentsModal";
+import { ProspectQualificationField } from "@/features/prospects/components/ProspectQualificationField";
 import { ProspectStatusBadge, ProspectQualificationBadge } from "@/features/prospects/components/ProspectStatusBadge";
 import { useProspectDetail } from "@/features/prospects/hooks/useProspects";
 import { getAllowedNextStatuses } from "@/features/prospects/utils/transitions";
@@ -48,7 +51,7 @@ type ProspectEditForm = {
   phone: string;
   source: string;
   notes: string;
-  is_qualified: boolean;
+  is_qualified: boolean | null;
 };
 
 function buildProspectForm(prospect: ProspectDetail): ProspectEditForm {
@@ -96,8 +99,14 @@ export default function ProspectoDetailPage() {
   const [calendlyMarkContactedOpen, setCalendlyMarkContactedOpen] = useState(false);
   const [markChoiceOpen, setMarkChoiceOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
+  const [manualContractOpen, setManualContractOpen] = useState(false);
   const [contractsListOpen, setContractsListOpen] = useState(false);
   const [paymentsListOpen, setPaymentsListOpen] = useState(false);
+  const [remainderDueEdit, setRemainderDueEdit] = useState<{
+    id: number;
+    date: string | null;
+  } | null>(null);
+  const [savingRemainderDue, setSavingRemainderDue] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [sendingBalance, setSendingBalance] = useState(false);
   const [resendingPaymentId, setResendingPaymentId] = useState<number | null>(null);
@@ -130,7 +139,7 @@ export default function ProspectoDetailPage() {
     downloadSentDocument,
   } = useDocusign(token, { loadEnvelopes: false, listenRefresh: false });
 
-  const { config, createLink, resendLink, isCreating } = usePayments(token);
+  const { config, createLink, resendLink, updateRemainderDue, isCreating } = usePayments(token);
 
   const hasPendingContracts = useMemo(() => {
     if (!prospect?.docusign_envelopes.length) return false;
@@ -462,6 +471,34 @@ export default function ProspectoDetailPage() {
     setContractOpen(true);
   }
 
+  async function handleUploadManualContract(file: File, subject: string) {
+    if (!token || !prospect) return;
+    const form = new FormData();
+    form.append("file", file);
+    form.append("prospect_id", String(prospect.id));
+    if (subject) form.append("subject", subject);
+    try {
+      await api.upload("/docusign/envelopes/manual", form, token);
+      await reload({ silent: true });
+      window.dispatchEvent(new Event(DOCUSIGN_REFRESH_EVENT));
+      setManualContractOpen(false);
+      queueMicrotask(() => {
+        void modal.alert({
+          title: t("docusign.uploadManualSuccessTitle"),
+          message: t("docusign.uploadManualSuccessMessage"),
+          variant: "success",
+        });
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("docusign.uploadManualError")),
+        variant: "error",
+      });
+      throw err;
+    }
+  }
+
   async function handleCreatePaymentClick() {
     if (!prospect) return;
     const existingCount = prospect.payment_links?.length || (prospect.payment_link ? 1 : 0);
@@ -602,6 +639,46 @@ export default function ProspectoDetailPage() {
     }
   }
 
+  function prospectPayments() {
+    if (!prospect) return [];
+    if (prospect.payment_links?.length) return prospect.payment_links;
+    return prospect.payment_link ? [prospect.payment_link] : [];
+  }
+
+  function openRemainderDueEditor(payment?: { id: number; remainder_due_on?: string | null }) {
+    if (payment) {
+      setRemainderDueEdit({ id: payment.id, date: payment.remainder_due_on ?? null });
+      return;
+    }
+    const payments = prospectPayments();
+    const target = payments.find((item) => item.remainder_due_on) ?? payments[0];
+    if (!target) return;
+    setRemainderDueEdit({ id: target.id, date: target.remainder_due_on ?? null });
+  }
+
+  async function handleSaveRemainderDue(isoDate: string) {
+    if (!remainderDueEdit) return;
+    setSavingRemainderDue(true);
+    try {
+      await updateRemainderDue({ linkId: remainderDueEdit.id, remainderDueOn: isoDate });
+      await reload({ silent: true });
+      setRemainderDueEdit(null);
+      await modal.alert({
+        title: t("payments.remainderDue.editTitle"),
+        message: t("payments.remainderDue.success"),
+        variant: "success",
+      });
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("payments.remainderDue.error")),
+        variant: "error",
+      });
+    } finally {
+      setSavingRemainderDue(false);
+    }
+  }
+
   async function handleSendBalancePayment() {
     if (!token || !prospect) return;
     setSendingBalance(true);
@@ -708,6 +785,7 @@ export default function ProspectoDetailPage() {
 
   const showContractAction =
     canUpdate && !isConverted && connection?.connected;
+  const showUploadManualContract = canUpdate && !isConverted;
 
   const showPaymentAction = canUpdate && !isConverted;
   const canMarkContacted =
@@ -850,17 +928,10 @@ export default function ProspectoDetailPage() {
                 onChange={(source) => setEditForm({ ...editForm, source })}
               />
               <div>
-                <p className="mb-1.5 text-sm font-medium text-slate-700">{t("prospects.qualification")}</p>
-                <select
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={editForm.is_qualified ? "1" : "0"}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, is_qualified: e.target.value === "1" })
-                  }
-                >
-                  <option value="1">{t("prospects.qualified")}</option>
-                  <option value="0">{t("prospects.unqualified")}</option>
-                </select>
+                <ProspectQualificationField
+                  value={editForm.is_qualified}
+                  onChange={(is_qualified) => setEditForm({ ...editForm, is_qualified })}
+                />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700">
@@ -944,6 +1015,9 @@ export default function ProspectoDetailPage() {
             onMarkContacted={() => void handleMarkContacted()}
             onLinkCalendly={() => setCalendlyOpen(true)}
             onSendContract={showContractAction ? () => void handleSendContractClick() : undefined}
+            onUploadManualContract={
+              showUploadManualContract ? () => setManualContractOpen(true) : undefined
+            }
             onResendContractReminder={
               showContractAction && prospect.docusign_envelopes[0]
                 ? () => void handleResendContractReminder(prospect.docusign_envelopes[0].id)
@@ -962,6 +1036,7 @@ export default function ProspectoDetailPage() {
             onSendBalancePayment={showPaymentAction ? () => void handleSendBalancePayment() : undefined}
             sendingBalance={sendingBalance}
             onLinkPayment={() => void openPaymentPicker()}
+            onEditRemainderDue={showPaymentAction ? () => openRemainderDueEditor() : undefined}
           />
         ) : null}
 
@@ -1049,6 +1124,13 @@ export default function ProspectoDetailPage() {
         />
       ) : null}
 
+      {manualContractOpen ? (
+        <UploadManualContractModal
+          onSubmit={handleUploadManualContract}
+          onClose={() => setManualContractOpen(false)}
+        />
+      ) : null}
+
       {contractOpen ? (
         <SendContractModal
           signerName={prospect.full_name}
@@ -1120,6 +1202,16 @@ export default function ProspectoDetailPage() {
           onClose={() => setPaymentsListOpen(false)}
           onResendPayment={showPaymentAction ? (linkId) => void handleResendProspectPayment(linkId) : undefined}
           resendingId={resendingPaymentId}
+          onEditRemainderDue={showPaymentAction ? (payment) => openRemainderDueEditor(payment) : undefined}
+        />
+      ) : null}
+
+      {remainderDueEdit ? (
+        <EditRemainderDueModal
+          currentDate={remainderDueEdit.date}
+          submitting={savingRemainderDue}
+          onClose={() => setRemainderDueEdit(null)}
+          onSave={handleSaveRemainderDue}
         />
       ) : null}
 

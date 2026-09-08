@@ -156,7 +156,7 @@ export function ClientList({
                       {c.source_prospect_status ? (
                         <ProspectStatusBadge status={c.source_prospect_status} />
                       ) : null}
-                      <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />
+                      <ProspectQualificationBadge isQualified={c.is_qualified} />
                     </div>
                   </div>
                   <div className="mt-3" onClick={(event) => event.stopPropagation()}>
@@ -255,7 +255,7 @@ export function ClientList({
                     </div>
                   </td>
                   <td>
-                    <ProspectQualificationBadge isQualified={c.is_qualified ?? true} />
+                    <ProspectQualificationBadge isQualified={c.is_qualified} />
                   </td>
                   <td onClick={(event) => event.stopPropagation()}>
                     <TableActions>

@@ -7,7 +7,7 @@ import { FormEvent, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { ApiError, api } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/Input";
@@ -89,7 +89,12 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             {error && <div className="alert alert-error">{error}</div>}
 
             <PasswordInput
+              id="new-password"
+              name="new-password"
+              autoComplete="new-password"
+              minLength={8}
               label={t("resetPassword.newPassword")}
+              help={t("resetPassword.newPasswordHelp")}
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -97,10 +102,20 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               hideLabel={t("login.hidePassword")}
             />
             <PasswordInput
+              id="confirm-password"
+              name="confirm-password"
+              autoComplete="new-password"
+              minLength={8}
               label={t("resetPassword.confirmPassword")}
+              help={t("resetPassword.confirmPasswordHelp")}
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              error={
+                confirmPassword.length > 0 && newPassword !== confirmPassword
+                  ? t("resetPassword.mismatch")
+                  : undefined
+              }
               showLabel={t("login.showPassword")}
               hideLabel={t("login.hidePassword")}
             />

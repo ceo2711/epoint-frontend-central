@@ -3,11 +3,18 @@ import type { DocusignEnvelope } from "@/features/docusign/types";
 const TERMINAL_STATUSES = new Set(["completed", "declined", "voided"]);
 const SENT_DOCUMENT_STATUSES = new Set(["sent", "delivered", "completed"]);
 
+export function isManualEnvelope(envelope: { origin?: string | null }): boolean {
+  return envelope.origin === "manual";
+}
+
 export function hasPendingEnvelopes(envelopes: DocusignEnvelope[]): boolean {
-  return envelopes.some((envelope) => !TERMINAL_STATUSES.has(envelope.status.toLowerCase()));
+  return envelopes.some(
+    (envelope) => !isManualEnvelope(envelope) && !TERMINAL_STATUSES.has(envelope.status.toLowerCase()),
+  );
 }
 
 export function canDownloadSentDocument(envelope: DocusignEnvelope): boolean {
+  if (isManualEnvelope(envelope)) return false;
   return SENT_DOCUMENT_STATUSES.has(envelope.status.toLowerCase());
 }
 

@@ -170,7 +170,7 @@ export interface OnboardingGaps {
 export interface Client {
   id: number;
   status: string;
-  is_qualified?: boolean;
+  is_qualified?: boolean | null;
   first_name: string;
   last_name: string;
   email: string;

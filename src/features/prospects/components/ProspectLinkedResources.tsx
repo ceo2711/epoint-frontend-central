@@ -44,6 +44,7 @@ interface ProspectLinkedResourcesProps {
   onLinkCalendly?: () => void;
   onLinkPayment?: () => void;
   onSendContract?: () => void;
+  onUploadManualContract?: () => void;
   onResendContractReminder?: () => void;
   sendingContractReminder?: boolean;
   onCreatePayment?: () => void;
@@ -51,6 +52,7 @@ interface ProspectLinkedResourcesProps {
   sendingBalance?: boolean;
   onViewContracts?: () => void;
   onViewPayments?: () => void;
+  onEditRemainderDue?: () => void;
 }
 
 function envelopeStatusKey(status: string) {
@@ -114,6 +116,7 @@ export function ProspectLinkedResources({
   onLinkCalendly,
   onLinkPayment,
   onSendContract,
+  onUploadManualContract,
   onResendContractReminder,
   sendingContractReminder = false,
   onCreatePayment,
@@ -121,6 +124,7 @@ export function ProspectLinkedResources({
   sendingBalance = false,
   onViewContracts,
   onViewPayments,
+  onEditRemainderDue,
 }: ProspectLinkedResourcesProps) {
   const { t } = useTranslation();
   const [paymentLinkCopied, setPaymentLinkCopied] = useState(false);
@@ -155,6 +159,13 @@ export function ProspectLinkedResources({
   const remainingToStandard = Math.max(0, DEFAULT_PAYMENT_AMOUNT - paidTowardStandard);
   const canSendBalance =
     Boolean(onSendBalancePayment) && paymentLinks.length > 0 && remainingToStandard > 0.009;
+  const remainderDuePayment = paymentLinks.find((item) => item.remainder_due_on) ?? null;
+  const canEditRemainderDue =
+    Boolean(onEditRemainderDue) &&
+    canManage &&
+    !clientView &&
+    remainingToStandard > 0.009 &&
+    paymentLinks.length > 0;
 
   async function handleCopyPaymentLink() {
     if (!displayPayment?.payment_url) return;
@@ -272,7 +283,9 @@ export function ProspectLinkedResources({
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${envelopeStatusClass(latestEnvelope.status)}`}
                 >
-                  {t(envelopeStatusKey(latestEnvelope.status) as never)}
+                  {latestEnvelope.origin === "manual"
+                    ? t("docusign.originManual")
+                    : t(envelopeStatusKey(latestEnvelope.status) as never)}
                 </span>
               </div>
               <p className="text-slate-600">
@@ -321,6 +334,11 @@ export function ProspectLinkedResources({
                   {envelopes.length > 0 ? t("prospects.sendAnotherContract") : t("prospects.sendContract")}
                 </Button>
               ) : null}
+              {onUploadManualContract ? (
+                <Button size="xs" variant="secondary" onClick={onUploadManualContract}>
+                  {t("docusign.uploadManualAction")}
+                </Button>
+              ) : null}
             </div>
           ) : showViewContracts ? (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -360,12 +378,10 @@ export function ProspectLinkedResources({
                   })}
                 </p>
               ) : null}
-              {paymentLinks.some((item) => item.remainder_due_on) ? (
+              {remainderDuePayment?.remainder_due_on ? (
                 <p className="text-xs text-slate-500">
                   {t("prospects.linked.remainderDueOn", {
-                    date: formatDate(
-                      paymentLinks.find((item) => item.remainder_due_on)?.remainder_due_on,
-                    ),
+                    date: formatDate(remainderDuePayment.remainder_due_on),
                   })}
                 </p>
               ) : null}
@@ -408,6 +424,11 @@ export function ProspectLinkedResources({
                   {sendingBalance
                     ? t("prospects.sendingBalancePayment")
                     : t("prospects.sendBalancePayment")}
+                </Button>
+              ) : null}
+              {canEditRemainderDue ? (
+                <Button size="xs" variant="secondary" onClick={onEditRemainderDue}>
+                  {t("payments.remainderDue.change")}
                 </Button>
               ) : null}
               {onCreatePayment ? (

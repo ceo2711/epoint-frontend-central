@@ -12,6 +12,7 @@ interface ProspectPaymentsModalProps {
   onClose: () => void;
   onResendPayment?: (linkId: number) => void;
   resendingId?: number | null;
+  onEditRemainderDue?: (payment: ProspectPaymentBrief) => void;
 }
 
 function paymentStatusClass(status: string) {
@@ -27,6 +28,7 @@ export function ProspectPaymentsModal({
   onClose,
   onResendPayment,
   resendingId,
+  onEditRemainderDue,
 }: ProspectPaymentsModalProps) {
   const { t } = useTranslation();
 
@@ -100,6 +102,13 @@ export function ProspectPaymentsModal({
                       </Button>
                     ) : null}
                   </>
+                ) : null}
+                {onEditRemainderDue &&
+                payment.status.toLowerCase() !== "cancelled" &&
+                payment.status.toLowerCase() !== "expired" ? (
+                  <Button size="sm" variant="secondary" onClick={() => onEditRemainderDue(payment)}>
+                    {t("payments.remainderDue.change")}
+                  </Button>
                 ) : null}
               </div>
             </li>
