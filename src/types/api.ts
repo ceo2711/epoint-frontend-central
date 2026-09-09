@@ -197,6 +197,7 @@ export interface Client {
   vehicles?: Vehicle[];
   documents?: DocumentBrief[];
   source_prospect?: import("@/features/prospects/types").ProspectPipelineSummary | null;
+  payment_links?: import("@/features/prospects/types").ProspectPaymentBrief[];
   /** True cuando el portal ya puede mostrar el tablero (datos + docs OK). */
   board_unlocked?: boolean;
   onboarding_gaps?: OnboardingGaps | null;

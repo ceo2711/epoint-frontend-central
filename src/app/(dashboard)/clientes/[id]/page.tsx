@@ -8,6 +8,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
+import { ClientPaymentStatusCard } from "@/features/clients/components/ClientPaymentStatusCard";
 import { StaffClientVehicleCard } from "@/features/clients/components/StaffClientVehicleCard";
 import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
@@ -577,6 +578,10 @@ function ClienteDetailPageContent() {
             </ul>
             <p className="mt-2 text-sm text-slate-500">{t("clientDetail.advisorContactHint")}</p>
           </Card>
+        ) : null}
+
+        {showApprovedWorkspace ? (
+          <ClientPaymentStatusCard payments={client.payment_links ?? []} />
         ) : null}
 
         {showApprovedWorkspace && !removing && (

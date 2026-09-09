@@ -1109,6 +1109,16 @@ export const es = {
     regeneratePassword: "Generar nueva contraseña",
     regeneratingPassword: "Generando...",
     portalAccessNote: "La contraseña se muestra aquí para que puedas compartirla con el cliente. Si no aparece, genera una nueva.",
+    paymentTitle: "Pago",
+    paymentHint:
+      "Quien tenga acceso a este cliente puede ver si el pago inicial está completo o sigue parcial. Más adelante se puede enviar un link de cobro desde Pagos.",
+    paymentEmpty: "Todavía no hay un pago registrado. Más adelante se puede generar un link desde Pagos.",
+    paymentStatus: {
+      paid: "Pago completo",
+      partial: "Pago parcial",
+      pending: "Pago pendiente",
+    },
+    paymentNoShareableLink: "Este pago se registró sin un link de cobro.",
   },
   users: {
     title: "Usuarios",

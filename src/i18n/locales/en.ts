@@ -1108,6 +1108,16 @@ export const en: Messages = {
     regeneratePassword: "Generate new password",
     regeneratingPassword: "Generating...",
     portalAccessNote: "The password is shown here so you can share it with the client. If it's missing, generate a new one.",
+    paymentTitle: "Payment",
+    paymentHint:
+      "Anyone with access to this client can see whether the initial payment is complete or still partial. A checkout link can be sent later from Payments.",
+    paymentEmpty: "No payment recorded yet. A checkout link can be generated later from Payments.",
+    paymentStatus: {
+      paid: "Paid in full",
+      partial: "Partial payment",
+      pending: "Payment pending",
+    },
+    paymentNoShareableLink: "This payment was recorded without a checkout link.",
   },
   users: {
     title: "Users",

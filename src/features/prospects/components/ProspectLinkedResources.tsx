@@ -15,6 +15,7 @@ import type {
   ProspectPaymentBrief,
   ProspectStatus,
 } from "@/features/prospects/types";
+import { isShareablePaymentUrl } from "@/features/clients/utils/clientPaymentStatus";
 import { copyToClipboard } from "@/lib/clipboard";
 import { formatDate, formatDateTime } from "@/lib/format-datetime";
 import {
@@ -167,8 +168,10 @@ export function ProspectLinkedResources({
     remainingToStandard > 0.009 &&
     paymentLinks.length > 0;
 
+  const canSharePayment = isShareablePaymentUrl(displayPayment?.payment_url);
+
   async function handleCopyPaymentLink() {
-    if (!displayPayment?.payment_url) return;
+    if (!canSharePayment || !displayPayment?.payment_url) return;
     const ok = await copyToClipboard(displayPayment.payment_url);
     if (!ok) return;
     setPaymentLinkCopied(true);
@@ -390,12 +393,13 @@ export function ProspectLinkedResources({
                   {t("prospects.linked.morePayments", { count: paymentLinks.length - 1 })}
                 </p>
               ) : null}
-              {clientView ? (
+              {clientView && canSharePayment ? (
                 <Button size="xs" variant="secondary" onClick={() => void handleCopyPaymentLink()}>
                   {paymentLinkCopied ? t("common.copied") : t("payments.list.copyLink")}
                 </Button>
-              ) : displayPayment.status.toLowerCase() === "pending" ||
-                displayPayment.status.toLowerCase() === "partial" ? (
+              ) : canSharePayment &&
+                (displayPayment.status.toLowerCase() === "pending" ||
+                  displayPayment.status.toLowerCase() === "partial") ? (
                 <Link
                   href={displayPayment.payment_url}
                   target="_blank"
