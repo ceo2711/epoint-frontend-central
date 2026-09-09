@@ -45,7 +45,7 @@ export function PaymentLinkEmail({
       </Section>
 
       <Text style={noteStyle}>
-        El link es personalizado para vos. Si el botón no funciona, copiá y pegá esta dirección en tu
+        Este enlace es personalizado. Si el botón no funciona, copia y pega esta dirección en tu
         navegador:
       </Text>
       <Text style={linkFallbackStyle}>

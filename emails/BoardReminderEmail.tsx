@@ -19,15 +19,15 @@ export function BoardReminderEmail({
 }: BoardReminderEmailProps) {
   return (
     <EmailLayout
-      preview={`${firstName}, tenés tareas pendientes en tu tablero de Epoint`}
+      preview={`${firstName}, tienes tareas pendientes en tu tablero de Epoint`}
       logoUrl={logoUrl}
       footerNote={defaultEmailSupportFooter("{{SUPPORT_URL}}")}
     >
       <Heading style={headingStyle}>Tareas pendientes en tu tablero</Heading>
       <Text style={paragraphStyle}>Hola {firstName},</Text>
       <Text style={paragraphStyle}>
-        Tu tablero en Epoint tiene tareas por completar: reportes, credenciales u otras cards
-        abiertas. Entrá y avanzá para no frenar tu proceso.
+        Tu tablero en Epoint tiene tareas por completar: reportes, credenciales u otras tareas
+        abiertas. Ingresa y avanza para no detener tu proceso.
       </Text>
 
       <Section style={listBoxStyle}>
@@ -41,7 +41,7 @@ export function BoardReminderEmail({
       </Section>
 
       <Text style={noteStyle}>
-        Si alguna card está en revisión, el equipo de Epoint la está mirando. Completá las que
+        Si alguna tarea está en revisión, el equipo de Epoint la está revisando. Completa las que
         todavía estén pendientes de tu lado.
       </Text>
     </EmailLayout>

@@ -17,7 +17,7 @@ export function ContractReminderEmail({
 }: ContractReminderEmailProps) {
   return (
     <EmailLayout
-      preview={`${firstName}, recordá firmar tu contrato en Epoint`}
+      preview={`${firstName}, recuerda firmar tu contrato en Epoint`}
       logoUrl={logoUrl}
       footerNote={defaultEmailSupportFooter("{{SUPPORT_URL}}")}
     >
@@ -34,11 +34,11 @@ export function ContractReminderEmail({
       </Section>
 
       <Text style={paragraphStyle}>
-        Revisá tu bandeja de entrada (también spam): DocuSign te envió o reenvió un correo con el
+        Revisa tu bandeja de entrada (también spam): DocuSign te envió o reenvió un correo con el
         botón para firmar el documento.
       </Text>
       <Text style={noteStyle}>
-        Si no encontrás el email de firma, respondé este correo y te lo reenviamos.
+        Si no encuentras el email de firma, responde este correo y te lo reenviamos.
       </Text>
     </EmailLayout>
   );
