@@ -15,6 +15,7 @@ import { ClientConversionWelcomeEmail } from "../emails/ClientConversionWelcomeE
 import { CustomMessageEmail } from "../emails/CustomMessageEmail";
 import { BoardReminderEmail } from "../emails/BoardReminderEmail";
 import { ContractReminderEmail } from "../emails/ContractReminderEmail";
+import { StaffWelcomeEmail } from "../emails/StaffWelcomeEmail";
 import { WelcomeEmail } from "../emails/WelcomeEmail";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,6 +29,20 @@ const templates: Array<{ name: string; html: string }> = [];
 
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
+
+  templates.push({
+    name: "staff_welcome",
+    html: await render(
+      StaffWelcomeEmail({
+        firstName: "{{FIRST_NAME}}",
+        email: "{{EMAIL}}",
+        tempPassword: "{{TEMP_PASSWORD}}",
+        loginUrl: "{{LOGIN_URL}}",
+        roleLine: "{{ROLE_LINE}}",
+        logoUrl: PLACEHOLDER_LOGO,
+      }),
+    ),
+  });
 
   templates.push({
     name: "welcome",
