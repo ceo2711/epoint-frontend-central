@@ -8,6 +8,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ShellProvider } from "@/contexts/ShellContext";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useRequirePasswordChanged } from "@/features/auth/PasswordChangeGuard";
+import { FirstStepsGate } from "@/features/portal/components/FirstStepsGate";
 import { PortalBoardUnlockGate } from "@/features/portal/components/PortalBoardUnlockGate";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -30,9 +31,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <ShellProvider>
-      <PortalBoardUnlockGate>
-        <AppShell>{children}</AppShell>
-      </PortalBoardUnlockGate>
+      <FirstStepsGate>
+        <PortalBoardUnlockGate>
+          <AppShell>{children}</AppShell>
+        </PortalBoardUnlockGate>
+      </FirstStepsGate>
     </ShellProvider>
   );
 }

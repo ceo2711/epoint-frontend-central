@@ -1304,19 +1304,50 @@ body {
 }
 
 .step-card-incomplete {
-  border-color: #e85c5c;
+  border-color: var(--accent-gold);
   border-width: 2px;
-  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.08);
+  box-shadow: 0 0 0 1px rgba(196, 168, 130, 0.22);
 }
 
 .step-card-incomplete::before {
-  background: #e85c5c;
+  background: linear-gradient(90deg, var(--accent-gold-light), var(--accent-gold-dark));
   opacity: 1;
 }
 
 .step-card-incomplete:hover {
-  border-color: #de4f4f;
-  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.12);
+  border-color: var(--accent-gold-dark);
+  box-shadow: 0 8px 20px rgba(196, 168, 130, 0.24);
+}
+
+.step-missing {
+  background: rgba(196, 168, 130, 0.18);
+}
+
+.step-missing-title,
+.step-missing-list {
+  color: #6b542e;
+}
+
+.step-missing-cta {
+  color: #8a734f;
+}
+
+[data-theme="dark"] .step-card-incomplete {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 1px rgba(212, 188, 154, 0.18);
+}
+
+[data-theme="dark"] .step-missing {
+  background: rgba(196, 168, 130, 0.16);
+}
+
+[data-theme="dark"] .step-missing-title,
+[data-theme="dark"] .step-missing-list {
+  color: #e6d7c0;
+}
+
+[data-theme="dark"] .step-missing-cta {
+  color: #d4bc9a;
 }
 
 .step-card.step-card-done,
@@ -2122,3 +2153,197 @@ main .text-slate-700,
   background: linear-gradient(90deg, #322820, #241c16);
   border-bottom-color: #3d3228;
 }
+
+/* ── Tutorial primeros pasos (portal) ─────────────── */
+@keyframes portal-tour-ring {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--accent-gold-light),
+      0 0 0 7px rgba(212, 188, 154, 0.32),
+      0 10px 28px rgba(196, 168, 130, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--accent-gold),
+      0 0 0 12px rgba(212, 188, 154, 0.12),
+      0 10px 32px rgba(196, 168, 130, 0.18);
+  }
+}
+
+@keyframes portal-tour-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.portal-tour-dim {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 1rem;
+  box-shadow: 0 0 0 9999px rgba(26, 16, 8, 0.58);
+}
+
+.portal-tour-ring {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 1rem;
+  animation: portal-tour-ring 2.4s ease-in-out infinite;
+}
+
+.portal-tour-card {
+  background: linear-gradient(180deg, #fffdf9 0%, #f8f4ed 42%, #ffffff 100%);
+  border: 1px solid rgba(196, 168, 130, 0.42);
+  box-shadow: 0 20px 50px rgba(26, 16, 8, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.7) inset;
+  color: #0d141a;
+}
+
+.portal-tour-card-body {
+  animation: portal-tour-card-in 0.32s ease-out;
+}
+
+.portal-tour-accent {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    #d4bc9a 0%,
+    #3d6b45 48%,
+    #c4a882 100%
+  );
+}
+
+.portal-tour-kicker {
+  color: #8a734f;
+}
+
+.portal-tour-step-pill {
+  background: #f0ebe1;
+  color: #432f23;
+}
+
+.portal-tour-title {
+  color: #0d141a;
+}
+
+.portal-tour-copy {
+  color: #3f342c;
+}
+
+.portal-tour-skip {
+  color: #6b5b4a;
+}
+
+.portal-tour-skip:hover {
+  color: #432f23;
+}
+
+.portal-tour-icon {
+  background: linear-gradient(135deg, #c4f0b2, #eef8eb);
+  color: #2d5234;
+  box-shadow: inset 0 1px 2px rgba(45, 82, 52, 0.08);
+}
+
+.portal-tour-dot {
+  height: 0.4rem;
+  width: 0.4rem;
+  border-radius: 999px;
+  background: #d8cfc2;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.portal-tour-dot.is-active {
+  width: 1.15rem;
+  background: #3d6b45;
+}
+
+.portal-tour-dot.is-done {
+  background: #c4a882;
+}
+
+.portal-tour-arrow {
+  fill: #f8f4ed;
+  stroke: rgba(196, 168, 130, 0.55);
+}
+
+[data-theme="dark"] .portal-tour-dim {
+  box-shadow: 0 0 0 9999px rgba(8, 6, 4, 0.72);
+}
+
+[data-theme="dark"] .portal-tour-card {
+  background: linear-gradient(180deg, #3a3026 0%, #2a221c 48%, #1c1612 100%);
+  border: 1px solid rgba(212, 188, 154, 0.32);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(212, 188, 154, 0.08) inset;
+  color: #f5f0e8;
+}
+
+[data-theme="dark"] .portal-tour-kicker {
+  color: #d4bc9a;
+}
+
+[data-theme="dark"] .portal-tour-step-pill {
+  background: #432f23;
+  color: #f3eee6;
+}
+
+[data-theme="dark"] .portal-tour-title {
+  color: #faf6f0;
+}
+
+[data-theme="dark"] .portal-tour-copy {
+  color: #d9d0c4;
+}
+
+[data-theme="dark"] .portal-tour-skip {
+  color: #c8c0b4;
+}
+
+[data-theme="dark"] .portal-tour-skip:hover {
+  color: #f5f0e8;
+}
+
+[data-theme="dark"] .portal-tour-icon {
+  background: linear-gradient(135deg, #2d5234, #243d28);
+  color: #c4f0b2;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .portal-tour-dot {
+  background: #4a3f34;
+}
+
+[data-theme="dark"] .portal-tour-dot.is-active {
+  background: #7cae84;
+}
+
+[data-theme="dark"] .portal-tour-dot.is-done {
+  background: #d4bc9a;
+}
+
+[data-theme="dark"] .portal-tour-arrow {
+  fill: #3a3026;
+  stroke: rgba(212, 188, 154, 0.4);
+}
+
+[data-theme="dark"] .portal-tour-card .btn-secondary {
+  background: #432f23;
+  color: #f5f0e8;
+  border-color: rgba(212, 188, 154, 0.38);
+}
+
+[data-theme="dark"] .portal-tour-card .btn-secondary:hover:not(:disabled) {
+  background: #4b3a2c;
+  color: #fffdf9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-tour-ring,
+  .portal-tour-card-body {
+    animation: none;
+  }
+}
+

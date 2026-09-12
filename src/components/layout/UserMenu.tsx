@@ -8,6 +8,7 @@ import { ModalPortal } from "@/components/ui/ModalPortal";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useAuth } from "@/features/auth/AuthContext";
+import { usePortalTour } from "@/features/portal/portalTourContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { translateRole } from "@/i18n";
 
@@ -30,6 +31,7 @@ function ChevronDown({ open }: { open: boolean }) {
 export function UserMenu() {
   const { user, logout } = useAuth();
   const { t, locale } = useTranslation();
+  const { startTour, active: tourActive } = usePortalTour();
   const [open, setOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [entered, setEntered] = useState(false);
@@ -164,6 +166,36 @@ export function UserMenu() {
               </svg>
               {t("nav.account")}
             </Link>
+
+            {user.role.code === "CLIENT" ? (
+              <button
+                type="button"
+                role="menuitem"
+                disabled={tourActive}
+                onClick={() => {
+                  setOpen(false);
+                  startTour();
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-cream-100 hover:text-slate-900 disabled:opacity-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  className="h-4 w-4 shrink-0 text-slate-400"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6v6l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {t("portalFirstSteps.replayMenu")}
+              </button>
+            ) : null}
 
             <div className="px-2 py-1.5">
               <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDefaultAppPath, mustForcePasswordChange } from "@/features/auth/auth-redirect";
+import { getDefaultAppPath, mustForcePasswordChange, shouldShowFirstSteps } from "@/features/auth/auth-redirect";
 
 describe("auth-redirect", () => {
   it("sends clients to portal and staff to dashboard", () => {
@@ -19,6 +19,37 @@ describe("auth-redirect", () => {
       mustForcePasswordChange({
         must_change_password: true,
         email: "appreview@epoint.com",
+      }),
+    ).toBe(false);
+  });
+
+  it("shows first steps only for new portal clients", () => {
+    expect(
+      shouldShowFirstSteps({
+        role: { code: "CLIENT" },
+        needs_first_steps: true,
+        must_change_password: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldShowFirstSteps({
+        role: { code: "CLIENT" },
+        needs_first_steps: false,
+        must_change_password: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowFirstSteps({
+        role: { code: "ADMIN" },
+        needs_first_steps: true,
+        must_change_password: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowFirstSteps({
+        role: { code: "CLIENT" },
+        needs_first_steps: true,
+        must_change_password: true,
       }),
     ).toBe(false);
   });

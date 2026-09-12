@@ -12,6 +12,8 @@ import { resolveActiveHref } from "@/components/layout/sidebarNav";
 import { getAccessibleNavItems } from "@/lib/appNavigation";
 import { prefetchRouteModule } from "@/lib/lazyPanels";
 import { usePortalBoardUnlocked } from "@/features/portal/components/PortalBoardUnlockGate";
+import { usePortalTour } from "@/features/portal/portalTourContext";
+import { PORTAL_TOUR_TARGET_ATTR, portalTourTargetForHref } from "@/features/portal/firstStepsTour";
 
 function NavIcon({ d }: { d: string }) {
   return (
@@ -41,8 +43,14 @@ export function Sidebar() {
   const { mobileOpen, closeMobile, sidebarCollapsed, toggleSidebar } = useShell();
   const collapsed = sidebarCollapsed;
   const boardUnlocked = usePortalBoardUnlocked();
+  const { active: tourActive } = usePortalTour();
   const items = getAccessibleNavItems(user, hasPermission, {
-    boardUnlocked: user?.role.code === "CLIENT" ? boardUnlocked : true,
+    boardUnlocked: user?.role.code === "CLIENT" ? boardUnlocked || tourActive : true,
+  }).map((item) => {
+    if (item.href === "/portal/tablero" && tourActive && !boardUnlocked) {
+      return { ...item, disabled: true };
+    }
+    return item;
   });
 
   const activeHref = resolveActiveHref(
@@ -114,11 +122,14 @@ export function Sidebar() {
             collapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""
           } ${
             item.disabled
-              ? "cursor-not-allowed text-cream-700/35"
+              ? `cursor-not-allowed ${tourActive ? "text-cream-200" : "text-cream-700/35"}`
               : active
                 ? "bg-gradient-to-r from-cream-fixed to-accent text-brown-950 shadow-[0_0_0_2px_#d4bc9a,0_4px_14px_rgba(0,0,0,0.25)]"
                 : "text-cream-700 hover:bg-white/5 hover:text-white"
           }`;
+
+          const tourTarget = portalTourTargetForHref(item.href);
+          const tourProps = tourTarget ? { [PORTAL_TOUR_TARGET_ATTR]: tourTarget } : {};
 
           if (item.disabled) {
             return (
@@ -127,6 +138,7 @@ export function Sidebar() {
                 title={disabledHint ?? label}
                 aria-disabled="true"
                 className={itemClassName}
+                {...tourProps}
               >
                 <NavIcon d={item.icon} />
                 <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
@@ -143,6 +155,7 @@ export function Sidebar() {
               onMouseEnter={() => warmRoute(item.href)}
               onFocus={() => warmRoute(item.href)}
               className={itemClassName}
+              {...tourProps}
             >
               <NavIcon d={item.icon} />
               <span className={`flex-1 ${collapsed ? "lg:hidden" : ""}`}>{label}</span>

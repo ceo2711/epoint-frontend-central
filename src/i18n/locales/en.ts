@@ -1385,6 +1385,7 @@ export const en: Messages = {
     step3LockedCta: "Pending",
     stepComplete: "Completed",
     missingTitle: "You still need to complete:",
+    loading: "Loading your portal...",
     gaps: {
       profile: {
         ssn: "SSN / Social Security Number",
@@ -1408,6 +1409,30 @@ export const en: Messages = {
     headline: "You successfully submitted your data and documents",
     body: "An advisor has been assigned and your board is now unlocked so you can manage the entire process in one place.",
     goToBoard: "Go to my board",
+  },
+  portalFirstSteps: {
+    title: "Portal tour",
+    welcomeTitle: "Welcome to your portal",
+    welcomeBody:
+      "We'll walk you through each menu section so you know where to complete your data, upload documents, and follow your process.",
+    stepPortalTitle: "My portal",
+    stepPortalBody:
+      "This is your onboarding overview: what's still missing and the status of each step.",
+    stepDataTitle: "My data",
+    stepDataBody:
+      "Here you enter your personal information: SSN, date of birth, and address. That's the first step to build your file.",
+    stepDocsTitle: "Documents",
+    stepDocsBody:
+      "Upload your identity document and proof of address here. We'll review them to verify your file.",
+    stepBoardTitle: "My board",
+    stepBoardBody:
+      "Once your data and documents are verified, this board unlocks so you can follow tasks with your advisor.",
+    nextStep: "Next step",
+    finish: "Got it",
+    skip: "Skip tutorial",
+    replayMenu: "Watch tutorial",
+    saveError: "We couldn't save your progress. Please try again.",
+    stepOf: "Step {current} of {total}",
   },
   portalData: {
     title: "My personal data",

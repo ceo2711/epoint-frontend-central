@@ -1387,6 +1387,7 @@ export const es = {
     step3LockedCta: "Pendiente",
     stepComplete: "Completado",
     missingTitle: "Te falta completar:",
+    loading: "Cargando tu portal...",
     gaps: {
       profile: {
         ssn: "SSN / Seguro Social",
@@ -1410,6 +1411,30 @@ export const es = {
     headline: "Cargaste tus datos y documentos con éxito",
     body: "Ya tienes asignado un asesor y habilitamos tu tablero para que gestiones todo el proceso desde un solo lugar.",
     goToBoard: "Ir a mi tablero",
+  },
+  portalFirstSteps: {
+    title: "Recorrido del portal",
+    welcomeTitle: "Bienvenido a tu portal",
+    welcomeBody:
+      "Te vamos a mostrar cada sección del menú. Así sabes dónde completar tus datos, subir documentos y seguir tu proceso.",
+    stepPortalTitle: "Mi portal",
+    stepPortalBody:
+      "Desde aquí ves el resumen de tu onboarding: qué falta completar y el estado de cada paso.",
+    stepDataTitle: "Mis datos",
+    stepDataBody:
+      "Aquí cargas tu información personal: SSN, fecha de nacimiento y dirección. Es el primer paso para armar tu expediente.",
+    stepDocsTitle: "Documentos",
+    stepDocsBody:
+      "Aquí subes tu documento de identidad y el comprobante de domicilio. Los revisamos para verificarlos.",
+    stepBoardTitle: "Mi tablero",
+    stepBoardBody:
+      "Cuando tus datos y documentos estén verificados, aquí se habilita tu tablero para seguir las tareas con tu asesor.",
+    nextStep: "Siguiente paso",
+    finish: "Entendido",
+    skip: "Saltar tutorial",
+    replayMenu: "Ver tutorial",
+    saveError: "No pudimos guardar tu progreso. Intenta de nuevo.",
+    stepOf: "Paso {current} de {total}",
   },
   portalData: {
     title: "Mis datos personales",

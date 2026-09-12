@@ -20,6 +20,7 @@ interface ShellContextValue {
   toggleMobile: () => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  expandSidebar: () => void;
 }
 
 const ShellContext = createContext<ShellContextValue | null>(null);
@@ -63,6 +64,18 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const expandSidebar = useCallback(() => {
+    setSidebarCollapsed((collapsed) => {
+      if (!collapsed) return collapsed;
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, "false");
+      } catch {
+        /* ignore storage errors */
+      }
+      return false;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       mobileOpen,
@@ -71,8 +84,9 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       toggleMobile,
       sidebarCollapsed,
       toggleSidebar,
+      expandSidebar,
     }),
-    [mobileOpen, openMobile, closeMobile, toggleMobile, sidebarCollapsed, toggleSidebar],
+    [mobileOpen, openMobile, closeMobile, toggleMobile, sidebarCollapsed, toggleSidebar, expandSidebar],
   );
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;

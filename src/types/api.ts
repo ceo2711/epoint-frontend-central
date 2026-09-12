@@ -49,6 +49,8 @@ export interface User {
   merchants?: MerchantBrief[];
   active_merchant_id?: number | null;
   active_merchant?: MerchantBrief | null;
+  first_steps_completed_at?: string | null;
+  needs_first_steps?: boolean;
 }
 
 export interface Area {
