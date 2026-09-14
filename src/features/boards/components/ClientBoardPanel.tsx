@@ -12,7 +12,7 @@ import type { BoardCardLabel } from "@/features/boards/constants/cardLabels";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
-import { isOnboardingAreaLeader, isSedeAdmin } from "@/lib/roles";
+import { isOnboardingAreaLeader, isSedeAdmin, canEditBoardComments } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ClientBoardPanelProps {
@@ -56,6 +56,7 @@ export function ClientBoardPanel({
     (user.role.code === "ADVISOR" || onboardingLeader || isSedeAdmin(user.role.code));
   const canSetLabel =
     !isClientPortal && !!user && (user.role.code === "ADVISOR" || onboardingLeader);
+  const canEditComments = !isClientPortal && canEditBoardComments(user);
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
@@ -207,6 +208,16 @@ export function ClientBoardPanel({
     await refresh();
   }
 
+  async function updateComment(cardId: number, commentId: number, body: string, isInternal: boolean) {
+    if (!token) return;
+    await api.patch(
+      `/boards/cards/${cardId}/comments/${commentId}`,
+      { body, is_internal: isInternal },
+      token,
+    );
+    await refresh();
+  }
+
   async function submitCredentials(cardId: number, username: string, password: string) {
     if (!token) return;
     await api.post(`/boards/cards/${cardId}/credentials`, { username, password }, token);
@@ -256,6 +267,7 @@ export function ClientBoardPanel({
           onUpdateDescription={updateDescription}
           onUpdateLabel={canSetLabel ? updateLabel : undefined}
           onSubmitComment={submitComment}
+          onUpdateComment={canEditComments ? updateComment : undefined}
           onUploadAttachment={async (cardId, file) => {
             await uploadAttachment(cardId, file);
             await refresh();
@@ -265,6 +277,7 @@ export function ClientBoardPanel({
           onDeleteAttachment={deleteAttachment}
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
+          canEditComments={canEditComments}
           canSetLabel={canSetLabel}
         />
       )}

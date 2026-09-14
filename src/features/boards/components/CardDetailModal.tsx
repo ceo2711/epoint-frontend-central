@@ -30,6 +30,7 @@ import type { MentionableUser } from "@/features/boards/utils/commentMentions";
 import {
   encodeMentionsInBody,
   excludeSelfMentionableUsers,
+  decodeMentionsForDisplay,
 } from "@/features/boards/utils/commentMentions";
 import { useAttachmentContentUrl } from "@/features/boards/hooks/useAttachmentContentUrl";
 import { inferMimeFromFilename, isPdfMime } from "@/features/documents/utils/documentMime";
@@ -45,12 +46,19 @@ interface CardDetailModalProps {
   onUpdateDescription: (cardId: number, description: string) => Promise<void>;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   onSubmitComment: (cardId: number, body: string, files: File[], isInternal: boolean) => Promise<void>;
+  onUpdateComment?: (
+    cardId: number,
+    commentId: number,
+    body: string,
+    isInternal: boolean,
+  ) => Promise<void>;
   onUploadAttachment: (cardId: number, file: File) => Promise<void>;
   onSubmitCredentials?: (cardId: number, username: string, password: string) => Promise<void>;
   onDeleteCard?: (cardId: number) => Promise<void>;
   onDeleteAttachment?: (attachmentId: number) => Promise<void>;
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
+  canEditComments?: boolean;
   canSetLabel?: boolean;
 }
 
@@ -77,12 +85,14 @@ export function CardDetailModal({
   onUpdateDescription,
   onUpdateLabel,
   onSubmitComment,
+  onUpdateComment,
   onUploadAttachment,
   onSubmitCredentials,
   onDeleteCard,
   onDeleteAttachment,
   canPostInternalComments = false,
   canEditDescription = false,
+  canEditComments = false,
   canSetLabel = false,
 }: CardDetailModalProps) {
   const { t, locale } = useTranslation();
@@ -95,6 +105,10 @@ export function CardDetailModal({
   const [comment, setComment] = useState("");
   const [internalComment, setInternalComment] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [editInternal, setEditInternal] = useState(false);
+  const [savingComment, setSavingComment] = useState(false);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState<number | null>(null);
   const [creds, setCreds] = useState({ username: "", password: "" });
@@ -128,7 +142,8 @@ export function CardDetailModal({
       setMentionableUsers([]);
       return;
     }
-    const includeClient = !internalComment || !canPostInternalComments;
+    const editingInternal = editingCommentId != null && editInternal;
+    const includeClient = !(editingInternal || internalComment) || !canPostInternalComments;
     void api
       .get<MentionableUser[]>(
         `/boards/client/${clientId}/mentionable-users?include_client=${includeClient ? "true" : "false"}`,
@@ -136,7 +151,7 @@ export function CardDetailModal({
       )
       .then(setMentionableUsers)
       .catch(() => setMentionableUsers([]));
-  }, [token, clientId, internalComment, canPostInternalComments]);
+  }, [token, clientId, internalComment, canPostInternalComments, editingCommentId, editInternal]);
 
   const cardAttachments = useMemo(
     () =>
@@ -199,6 +214,34 @@ export function CardDetailModal({
       await onDeleteAttachment(attachmentId);
     } finally {
       setDeletingAttachmentId(null);
+    }
+  }
+
+  function startEditComment(item: CardComment) {
+    setEditingCommentId(item.id);
+    setEditBody(decodeMentionsForDisplay(item.body));
+    setEditInternal(item.is_internal);
+  }
+
+  async function handleSaveComment() {
+    if (!onUpdateComment || editingCommentId == null) return;
+    const hasAttachments = (attachmentsByComment.get(editingCommentId) ?? []).length > 0;
+    if (!editBody.trim() && !hasAttachments) return;
+    setSavingComment(true);
+    try {
+      const encodedBody = encodeMentionsInBody(editBody, filteredMentionableUsers, user?.id);
+      await onUpdateComment(card.id, editingCommentId, encodedBody, editInternal);
+      setEditingCommentId(null);
+      setEditBody("");
+      setEditInternal(false);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.commentUpdateError")),
+        variant: "error",
+      });
+    } finally {
+      setSavingComment(false);
     }
   }
 
@@ -526,18 +569,93 @@ export function CardDetailModal({
 
                 {sortedComments.length > 0 ? (
                   <div className="space-y-4">
-                    {sortedComments.map((item: CardComment) => (
+                    {sortedComments.map((item: CardComment) => {
+                      const isEditing = editingCommentId === item.id;
+                      const hasAttachments = (attachmentsByComment.get(item.id) ?? []).length > 0;
+                      return (
                       <article key={item.id} className="border-b border-slate-200/80 pb-4 last:border-0">
-                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <span className="text-sm font-semibold text-slate-800">{item.author_name}</span>
-                          <span className="text-[11px] text-slate-400">
-                            {formatActivityDate(item.created_at)}
-                          </span>
-                          {item.is_internal && (
-                            <span className="badge badge-slate text-[10px]">{t("portalBoard.internalComment")}</span>
-                          )}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <span className="text-sm font-semibold text-slate-800">{item.author_name}</span>
+                            <span className="text-[11px] text-slate-400">
+                              {formatActivityDate(item.created_at)}
+                            </span>
+                            {item.updated_at ? (
+                              <span className="text-[11px] text-slate-400">
+                                · {t("portalBoard.commentEdited")}
+                              </span>
+                            ) : null}
+                            {item.is_internal && !isEditing ? (
+                              <span className="badge badge-slate text-[10px]">{t("portalBoard.internalComment")}</span>
+                            ) : null}
+                          </div>
+                          {canEditComments && onUpdateComment && !isEditing ? (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm shrink-0 px-2! text-slate-500 hover:text-slate-800"
+                              title={t("portalBoard.editComment")}
+                              aria-label={t("portalBoard.editComment")}
+                              onClick={() => startEditComment(item)}
+                            >
+                              <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
+                            </button>
+                          ) : null}
                         </div>
-                        {(item.body.trim() || item.body.includes("(mention:")) && <CommentBody body={item.body} />}
+                        {isEditing ? (
+                          <div className="mt-2 space-y-2">
+                            <CommentMentionTextarea
+                              value={editBody}
+                              onChange={setEditBody}
+                              mentionableUsers={filteredMentionableUsers}
+                              placeholder={t("portalBoard.commentPlaceholder")}
+                              rows={4}
+                              onSubmit={() => {
+                                void handleSaveComment();
+                              }}
+                            />
+                            {canPostInternalComments ? (
+                              <label
+                                title={t("portalBoard.internalComment")}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-slate-500 hover:bg-slate-100"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="h-3 w-3"
+                                  checked={editInternal}
+                                  onChange={(e) => setEditInternal(e.target.checked)}
+                                />
+                                {t("portalBoard.internalComment")}
+                              </label>
+                            ) : null}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={savingComment || (!editBody.trim() && !hasAttachments)}
+                                onClick={() => {
+                                  void handleSaveComment();
+                                }}
+                              >
+                                {savingComment ? t("common.loading") : t("portalBoard.saveComment")}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                disabled={savingComment}
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditBody("");
+                                  setEditInternal(false);
+                                }}
+                              >
+                                {t("common.cancel")}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          (item.body.trim() || item.body.includes("(mention:")) && <CommentBody body={item.body} />
+                        )}
                         {(attachmentsByComment.get(item.id) ?? []).length > 0 && (
                           <div className="mt-2 space-y-0.5">
                             {(attachmentsByComment.get(item.id) ?? []).map((attachment) => (
@@ -574,7 +692,8 @@ export function CardDetailModal({
                           </div>
                         )}
                       </article>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-slate-400">{t("portalBoard.noComments")}</p>

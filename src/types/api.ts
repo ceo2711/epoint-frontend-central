@@ -297,6 +297,7 @@ export interface CardComment {
   is_internal: boolean;
   author_name: string;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export interface CardAttachment {

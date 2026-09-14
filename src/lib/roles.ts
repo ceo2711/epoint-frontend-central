@@ -86,6 +86,13 @@ export function canManageOnboarding(
   return isSedeAdmin(user?.role.code) || seesOnboardingDashboard(user);
 }
 
+/** Editar comentarios de las cards del tablero de un cliente. */
+export function canEditBoardComments(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
+  return canManageOnboarding(user);
+}
+
 /** Puede ver/filtrar el trabajo de vendedores (gerente/admin o líder de ventas). */
 export function canSuperviseSalesReps(user: User | null | undefined): boolean {
   return isSedeAdmin(user?.role.code) || isSalesAreaLeader(user);
