@@ -318,6 +318,7 @@ export interface BoardList {
   id: number;
   title: string;
   position: number;
+  is_system?: boolean;
   cards: BoardCard[];
 }
 

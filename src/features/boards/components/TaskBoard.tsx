@@ -21,7 +21,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { HiEllipsisVertical, HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2";
 
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
 import {
@@ -36,9 +39,13 @@ interface TaskBoardProps {
   onSelectCard: (card: BoardCard) => void;
   onMoveCard?: (cardId: number, listId: number, position: number) => Promise<void>;
   onCreateCard?: (listId: number, title: string, position?: number) => Promise<BoardCard>;
+  onRequestCreateList?: () => void;
+  onRequestEditList?: (list: BoardList) => void;
+  onRequestDeleteList?: (listId: number) => void;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   canDrag?: boolean;
   canCreateCards?: boolean;
+  canManageColumns?: boolean;
   canSetLabel?: boolean;
 }
 
@@ -128,6 +135,9 @@ function KanbanColumn({
   canDrag,
   onCreateCard,
   canCreateCards,
+  canManageColumn,
+  onRequestEditList,
+  onRequestDeleteList,
   canSetLabel,
   onUpdateLabel,
 }: {
@@ -136,16 +146,34 @@ function KanbanColumn({
   canDrag: boolean;
   onCreateCard?: (listId: number, title: string, position?: number) => Promise<BoardCard>;
   canCreateCards: boolean;
+  canManageColumn: boolean;
+  onRequestEditList?: (list: BoardList) => void;
+  onRequestDeleteList?: (listId: number) => void;
   canSetLabel: boolean;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: listContainerId(list.id) });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48">
       <div className="kanban-column-header shrink-0">
-        <span>{list.title}</span>
-        <span className="kanban-column-count">{list.cards.length}</span>
+        <span className="min-w-0 flex-1">{list.title}</span>
+        <span className="flex shrink-0 items-center gap-0.5">
+          {canManageColumn && (onRequestEditList || onRequestDeleteList) ? (
+            <button
+              type="button"
+              className="rounded p-0.5 text-slate-500 hover:bg-white/70 hover:text-slate-800"
+              title={t("portalBoard.columnActions")}
+              aria-label={t("portalBoard.columnActions")}
+              onClick={() => setMenuOpen(true)}
+            >
+              <HiEllipsisVertical className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
+          <span className="kanban-column-count">{list.cards.length}</span>
+        </span>
       </div>
       <div
         ref={setNodeRef}
@@ -169,6 +197,49 @@ function KanbanColumn({
           <AddCardForm listId={list.id} cardCount={list.cards.length} onCreate={onCreateCard} />
         )}
       </div>
+
+      {menuOpen ? (
+        <Modal
+          title={list.title}
+          subtitle={t("portalBoard.columnActionsHint")}
+          onClose={() => setMenuOpen(false)}
+          size="md"
+        >
+          <div className="space-y-2">
+            {onRequestEditList ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRequestEditList(list);
+                }}
+              >
+                <HiOutlinePencilSquare className="h-4 w-4 text-slate-500" aria-hidden />
+                {t("portalBoard.editColumn")}
+              </button>
+            ) : null}
+            {onRequestDeleteList ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRequestDeleteList(list.id);
+                }}
+              >
+                <HiOutlineTrash className="h-4 w-4" aria-hidden />
+                {t("portalBoard.deleteColumn")}
+              </button>
+            ) : null}
+          </div>
+          <div className="modal-actions mt-4">
+            <Button type="button" variant="secondary" onClick={() => setMenuOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }
@@ -245,6 +316,23 @@ function AddCardForm({
   );
 }
 
+function AddColumnButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="kanban-column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white/60 px-2 py-4 text-xs font-semibold text-slate-500 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800"
+      >
+        <span className="text-lg leading-none">+</span>
+        <span>{t("portalBoard.addColumn")}</span>
+      </button>
+    </div>
+  );
+}
+
 function KanbanCardPreview({ card }: { card: BoardCard }) {
   return (
     <div className="kanban-card w-48 rotate-1 shadow-lg">
@@ -259,9 +347,13 @@ export function TaskBoard({
   onSelectCard,
   onMoveCard,
   onCreateCard,
+  onRequestCreateList,
+  onRequestEditList,
+  onRequestDeleteList,
   onUpdateLabel,
   canDrag = true,
   canCreateCards = true,
+  canManageColumns = false,
   canSetLabel = false,
 }: TaskBoardProps) {
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
@@ -451,10 +543,16 @@ export function TaskBoard({
               canDrag={canDrag && !!onMoveCard}
               onCreateCard={handleCreateCard}
               canCreateCards={canCreateCards && !!onCreateCard}
+              canManageColumn={canManageColumns && list.is_system === false}
+              onRequestEditList={onRequestEditList}
+              onRequestDeleteList={onRequestDeleteList}
               canSetLabel={canSetLabel && !!onUpdateLabel}
               onUpdateLabel={onUpdateLabel}
             />
           ))}
+        {canManageColumns && onRequestCreateList ? (
+          <AddColumnButton onClick={onRequestCreateList} />
+        ) : null}
       </div>
       <DragOverlay>{activeCard ? <KanbanCardPreview card={activeCard} /> : null}</DragOverlay>
     </DndContext>

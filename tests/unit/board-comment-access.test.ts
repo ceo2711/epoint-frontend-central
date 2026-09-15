@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canEditBoardComments } from "@/lib/roles";
+import { canDeleteBoardComments, canEditBoardComments } from "@/lib/roles";
 
 function user(role: string, area?: string) {
   return {
@@ -23,5 +23,11 @@ describe("canEditBoardComments", () => {
     expect(canEditBoardComments(user("SALES_REP", "VENTAS"))).toBe(false);
     expect(canEditBoardComments(user("AREA_LEADER", "VENTAS"))).toBe(false);
     expect(canEditBoardComments(null)).toBe(false);
+  });
+
+  it("lets the same onboarding roles delete comments", () => {
+    expect(canDeleteBoardComments(user("AREA_LEADER", "ONBOARDING"))).toBe(true);
+    expect(canDeleteBoardComments(user("ADVISOR"))).toBe(true);
+    expect(canDeleteBoardComments(user("CLIENT"))).toBe(false);
   });
 });

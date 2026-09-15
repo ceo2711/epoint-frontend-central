@@ -7,6 +7,7 @@ import {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -41,6 +42,7 @@ interface PromptOptions {
   title: string;
   label: string;
   placeholder?: string;
+  initialValue?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   minLength?: number;
@@ -159,12 +161,20 @@ function ModalResultBody({
 
 function ActiveModal({ state, onClose }: { state: ModalState; onClose: () => void }) {
   const { t } = useTranslation();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(
+    state.type === "prompt" ? (state.options.initialValue ?? "") : "",
+  );
   const [advisorId, setAdvisorId] = useState<number | "">("");
   const [copied, setCopied] = useState(false);
   const [phase, setPhase] = useState<Phase>("form");
   const [result, setResult] = useState<AlertOptions | null>(null);
   const [loadingMessage, setLoadingMessage] = useState("");
+
+  useEffect(() => {
+    if (state.type === "prompt") {
+      setValue(state.options.initialValue ?? "");
+    }
+  }, [state]);
 
   const finish = useCallback(
     (success: boolean) => {

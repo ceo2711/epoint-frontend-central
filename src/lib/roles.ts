@@ -86,8 +86,20 @@ export function canManageOnboarding(
   return isSedeAdmin(user?.role.code) || seesOnboardingDashboard(user);
 }
 
-/** Editar comentarios de las cards del tablero de un cliente. */
+/** Editar o eliminar comentarios de las cards del tablero de un cliente. */
 export function canEditBoardComments(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
+  return canManageOnboarding(user);
+}
+
+export function canDeleteBoardComments(
+  user: Pick<User, "role" | "area"> | null | undefined,
+): boolean {
+  return canEditBoardComments(user);
+}
+
+export function canManageBoardColumns(
   user: Pick<User, "role" | "area"> | null | undefined,
 ): boolean {
   return canManageOnboarding(user);

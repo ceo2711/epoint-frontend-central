@@ -52,6 +52,7 @@ interface CardDetailModalProps {
     body: string,
     isInternal: boolean,
   ) => Promise<void>;
+  onDeleteComment?: (cardId: number, commentId: number) => Promise<void>;
   onUploadAttachment: (cardId: number, file: File) => Promise<void>;
   onSubmitCredentials?: (cardId: number, username: string, password: string) => Promise<void>;
   onDeleteCard?: (cardId: number) => Promise<void>;
@@ -59,6 +60,7 @@ interface CardDetailModalProps {
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
   canEditComments?: boolean;
+  canDeleteComments?: boolean;
   canSetLabel?: boolean;
 }
 
@@ -86,6 +88,7 @@ export function CardDetailModal({
   onUpdateLabel,
   onSubmitComment,
   onUpdateComment,
+  onDeleteComment,
   onUploadAttachment,
   onSubmitCredentials,
   onDeleteCard,
@@ -93,6 +96,7 @@ export function CardDetailModal({
   canPostInternalComments = false,
   canEditDescription = false,
   canEditComments = false,
+  canDeleteComments = false,
   canSetLabel = false,
 }: CardDetailModalProps) {
   const { t, locale } = useTranslation();
@@ -109,6 +113,7 @@ export function CardDetailModal({
   const [editBody, setEditBody] = useState("");
   const [editInternal, setEditInternal] = useState(false);
   const [savingComment, setSavingComment] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [deletingAttachmentId, setDeletingAttachmentId] = useState<number | null>(null);
   const [creds, setCreds] = useState({ username: "", password: "" });
@@ -242,6 +247,34 @@ export function CardDetailModal({
       });
     } finally {
       setSavingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    if (!onDeleteComment) return;
+    const confirmed = await modal.confirm({
+      title: t("portalBoard.deleteComment"),
+      message: t("portalBoard.deleteCommentConfirm"),
+      confirmLabel: t("portalBoard.deleteComment"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    setDeletingCommentId(commentId);
+    try {
+      await onDeleteComment(card.id, commentId);
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+        setEditBody("");
+        setEditInternal(false);
+      }
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.deleteCommentError")),
+        variant: "error",
+      });
+    } finally {
+      setDeletingCommentId(null);
     }
   }
 
@@ -589,16 +622,35 @@ export function CardDetailModal({
                               <span className="badge badge-slate text-[10px]">{t("portalBoard.internalComment")}</span>
                             ) : null}
                           </div>
-                          {canEditComments && onUpdateComment && !isEditing ? (
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm shrink-0 px-2! text-slate-500 hover:text-slate-800"
-                              title={t("portalBoard.editComment")}
-                              aria-label={t("portalBoard.editComment")}
-                              onClick={() => startEditComment(item)}
-                            >
-                              <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
-                            </button>
+                          {((canEditComments && onUpdateComment) || (canDeleteComments && onDeleteComment)) &&
+                          !isEditing ? (
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              {canEditComments && onUpdateComment ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm px-2! text-slate-500 hover:text-slate-800"
+                                  title={t("portalBoard.editComment")}
+                                  aria-label={t("portalBoard.editComment")}
+                                  onClick={() => startEditComment(item)}
+                                >
+                                  <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
+                                </button>
+                              ) : null}
+                              {canDeleteComments && onDeleteComment ? (
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center rounded-lg p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-50"
+                                  title={t("portalBoard.deleteComment")}
+                                  aria-label={t("portalBoard.deleteComment")}
+                                  disabled={deletingCommentId === item.id}
+                                  onClick={() => {
+                                    void handleDeleteComment(item.id);
+                                  }}
+                                >
+                                  <HiOutlineTrash className="h-4 w-4" aria-hidden />
+                                </button>
+                              ) : null}
+                            </div>
                           ) : null}
                         </div>
                         {isEditing ? (

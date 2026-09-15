@@ -7,12 +7,12 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CardDetailModal } from "@/features/boards/components/CardDetailModal";
 import { TaskBoard } from "@/features/boards/components/TaskBoard";
 import { useBoard } from "@/features/boards/hooks/useBoard";
-import type { BoardCard, CardComment } from "@/features/boards/types";
+import type { BoardCard, BoardList, CardComment } from "@/features/boards/types";
 import type { BoardCardLabel } from "@/features/boards/constants/cardLabels";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
-import { isOnboardingAreaLeader, isSedeAdmin, canEditBoardComments } from "@/lib/roles";
+import { isOnboardingAreaLeader, isSedeAdmin, canDeleteBoardComments, canEditBoardComments, canManageBoardColumns } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
 
 interface ClientBoardPanelProps {
@@ -57,6 +57,8 @@ export function ClientBoardPanel({
   const canSetLabel =
     !isClientPortal && !!user && (user.role.code === "ADVISOR" || onboardingLeader);
   const canEditComments = !isClientPortal && canEditBoardComments(user);
+  const canDeleteComments = !isClientPortal && canDeleteBoardComments(user);
+  const canManageColumns = !isClientPortal && canManageBoardColumns(user);
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
@@ -120,6 +122,83 @@ export function ClientBoardPanel({
     await refresh();
     setSelected(created);
     return created;
+  }
+
+  async function requestCreateList() {
+    if (!token || !board) return;
+    const title = await modal.prompt({
+      title: t("portalBoard.addColumn"),
+      label: t("portalBoard.columnTitleLabel"),
+      placeholder: t("portalBoard.columnTitlePlaceholder"),
+      confirmLabel: t("portalBoard.createColumn"),
+      cancelLabel: t("common.cancel"),
+      minLength: 1,
+    });
+    if (!title?.trim()) return;
+    try {
+      await api.post<BoardList>(`/boards/${board.id}/lists`, { title: title.trim() }, token);
+      await refresh();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.createColumnError")),
+        variant: "error",
+      });
+    }
+  }
+
+  async function requestEditList(list: BoardList) {
+    if (!token) return;
+    const title = await modal.prompt({
+      title: t("portalBoard.editColumn"),
+      label: t("portalBoard.columnTitleLabel"),
+      placeholder: t("portalBoard.columnTitlePlaceholder"),
+      initialValue: list.title,
+      confirmLabel: t("portalBoard.saveColumn"),
+      cancelLabel: t("common.cancel"),
+      minLength: 1,
+    });
+    if (!title?.trim() || title.trim() === list.title) return;
+    try {
+      await api.patch(`/boards/lists/${list.id}`, { title: title.trim() }, token);
+      await refresh();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.editColumnError")),
+        variant: "error",
+      });
+    }
+  }
+
+  async function requestDeleteList(listId: number) {
+    if (!token) return;
+    const list = board?.lists.find((item) => item.id === listId);
+    const cardCount = list?.cards.length ?? 0;
+    const title = list?.title ?? "";
+    const message =
+      cardCount === 0
+        ? t("portalBoard.deleteColumnConfirmEmpty", { title })
+        : cardCount === 1
+          ? t("portalBoard.deleteColumnConfirmOne", { title })
+          : t("portalBoard.deleteColumnConfirmMany", { title, count: cardCount });
+    const confirmed = await modal.confirm({
+      title: t("portalBoard.deleteColumn"),
+      message,
+      confirmLabel: t("portalBoard.deleteColumn"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/boards/lists/${listId}`, token);
+      await refresh();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.deleteColumnError")),
+        variant: "error",
+      });
+    }
   }
 
   async function deleteCard(cardId: number) {
@@ -218,6 +297,12 @@ export function ClientBoardPanel({
     await refresh();
   }
 
+  async function deleteComment(cardId: number, commentId: number) {
+    if (!token) return;
+    await api.delete(`/boards/cards/${cardId}/comments/${commentId}`, token);
+    await refresh();
+  }
+
   async function submitCredentials(cardId: number, username: string, password: string) {
     if (!token) return;
     await api.post(`/boards/cards/${cardId}/credentials`, { username, password }, token);
@@ -251,9 +336,13 @@ export function ClientBoardPanel({
         onSelectCard={setSelected}
         onMoveCard={canManageBoard ? moveCard : undefined}
         onCreateCard={canCreateCards ? createCard : undefined}
+        onRequestCreateList={canManageColumns ? requestCreateList : undefined}
+        onRequestEditList={canManageColumns ? requestEditList : undefined}
+        onRequestDeleteList={canManageColumns ? requestDeleteList : undefined}
         onUpdateLabel={canSetLabel ? updateLabel : undefined}
         canDrag={canManageBoard}
         canCreateCards={canCreateCards}
+        canManageColumns={canManageColumns}
         canSetLabel={canSetLabel}
       />
       </div>
@@ -268,6 +357,7 @@ export function ClientBoardPanel({
           onUpdateLabel={canSetLabel ? updateLabel : undefined}
           onSubmitComment={submitComment}
           onUpdateComment={canEditComments ? updateComment : undefined}
+          onDeleteComment={canDeleteComments ? deleteComment : undefined}
           onUploadAttachment={async (cardId, file) => {
             await uploadAttachment(cardId, file);
             await refresh();
@@ -278,6 +368,7 @@ export function ClientBoardPanel({
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
           canEditComments={canEditComments}
+          canDeleteComments={canDeleteComments}
           canSetLabel={canSetLabel}
         />
       )}
