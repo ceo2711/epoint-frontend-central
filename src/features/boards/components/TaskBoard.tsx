@@ -15,6 +15,8 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -42,6 +44,7 @@ interface TaskBoardProps {
   onRequestCreateList?: () => void;
   onRequestEditList?: (list: BoardList) => void;
   onRequestDeleteList?: (listId: number) => void;
+  onReorderLists?: (listIds: number[]) => Promise<void>;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   canDrag?: boolean;
   canCreateCards?: boolean;
@@ -56,6 +59,17 @@ function listContainerId(listId: number) {
 function parseListContainerId(id: string | number): number | null {
   if (typeof id === "string" && id.startsWith("list-")) {
     return Number(id.replace("list-", ""));
+  }
+  return null;
+}
+
+function columnSortableId(listId: number) {
+  return `column-${listId}`;
+}
+
+function parseColumnSortableId(id: string | number): number | null {
+  if (typeof id === "string" && id.startsWith("column-")) {
+    return Number(id.replace("column-", ""));
   }
   return null;
 }
@@ -79,6 +93,7 @@ function SortableKanbanCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
+    data: { type: "card", cardId: card.id },
     disabled: !canDrag,
   });
 
@@ -136,6 +151,7 @@ function KanbanColumn({
   onCreateCard,
   canCreateCards,
   canManageColumn,
+  canReorderColumn,
   onRequestEditList,
   onRequestDeleteList,
   canSetLabel,
@@ -147,18 +163,46 @@ function KanbanColumn({
   onCreateCard?: (listId: number, title: string, position?: number) => Promise<BoardCard>;
   canCreateCards: boolean;
   canManageColumn: boolean;
+  canReorderColumn: boolean;
   onRequestEditList?: (list: BoardList) => void;
   onRequestDeleteList?: (listId: number) => void;
   canSetLabel: boolean;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const { setNodeRef, isOver } = useDroppable({ id: listContainerId(list.id) });
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: listContainerId(list.id) });
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: columnSortableId(list.id),
+    data: { type: "column", listId: list.id },
+    disabled: !canReorderColumn,
+  });
   const [menuOpen, setMenuOpen] = useState(false);
 
+  function setColumnRef(node: HTMLDivElement | null) {
+    setSortableRef(node);
+  }
+
   return (
-    <div className="kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48">
-      <div className="kanban-column-header shrink-0">
+    <div
+      ref={setColumnRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+      }}
+      className="kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48"
+    >
+      <div
+        className={`kanban-column-header shrink-0 ${canReorderColumn ? "cursor-grab active:cursor-grabbing" : ""}`}
+        {...(canReorderColumn ? { ...attributes, ...listeners } : {})}
+      >
         <span className="min-w-0 flex-1">{list.title}</span>
         <span className="flex shrink-0 items-center gap-0.5">
           {canManageColumn && (onRequestEditList || onRequestDeleteList) ? (
@@ -167,7 +211,11 @@ function KanbanColumn({
               className="rounded p-0.5 text-slate-500 hover:bg-white/70 hover:text-slate-800"
               title={t("portalBoard.columnActions")}
               aria-label={t("portalBoard.columnActions")}
-              onClick={() => setMenuOpen(true)}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen(true);
+              }}
             >
               <HiEllipsisVertical className="h-4 w-4" aria-hidden />
             </button>
@@ -176,7 +224,7 @@ function KanbanColumn({
         </span>
       </div>
       <div
-        ref={setNodeRef}
+        ref={setDroppableRef}
         className={`kanban-column-body space-y-1.5 rounded-lg p-0.5 transition ${
           isOver ? "bg-blue-100/70 ring-2 ring-blue-300" : ""
         }`}
@@ -350,6 +398,7 @@ export function TaskBoard({
   onRequestCreateList,
   onRequestEditList,
   onRequestDeleteList,
+  onReorderLists,
   onUpdateLabel,
   canDrag = true,
   canCreateCards = true,
@@ -371,6 +420,11 @@ export function TaskBoard({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const orderedLists = useMemo(
+    () => localBoard.lists.slice().sort((a, b) => a.position - b.position),
+    [localBoard],
+  );
+
   const cardsById = useMemo(() => {
     const map = new Map<number, BoardCard>();
     for (const list of localBoard.lists) {
@@ -384,6 +438,8 @@ export function TaskBoard({
   function resolveTargetListId(overId: string | number): number | null {
     const listId = parseListContainerId(overId);
     if (listId) return listId;
+    const columnId = parseColumnSortableId(overId);
+    if (columnId) return columnId;
     const card = cardsById.get(Number(overId));
     if (!card) return null;
     return findListForCard(localBoard, card.id)?.id ?? null;
@@ -392,9 +448,23 @@ export function TaskBoard({
   function resolveTargetPosition(listId: number, overId: string | number, activeId: number): number {
     const list = localBoard.lists.find((item) => item.id === listId);
     if (!list) return 0;
-    if (parseListContainerId(overId) !== null) return list.cards.filter((card) => card.id !== activeId).length;
+    if (parseListContainerId(overId) !== null || parseColumnSortableId(overId) !== null) {
+      return list.cards.filter((card) => card.id !== activeId).length;
+    }
     const overIndex = list.cards.findIndex((card) => card.id === Number(overId));
     return overIndex >= 0 ? overIndex : list.cards.length;
+  }
+
+  function applyLocalListReorder(listIds: number[]): Board {
+    const byId = new Map(localBoard.lists.map((list) => [list.id, list]));
+    return {
+      ...localBoard,
+      lists: listIds.map((id, index) => {
+        const list = byId.get(id);
+        if (!list) throw new Error("missing list");
+        return { ...list, position: index };
+      }),
+    };
   }
 
   function applyLocalMove(cardId: number, listId: number, position: number): Board {
@@ -493,6 +563,10 @@ export function TaskBoard({
   }
 
   function handleDragStart(event: DragStartEvent) {
+    if (event.active.data.current?.type === "column") {
+      setActiveCard(null);
+      return;
+    }
     const card = cardsById.get(Number(event.active.id));
     setActiveCard(card ?? null);
   }
@@ -500,7 +574,30 @@ export function TaskBoard({
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     setActiveCard(null);
-    if (!over || !onMoveCard || !canDrag) return;
+    if (!over) return;
+
+    if (active.data.current?.type === "column") {
+      if (!canManageColumns || !onReorderLists) return;
+      const activeListId = parseColumnSortableId(active.id);
+      const overListId = resolveTargetListId(over.id);
+      if (activeListId == null || overListId == null || activeListId === overListId) return;
+
+      const currentIds = orderedLists.map((list) => list.id);
+      const from = currentIds.indexOf(activeListId);
+      const to = currentIds.indexOf(overListId);
+      if (from < 0 || to < 0) return;
+      const nextIds = arrayMove(currentIds, from, to);
+      const snapshot = localBoard;
+      setLocalBoard(applyLocalListReorder(nextIds));
+      try {
+        await onReorderLists(nextIds);
+      } catch {
+        setLocalBoard(snapshot);
+      }
+      return;
+    }
+
+    if (!onMoveCard || !canDrag) return;
 
     const cardId = Number(active.id);
     const targetListId = resolveTargetListId(over.id);
@@ -532,10 +629,11 @@ export function TaskBoard({
       onDragEnd={handleDragEnd}
     >
       <div className="flex w-full min-w-0 max-w-full items-start snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
-        {localBoard.lists
-          .slice()
-          .sort((a, b) => a.position - b.position)
-          .map((list) => (
+        <SortableContext
+          items={orderedLists.map((list) => columnSortableId(list.id))}
+          strategy={horizontalListSortingStrategy}
+        >
+          {orderedLists.map((list) => (
             <KanbanColumn
               key={list.id}
               list={list}
@@ -543,13 +641,15 @@ export function TaskBoard({
               canDrag={canDrag && !!onMoveCard}
               onCreateCard={handleCreateCard}
               canCreateCards={canCreateCards && !!onCreateCard}
-              canManageColumn={canManageColumns && list.is_system === false}
+              canManageColumn={canManageColumns}
+              canReorderColumn={canManageColumns && !!onReorderLists}
               onRequestEditList={onRequestEditList}
               onRequestDeleteList={onRequestDeleteList}
               canSetLabel={canSetLabel && !!onUpdateLabel}
               onUpdateLabel={onUpdateLabel}
             />
           ))}
+        </SortableContext>
         {canManageColumns && onRequestCreateList ? (
           <AddColumnButton onClick={onRequestCreateList} />
         ) : null}

@@ -1631,7 +1631,10 @@ export const es = {
     editColumn: "Editar columna",
     editColumnError: "No se pudo editar la columna.",
     columnActions: "Opciones de columna",
-    columnActionsHint: "Elegí una acción para esta columna.",
+    columnActionsHint: "Elegí una acción para esta columna. También podés arrastrar el encabezado para moverla.",
+    moveColumnLeft: "Mover a la izquierda",
+    moveColumnRight: "Mover a la derecha",
+    reorderColumnError: "No se pudo reordenar la columna.",
     deleteColumn: "Eliminar columna",
     deleteColumnConfirmEmpty:
       "¿Eliminar la columna «{title}»? Esta acción no se puede deshacer.",

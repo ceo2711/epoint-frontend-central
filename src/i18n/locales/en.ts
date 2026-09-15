@@ -1627,7 +1627,10 @@ export const en: Messages = {
     editColumn: "Edit column",
     editColumnError: "Could not edit the column.",
     columnActions: "Column options",
-    columnActionsHint: "Choose an action for this column.",
+    columnActionsHint: "Choose an action for this column. You can also drag the header to reorder it.",
+    moveColumnLeft: "Move left",
+    moveColumnRight: "Move right",
+    reorderColumnError: "Could not reorder the column.",
     deleteColumn: "Delete column",
     deleteColumnConfirmEmpty:
       "Delete the column “{title}”? This action cannot be undone.",

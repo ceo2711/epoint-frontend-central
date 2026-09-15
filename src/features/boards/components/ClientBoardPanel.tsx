@@ -201,6 +201,21 @@ export function ClientBoardPanel({
     }
   }
 
+  async function reorderLists(listIds: number[]) {
+    if (!token || !board) return;
+    try {
+      await api.patch(`/boards/${board.id}/lists/reorder`, { list_ids: listIds }, token);
+      await refresh();
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.reorderColumnError")),
+        variant: "error",
+      });
+      throw err;
+    }
+  }
+
   async function deleteCard(cardId: number) {
     if (!token) return;
     const confirmed = await modal.confirm({
@@ -339,6 +354,7 @@ export function ClientBoardPanel({
         onRequestCreateList={canManageColumns ? requestCreateList : undefined}
         onRequestEditList={canManageColumns ? requestEditList : undefined}
         onRequestDeleteList={canManageColumns ? requestDeleteList : undefined}
+        onReorderLists={canManageColumns ? reorderLists : undefined}
         onUpdateLabel={canSetLabel ? updateLabel : undefined}
         canDrag={canManageBoard}
         canCreateCards={canCreateCards}
