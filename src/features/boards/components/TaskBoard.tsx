@@ -34,6 +34,7 @@ import {
   type BoardCardLabel,
 } from "@/features/boards/constants/cardLabels";
 import type { Board, BoardCard, BoardList } from "@/features/boards/types";
+import { displayColumnTitle } from "@/features/boards/utils/displayColumnTitle";
 
 interface TaskBoardProps {
   board: Board;
@@ -226,7 +227,7 @@ function KanbanColumn({
         className={`kanban-column-header shrink-0 ${canReorderColumn ? "cursor-grab active:cursor-grabbing" : ""}`}
         {...(canReorderColumn ? { ...attributes, ...listeners } : {})}
       >
-        <span className="min-w-0 flex-1">{list.title}</span>
+        <span className="kanban-column-title min-w-0 flex-1">{displayColumnTitle(list.title, t)}</span>
         <span className="flex shrink-0 items-center gap-0.5">
           {canManageColumn && (onRequestEditList || onRequestDeleteList) ? (
             <div

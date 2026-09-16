@@ -12,8 +12,9 @@ import type { BoardCardLabel } from "@/features/boards/constants/cardLabels";
 import { useModal } from "@/contexts/ModalContext";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
-import { isOnboardingAreaLeader, isSedeAdmin, canDeleteBoardComments, canEditBoardComments, canManageBoardColumns } from "@/lib/roles";
+import { isOnboardingAreaLeader, isSedeAdmin, canDeleteBoardComments, canEditBoardComments, canManageBoardColumns, canManageOnboarding } from "@/lib/roles";
 import { getUserFacingErrorMessage } from "@/lib/user-facing-error";
+import { displayColumnTitle } from "@/features/boards/utils/displayColumnTitle";
 
 interface ClientBoardPanelProps {
   token: string | null;
@@ -59,6 +60,7 @@ export function ClientBoardPanel({
   const canEditComments = !isClientPortal && canEditBoardComments(user);
   const canDeleteComments = !isClientPortal && canDeleteBoardComments(user);
   const canManageColumns = !isClientPortal && canManageBoardColumns(user);
+  const canEditCardTitle = !isClientPortal && canManageOnboarding(user);
   const { board, error, loading, refresh, removeCardLocally, patchCardLabelLocally, restoreBoard } =
     useBoard(token, clientId, t("portalBoard.unavailable"));
   const [selected, setSelected] = useState<BoardCard | null>(null);
@@ -175,7 +177,7 @@ export function ClientBoardPanel({
     if (!token) return;
     const list = board?.lists.find((item) => item.id === listId);
     const cardCount = list?.cards.length ?? 0;
-    const title = list?.title ?? "";
+    const title = displayColumnTitle(list?.title ?? "", t);
     const message =
       cardCount === 0
         ? t("portalBoard.deleteColumnConfirmEmpty", { title })
@@ -244,6 +246,12 @@ export function ClientBoardPanel({
   async function updateDescription(cardId: number, description: string) {
     if (!token) return;
     await api.patch(`/boards/cards/${cardId}`, { description_md: description }, token);
+    await refresh();
+  }
+
+  async function updateTitle(cardId: number, title: string) {
+    if (!token) return;
+    await api.patch(`/boards/cards/${cardId}`, { title }, token);
     await refresh();
   }
 
@@ -370,6 +378,7 @@ export function ClientBoardPanel({
           token={token}
           onClose={() => setSelected(null)}
           onUpdateDescription={updateDescription}
+          onUpdateTitle={canEditCardTitle ? updateTitle : undefined}
           onUpdateLabel={canSetLabel ? updateLabel : undefined}
           onSubmitComment={submitComment}
           onUpdateComment={canEditComments ? updateComment : undefined}
@@ -383,6 +392,7 @@ export function ClientBoardPanel({
           onDeleteAttachment={deleteAttachment}
           canPostInternalComments={canManageBoard}
           canEditDescription={canManageBoard}
+          canEditTitle={canEditCardTitle}
           canEditComments={canEditComments}
           canDeleteComments={canDeleteComments}
           canSetLabel={canSetLabel}

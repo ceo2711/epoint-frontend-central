@@ -44,6 +44,7 @@ interface CardDetailModalProps {
   token: string | null;
   onClose: () => void;
   onUpdateDescription: (cardId: number, description: string) => Promise<void>;
+  onUpdateTitle?: (cardId: number, title: string) => Promise<void>;
   onUpdateLabel?: (cardId: number, label: BoardCardLabel) => Promise<void>;
   onSubmitComment: (cardId: number, body: string, files: File[], isInternal: boolean) => Promise<void>;
   onUpdateComment?: (
@@ -59,6 +60,7 @@ interface CardDetailModalProps {
   onDeleteAttachment?: (attachmentId: number) => Promise<void>;
   canPostInternalComments?: boolean;
   canEditDescription?: boolean;
+  canEditTitle?: boolean;
   canEditComments?: boolean;
   canDeleteComments?: boolean;
   canSetLabel?: boolean;
@@ -85,6 +87,7 @@ export function CardDetailModal({
   token,
   onClose,
   onUpdateDescription,
+  onUpdateTitle,
   onUpdateLabel,
   onSubmitComment,
   onUpdateComment,
@@ -95,6 +98,7 @@ export function CardDetailModal({
   onDeleteAttachment,
   canPostInternalComments = false,
   canEditDescription = false,
+  canEditTitle = false,
   canEditComments = false,
   canDeleteComments = false,
   canSetLabel = false,
@@ -104,6 +108,9 @@ export function CardDetailModal({
   const [description, setDescription] = useState(cardDescription(card));
   const [editingDescription, setEditingDescription] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [title, setTitle] = useState(card.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [savingTitle, setSavingTitle] = useState(false);
   const [savingLabel, setSavingLabel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [comment, setComment] = useState("");
@@ -135,6 +142,8 @@ export function CardDetailModal({
   useEffect(() => {
     setDescription(cardDescription(card));
     setEditingDescription(false);
+    setTitle(card.title);
+    setEditingTitle(false);
   }, [card]);
 
   useEffect(() => {
@@ -191,6 +200,25 @@ export function CardDetailModal({
       setEditingDescription(false);
     } finally {
       setSavingDescription(false);
+    }
+  }
+
+  async function handleSaveTitle() {
+    if (!onUpdateTitle) return;
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    setSavingTitle(true);
+    try {
+      await onUpdateTitle(card.id, trimmed);
+      setEditingTitle(false);
+    } catch (err) {
+      await modal.alert({
+        title: t("common.error"),
+        message: getUserFacingErrorMessage(err, t("portalBoard.editCardTitleError")),
+        variant: "error",
+      });
+    } finally {
+      setSavingTitle(false);
     }
   }
 
@@ -329,9 +357,61 @@ export function CardDetailModal({
           <div className="card-modal-header shrink-0 border-b px-4 py-3 transition-colors duration-300 sm:px-6 sm:py-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1 pr-2">
-                <h2 className="text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
-                  {card.title}
-                </h2>
+                {canEditTitle && onUpdateTitle && editingTitle ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      maxLength={255}
+                      autoFocus
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void handleSaveTitle();
+                        }
+                      }}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={savingTitle || !title.trim()}
+                        onClick={() => void handleSaveTitle()}
+                      >
+                        {savingTitle ? "…" : t("portalBoard.saveCardTitle")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={savingTitle}
+                        onClick={() => {
+                          setTitle(card.title);
+                          setEditingTitle(false);
+                        }}
+                      >
+                        {t("common.cancel")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-1">
+                    <h2 className="min-w-0 flex-1 text-base font-bold leading-snug text-slate-900 sm:text-lg lg:text-xl">
+                      {card.title}
+                    </h2>
+                    {canEditTitle && onUpdateTitle ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm shrink-0 px-2! text-slate-500 hover:text-slate-800"
+                        title={t("portalBoard.editCardTitle")}
+                        aria-label={t("portalBoard.editCardTitle")}
+                        onClick={() => setEditingTitle(true)}
+                      >
+                        <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <CardLabelBadge label={card.label} />
                   {canSetLabel && onUpdateLabel ? (
