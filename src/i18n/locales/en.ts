@@ -1572,16 +1572,16 @@ export const en: Messages = {
     subtitle: "Track your onboarding progress",
     loading: "Loading board...",
     unavailable: "Your board is not available yet. Complete your documents first.",
-    credentialsTitle: "Submit credentials (encrypted)",
+    credentialsTitle: "Submit credentials",
     credentialsHintFreeze:
-      "Use this form for ChexSystems, Innovis, and Clarity Services. Experian, Equifax, and TransUnion logins go on the cards in the Credentials column.",
+      "Leave ChexSystems and Innovis username and password in a comment on those cards. Attach the Clarity report on Experian Clarity Services.",
     credentialsHintBureau:
-      "Enter the username and password for this site here. They are stored encrypted — do not write them in the description or comments.",
+      "Write the username and password in a comment on this card so an advisor can use them.",
     username: "Username",
     password: "Password",
     help: {
-      username: "The username you use to sign in to this site. It is stored encrypted.",
-      password: "The password for this site. It is stored encrypted — do not write it in comments.",
+      username: "The username you use to sign in to this site. Also leave it in a comment.",
+      password: "The password for this site. Write it in a comment for the advisor.",
     },
     saveCredentials: "Save credentials",
     credentialsSaved: "Credentials saved securely",

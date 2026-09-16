@@ -1576,16 +1576,16 @@ export const es = {
     subtitle: "Sigue el progreso de tu onboarding",
     loading: "Cargando tablero...",
     unavailable: "Tu tablero aún no está disponible. Completa tus documentos primero.",
-    credentialsTitle: "Entregar credenciales (cifradas)",
+    credentialsTitle: "Entregar credenciales",
     credentialsHintFreeze:
-      "Usa este formulario para ChexSystems, Innovis y Clarity Services. Las claves de Experian, Equifax y TransUnion van en las tarjetas de la columna Credenciales.",
+      "Dejá usuario y contraseña de ChexSystems e Innovis en un comentario de esas tarjetas. El reporte de Clarity se adjunta en Experian Clarity Services.",
     credentialsHintBureau:
-      "Carga aquí el usuario y la contraseña de este sitio. Quedan cifrados; no los escribas en la descripción ni en comentarios.",
+      "Escribí el usuario y la contraseña en un comentario de esta tarjeta para que un asesor pueda tomarlos.",
     username: "Usuario",
     password: "Contraseña",
     help: {
-      username: "El usuario con el que entras a este sitio. Queda cifrado.",
-      password: "La contraseña de este sitio. Queda cifrada; no la escribas en comentarios.",
+      username: "El usuario con el que entras a este sitio. Dejalo también en un comentario.",
+      password: "La contraseña de este sitio. Escribila en un comentario para el asesor.",
     },
     saveCredentials: "Guardar credenciales",
     credentialsSaved: "Credenciales guardadas de forma segura",
