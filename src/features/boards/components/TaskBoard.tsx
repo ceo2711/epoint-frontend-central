@@ -22,11 +22,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { HiEllipsisVertical, HiOutlinePencilSquare, HiOutlineTrash } from "react-icons/hi2";
 
 import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { CardLabelPicker } from "@/features/boards/components/CardLabelBadge";
 import {
@@ -184,10 +183,32 @@ function KanbanColumn({
     disabled: !canReorderColumn,
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   function setColumnRef(node: HTMLDivElement | null) {
     setSortableRef(node);
   }
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen]);
 
   return (
     <div
@@ -197,7 +218,9 @@ function KanbanColumn({
         transition,
         opacity: isDragging ? 0.45 : 1,
       }}
-      className="kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48"
+      className={`kanban-column group/column flex w-[11.5rem] shrink-0 snap-start flex-col p-2 sm:w-48 ${
+        menuOpen ? "z-30 overflow-visible" : ""
+      }`}
     >
       <div
         className={`kanban-column-header shrink-0 ${canReorderColumn ? "cursor-grab active:cursor-grabbing" : ""}`}
@@ -206,19 +229,66 @@ function KanbanColumn({
         <span className="min-w-0 flex-1">{list.title}</span>
         <span className="flex shrink-0 items-center gap-0.5">
           {canManageColumn && (onRequestEditList || onRequestDeleteList) ? (
-            <button
-              type="button"
-              className="rounded p-0.5 text-slate-500 hover:bg-white/70 hover:text-slate-800"
-              title={t("portalBoard.columnActions")}
-              aria-label={t("portalBoard.columnActions")}
+            <div
+              ref={menuRef}
+              className="relative"
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                setMenuOpen(true);
-              }}
             >
-              <HiEllipsisVertical className="h-4 w-4" aria-hidden />
-            </button>
+              <button
+                type="button"
+                className="rounded p-0.5 text-slate-500 hover:bg-white/70 hover:text-slate-800"
+                title={t("portalBoard.columnActions")}
+                aria-label={t("portalBoard.columnActions")}
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setMenuOpen((open) => !open);
+                }}
+              >
+                <HiEllipsisVertical className="h-4 w-4" aria-hidden />
+              </button>
+              {menuOpen ? (
+                <div className="action-menu-dropdown action-menu-dropdown-right kanban-column-menu" role="menu">
+                  {onRequestEditList ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="action-menu-item"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onRequestEditList(list);
+                      }}
+                    >
+                      <HiOutlinePencilSquare className="h-4 w-4" aria-hidden />
+                      {t("portalBoard.editColumn")}
+                    </button>
+                  ) : null}
+                  {onRequestDeleteList ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="action-menu-item action-menu-item-danger"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onRequestDeleteList(list.id);
+                      }}
+                    >
+                      <HiOutlineTrash className="h-4 w-4" aria-hidden />
+                      {t("portalBoard.deleteColumn")}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="action-menu-item"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : null}
           <span className="kanban-column-count">{list.cards.length}</span>
         </span>
@@ -245,49 +315,6 @@ function KanbanColumn({
           <AddCardForm listId={list.id} cardCount={list.cards.length} onCreate={onCreateCard} />
         )}
       </div>
-
-      {menuOpen ? (
-        <Modal
-          title={list.title}
-          subtitle={t("portalBoard.columnActionsHint")}
-          onClose={() => setMenuOpen(false)}
-          size="md"
-        >
-          <div className="space-y-2">
-            {onRequestEditList ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onRequestEditList(list);
-                }}
-              >
-                <HiOutlinePencilSquare className="h-4 w-4 text-slate-500" aria-hidden />
-                {t("portalBoard.editColumn")}
-              </button>
-            ) : null}
-            {onRequestDeleteList ? (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:border-red-300 hover:bg-red-50"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onRequestDeleteList(list.id);
-                }}
-              >
-                <HiOutlineTrash className="h-4 w-4" aria-hidden />
-                {t("portalBoard.deleteColumn")}
-              </button>
-            ) : null}
-          </div>
-          <div className="modal-actions mt-4">
-            <Button type="button" variant="secondary" onClick={() => setMenuOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-          </div>
-        </Modal>
-      ) : null}
     </div>
   );
 }

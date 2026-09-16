@@ -1515,6 +1515,26 @@ body {
   color: var(--primary-dark);
 }
 
+.action-menu-item-danger {
+  color: #b42318;
+}
+
+.action-menu-item-danger:hover:not(:disabled) {
+  background: #fef3f2;
+  color: #912018;
+}
+
+.kanban-column-menu {
+  min-width: 10.5rem;
+  top: calc(100% + 0.25rem);
+}
+
+.kanban-column-menu .action-menu-item {
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+}
+
 .action-menu-dropdown-right {
   left: auto;
   right: 0;
