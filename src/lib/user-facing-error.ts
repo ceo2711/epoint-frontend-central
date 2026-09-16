@@ -2,7 +2,7 @@ import { ApiError } from "@/lib/api-error";
 
 /** Mensaje genérico cuando falla la conexión (sin URLs ni detalles técnicos). */
 export const NETWORK_ERROR_MESSAGE =
-  "No pudimos conectar con el servicio. Intentá de nuevo en unos momentos.";
+  "No pudimos conectar con el servicio. Intenta de nuevo en unos momentos.";
 
 const TECHNICAL_MESSAGE_PATTERNS = [
   /https?:\/\//i,

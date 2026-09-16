@@ -68,7 +68,7 @@ export function WelcomeEmail({
 
         <Hr style={dividerStyle} />
 
-        <Text style={appStoreTitleStyle}>Descargá la app móvil</Text>
+        <Text style={appStoreTitleStyle}>Descarga la app móvil</Text>
         <Text style={appStoreHintStyle}>
           Usa las mismas credenciales para ingresar desde tu teléfono.
         </Text>

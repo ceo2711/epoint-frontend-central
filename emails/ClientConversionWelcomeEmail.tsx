@@ -38,7 +38,7 @@ export function ClientConversionWelcomeEmail({
         <Text style={reviewTitleStyle}>Tu perfil pasa a revisión</Text>
         <Text style={reviewTextStyle}>
           Nuestro equipo de Onboarding revisará tu información. Una vez que tu perfil sea aprobado,
-          nos contactaremos con vos por este mismo medio para informarte los próximos pasos.
+          nos contactaremos contigo por este mismo medio para informarte los próximos pasos.
         </Text>
       </Section>
 
