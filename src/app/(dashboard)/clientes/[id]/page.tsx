@@ -9,6 +9,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { ClientAdvisorPanel } from "@/features/clients/components/ClientAdvisorPanel";
 import { ClientPaymentStatusCard } from "@/features/clients/components/ClientPaymentStatusCard";
+import { ClientSsnField } from "@/features/clients/components/ClientSsnField";
 import { StaffClientVehicleCard } from "@/features/clients/components/StaffClientVehicleCard";
 import { ClientSalesPipelineSection } from "@/features/clients/components/ClientSalesPipelineSection";
 import { PortalCredentialsCard } from "@/features/clients/components/PortalCredentialsCard";
@@ -637,12 +638,7 @@ function ClienteDetailPageContent() {
                         onChange={(date_of_birth) => setForm({ ...form, date_of_birth })}
                         hint={t("clientDetail.dateOfBirthHint")}
                       />
-                      <Input
-                        label={t("clientDetail.hasSsn")}
-                        value={client.has_ssn ? t("common.yes") : t("common.no")}
-                        disabled
-                        readOnly
-                      />
+                      <ClientSsnField clientId={client.id} hasSsn={client.has_ssn} token={token} />
                     </>
                   ) : null}
                   <div className="flex flex-wrap items-center gap-2 pe-[4.75rem] sm:col-span-2 sm:pe-[5.75rem]">
@@ -671,7 +667,7 @@ function ClienteDetailPageContent() {
                   {showApprovedWorkspace ? (
                     <>
                       <InfoRow label={t("clientDetail.dateOfBirth")} value={formatDate(client.date_of_birth)} />
-                      <InfoRow label={t("clientDetail.hasSsn")} value={client.has_ssn ? t("common.yes") : t("common.no")} />
+                      <ClientSsnField clientId={client.id} hasSsn={client.has_ssn} token={token} />
                     </>
                   ) : null}
                 </div>
